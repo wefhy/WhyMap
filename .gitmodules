@@ -1,0 +1,3 @@
+[submodule "src-vue"]
+	path = src-vue
+	url = https://github.com/wefhy/WhyMap-frontend.git
