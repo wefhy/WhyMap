@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.wefhy.whymap.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "DimensionTypeAccess"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
