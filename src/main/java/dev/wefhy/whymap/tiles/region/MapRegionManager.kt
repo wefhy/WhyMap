@@ -37,12 +37,9 @@ class MapRegionManager {
     }
 
     private inline fun getOrPut(position: LocalTileRegion, defaultValue: () -> MapArea): MapArea {
-        return getLoadedOrCached(position)
-            ?: run {
-                val value = defaultValue()
-                regions[position] = value
-                value
-            }
+        return regions.getOrPut(position) {
+            regionsWeakCache[position]?.get() ?: defaultValue()
+        }
     }
 
     private inline fun getOrPutWeak(position: LocalTileRegion, defaultValue: () -> MapArea?): MapArea? {
@@ -108,6 +105,7 @@ class MapRegionManager {
             regions.clear()
             regionsWeakCache.clear()
             LOGGER.debug("SAVED ALL TILES!")
+            println("WhyMap: SAVED ALL TILES!")
         }
     }
 

@@ -41,6 +41,7 @@ class WhyMapMod : ModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()
+            LOGGER.info("Saved all data")
             activeWorld = null
         }
 

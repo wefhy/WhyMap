@@ -72,8 +72,7 @@ class ExperimentalTileGenerator {
                     )
                 } else {
                     g2d.color = java.awt.Color(block.material.color.color)
-
-                    g2d.fillRect(x * 16, y * 16, (x + 1) * 16, (y + 1) * 16)
+                    g2d.fillRect(x * 16, y * 16, 16, 16)
                 }
                 if (depth == 0.toByte()) continue
                 val sourceOverlay = ExperimentalTextureProvider.getBitmap(blockOverlay.block)
@@ -94,7 +93,7 @@ class ExperimentalTileGenerator {
                         (c + (-depth * 4)).toInt() or ((alpha * 255).toInt() shl 24),
                         true
                     )
-                    g2d.fillRect(x * 16, y * 16, (x + 1) * 16, (y + 1) * 16)
+                    g2d.fillRect(x * 16, y * 16, 16, 16)
                 }
             }
         }
