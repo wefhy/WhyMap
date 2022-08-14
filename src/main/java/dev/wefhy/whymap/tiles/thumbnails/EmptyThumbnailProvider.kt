@@ -5,6 +5,7 @@ package dev.wefhy.whymap.tiles.thumbnails
 import java.awt.image.BufferedImage
 
 object EmptyThumbnailProvider : RenderedThumbnailProvider {
-    override val wasUpdated = false
+    override var wasUpdated = false
+        set(_) {}
     override suspend fun getThumbnail(): BufferedImage? = null
 }

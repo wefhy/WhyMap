@@ -4,9 +4,12 @@
 
 package dev.wefhy.whymap.utils
 
+import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
+import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
 import java.io.File
+import java.time.LocalDateTime
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -62,6 +65,12 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
         a = a / divider
     )
 }
+
+val currentDateString
+    get() = LocalDateTime.now().format(logsDateFormatter)
+
+val currentLogEntryTimeString
+    get() = LocalDateTime.now().format(logsEntryTimeFormatter)
 
 inline fun bytesToInt(r: UInt, g: UInt, b: UInt, a: UInt): Int {
     return (a.coerceIn0255().toInt() shl 24) or (r.coerceIn0255().toInt() shl 16) or (g.coerceIn0255()

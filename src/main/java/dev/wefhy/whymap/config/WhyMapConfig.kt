@@ -3,6 +3,7 @@
 package dev.wefhy.whymap.config
 
 import java.io.File
+import java.time.format.DateTimeFormatter
 
 
 /**
@@ -56,13 +57,9 @@ object WhyMapConfig {
 
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
-
-    @Deprecated("use variable provided by CurrentWorld")
-    val mapTilesPath = modPath.resolve("tiles")
-
-    @Deprecated("use variable provided by CurrentWorld")
-    val mapThumbnailsPath = modPath.resolve("thumbnails").resolve("$thumbnailZoom")
-    val xaeroWaypointsPath = minecraftPath.resolve("XaeroWaypoints")
+    val logsPath = modPath.resolve("logs")
+    val logsDateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+    val logsEntryTimeFormatter = DateTimeFormatter.ofPattern("HHmmss.SSS")
 
     val webExportDirectory = modPath.resolve("WebExport")
     val currentWorldName = "CurrentWorldName"

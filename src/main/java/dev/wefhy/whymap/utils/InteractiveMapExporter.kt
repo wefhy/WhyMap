@@ -63,22 +63,24 @@ class InteractiveMapExporter {
     }
 
     context(File)
-            suspend fun exportRegion(position: LocalTileRegion): Boolean {
-        val region = currentWorld.mapRegionManager.getRegionForTilesRendering(position) ?: return false
-        val tile = position.toMapTile()
-        val file = resolve("tiles").resolve(tile)
-        file.parentFile.mkdirs()
-        return withContext(Dispatchers.IO) {
-            ImageIO.write(
-                region.getRendered(),
-                "png",
-                file
-            )
-        }
+    suspend fun exportRegion(position: LocalTileRegion): Boolean {
+        return currentWorld.mapRegionManager.getRegionForTilesRendering(position) {
+            val tile = position.toMapTile()
+            val file = resolve("tiles").resolve(tile)
+            file.parentFile.mkdirs()
+            withContext(Dispatchers.IO) {
+                ImageIO.write(
+                    getRendered(),
+                    "png",
+                    file
+                )
+            }
+        } ?: false
+
     }
 
     context(File)
-            suspend fun exportChunk(position: LocalTileChunk): Boolean {
+    suspend fun exportChunk(position: LocalTileChunk): Boolean {
         val renderedChunk = currentWorld.experimentalTileGenerator.getTile(position.chunkPos) ?: return false
         val tile = position.toMapTile()
         val file = resolve("tiles")

@@ -31,3 +31,7 @@ bin/
 # fabric
 
 run/
+src/main/resources/web/js/
+src/main/resources/web/css/
+src/main/resources/web/index.html
+src/main/resources/web/favicon.ico

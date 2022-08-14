@@ -26,9 +26,10 @@ class WhyMapMod : ModInitializer {
             if (DEV_VERSION) LOGGER.info("Loaded(${wc.pos.x}:${wc.pos.z})")
 //            val filename = ChunkSaver.chunkToBmp(wc)
 //            MinecraftClient.getInstance()!!.player!!.sendChatMessage("Saved: $filename")
-            val regionTiles = activeWorld!!.mapRegionManager.getRegionForWriteAndLoad(LocalTile.Region(wc.pos.regionX, wc.pos.regionZ))
             GlobalScope.launch(Dispatchers.Default) {
-                regionTiles.updateChunk(wc)
+                activeWorld!!.mapRegionManager.getRegionForWriteAndLoad(LocalTile.Region(wc.pos.regionX, wc.pos.regionZ)) {
+                    updateChunk(wc)
+                }
             }
 
         }

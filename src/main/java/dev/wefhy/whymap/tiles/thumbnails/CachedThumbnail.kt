@@ -9,6 +9,6 @@ class CachedThumbnail : RenderedThumbnailProvider {
         TODO()
     }
 
-    override val wasUpdated: Boolean = false
+    override var wasUpdated: Boolean = false
 
 }

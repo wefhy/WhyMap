@@ -73,23 +73,26 @@ object WhyServer {
             val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
             val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
             val block = LocalTile.Block(x, z)
-            val region = activeWorld?.mapRegionManager?.getRegionForTilesRendering(block.parent(TileZoom.RegionZoom)) ?: return@get call.respondText("Block unavailable")
-            call.respond(
-                region.getBlockInfo(block)
-            )
+            activeWorld?.mapRegionManager?.getRegionForTilesRendering(block.parent(TileZoom.RegionZoom)) {
+                call.respond(
+                    getBlockInfo(block)
+                )
+            } ?: return@get call.respondText("Block unavailable")
         }
         get("/customRegion/{s}/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
             val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
             val s = call.parameters["s"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val region = activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) ?: return@get call.respondText("Region unavailable")
-            val bitmap = withContext(Dispatchers.IO) { region.getCustomRender(s) }
-            call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                withContext(Dispatchers.IO) {
-                    encodePNG(bitmap) //TODO test other formats performance and quality
+            activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) {
+                val bitmap = withContext(Dispatchers.IO) { getCustomRender(s) }
+                call.respondOutputStream(contentType = WhyMapMod.contentType) {
+                    withContext(Dispatchers.IO) {
+                        encodePNG(bitmap) //TODO test other formats performance and quality
+                    }
                 }
-            }
+            } ?: return@get call.respondText("Region unavailable")
+
         }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
@@ -101,8 +104,10 @@ object WhyServer {
                 WhyMapConfig.regionZoom, -WhyMapConfig.regionZoom -> {
                     val regionTile = if (s >= 0) MapTile(x, z, TileZoom.RegionZoom).toLocalTile() else LocalTile(x, z, TileZoom.RegionZoom)
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info("Requested tile: ${Pair(x, z)}, scale: $s, region: $regionTile")
-                    val region = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) ?: return@get call.respondText("Region unavailable")
-                    withContext(Dispatchers.IO) { region.getRendered() }
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        withContext(Dispatchers.IO) { getRendered() }
+                    } ?: return@get call.respondText("Region unavailable")
+
                 }
                 WhyMapConfig.chunkZoom, -WhyMapConfig.chunkZoom -> {
                     val chunkTile = if (s >= 0) MapTile(x, z, TileZoom.ChunkZoom).toLocalTile() else LocalTile(x, z, TileZoom.ChunkZoom)
@@ -126,6 +131,13 @@ object WhyServer {
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
                 withContext(Dispatchers.IO) {
                     encodePNG(bitmap) //TODO test other formats performance and quality
+                    /**
+                     * java.lang.IndexOutOfBoundsException: null
+                     * at javax.imageio.stream.FileCacheImageOutputStream.seek(FileCacheImageOutputStream.java:170)
+                     * [...]
+                     * at dev.wefhy.whymap.utils.ImageWriter.encodePNG(ImageWriter.kt:50) ~[main/:?]
+                     * at dev.wefhy.whymap.WhyServer$serverRouting$4$1$1.invokeSuspend(WhyServer.kt:133) ~[main/:?]
+                     */
                 }
             }
         }

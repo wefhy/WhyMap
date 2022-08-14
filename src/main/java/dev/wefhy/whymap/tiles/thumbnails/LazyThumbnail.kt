@@ -11,7 +11,7 @@ import javax.imageio.ImageIO
 context(CurrentWorldProvider<WhyWorld>)
 class LazyThumbnail(position: LocalTileRegion) : RenderedThumbnailProvider {
 
-    val file = currentWorld.mapRegionManager.getThumbnailFile(position)
+    val file = currentWorld.getThumbnailFile(position)
 
     override suspend fun getThumbnail(): BufferedImage? {
         return try {
@@ -24,5 +24,6 @@ class LazyThumbnail(position: LocalTileRegion) : RenderedThumbnailProvider {
     }
 
 
-    override val wasUpdated = false
+    override var wasUpdated = false
+        set(_) {}
 }

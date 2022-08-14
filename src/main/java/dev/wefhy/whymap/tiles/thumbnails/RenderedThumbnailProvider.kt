@@ -5,6 +5,6 @@ package dev.wefhy.whymap.tiles.thumbnails
 import java.awt.image.BufferedImage
 
 interface RenderedThumbnailProvider {
-    val wasUpdated: Boolean
+    var wasUpdated: Boolean
     suspend fun getThumbnail(): BufferedImage?
 }

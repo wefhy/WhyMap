@@ -22,20 +22,16 @@ class RegionThumbnailer {
 //            ?: getThumbnailFromFile(position)
 //            ?: MapRegionManager.getRegionForReadAndLoad(position)?.getAndSaveThumbnail()
 
-        return currentWorld.mapRegionManager.getLoadedRegionForRead(position)
-            ?: getFileThumbnail(position)
-            ?: currentWorld.mapRegionManager.peekRegion(position)
-            ?: EmptyThumbnailProvider
+        return currentWorld.mapRegionManager.getRegionLoaderForThumbnailRendering(position)
 
 
 //        MinecraftClient.getInstance().world!!.getChunk(0,0, ChunkStatus.EMPTY, false)
     }
 
     private fun getFileThumbnail(position: LocalTileRegion): RenderedThumbnailProvider? {
-        return if (currentWorld.mapRegionManager.getThumbnailFile(position).exists())
+        return if (currentWorld.getThumbnailFile(position).exists())
             LazyThumbnail(position)
         else null
-
     }
 
 

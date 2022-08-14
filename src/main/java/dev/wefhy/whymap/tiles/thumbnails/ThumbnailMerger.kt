@@ -3,12 +3,12 @@
 package dev.wefhy.whymap.tiles.thumbnails
 
 import dev.wefhy.whymap.CurrentWorldProvider
-import dev.wefhy.whymap.utils.LocalTileThumbnail
-import dev.wefhy.whymap.utils.TileZoom
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailResolution
 import dev.wefhy.whymap.config.WhyMapConfig.tileResolution
+import dev.wefhy.whymap.utils.LocalTileThumbnail
+import dev.wefhy.whymap.utils.TileZoom
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.awt.image.BufferedImage
@@ -39,12 +39,12 @@ class ThumbnailMerger(val position: LocalTileThumbnail) {
                 for ((x, regionPosition) in row.withIndex()) {
 //                    print("attempting render $x, $z ($regionPosition)")
                     val thumbnailProvider = currentWorld.regionThumbnailer.getRegion(regionPosition)
+                    thumbnailProvider.wasUpdated = false
 //                    LOGGER.debug(" type: ${thumbnailProvider::class.simpleName}")
                     val tile = thumbnailProvider.getThumbnail() ?: continue
 //                    LOGGER.debug("something to draw!")
                     g2d.drawImage(tile, x * regionThumbnailResolution, z * regionThumbnailResolution, null)
 //                    LOGGER.debug("drawn!")
-
                 }
             }
         }

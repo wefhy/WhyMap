@@ -36,7 +36,7 @@ object ExperimentalTextureProvider {
             val file = getTopTexture(name)
                 ?: getRegularTexture(name)
                 ?: kotlin.run {
-                    val shortName = name.replace("_stairs", "").replace("_slab", "")
+                    val shortName = name.replace("_stairs", "").replace("_slab", "").replace("_carpet", "_wool").replace("smooth_", "")
                     getTopTexture(shortName)
                         ?: getRegularTexture(shortName)
                         ?: getTopTexture(shortName + 's')
@@ -44,6 +44,8 @@ object ExperimentalTextureProvider {
                         ?: getTopTexture(shortName + "_block")
                         ?: getRegularTexture(shortName + "_block")
                         ?: getRegularTexture(shortName + "_planks")
+                        ?: getRegularTexture(shortName.replace("_carpet", ""))
+                        ?: getRegularTexture(shortName.replace("wood", "log"))
                         ?: return@getOrPut Optional.empty<BufferedImage>().also {
                             missingTextures += name
 //                            LOGGER.warn("Skipping $name")

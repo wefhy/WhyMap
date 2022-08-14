@@ -2,18 +2,23 @@
 
 package dev.wefhy.whymap.tiles.region
 
-import dev.wefhy.whymap.*
+import dev.wefhy.whymap.CurrentWorldProvider
+import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
+import dev.wefhy.whymap.WhyWorld
+import dev.wefhy.whymap.communication.BlockData
 import dev.wefhy.whymap.config.RenderConfig.shouldBlockOverlayBeIgnored
+import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
-import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
-import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
-import dev.wefhy.whymap.tiles.thumbnails.RenderedThumbnailProvider
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.utils.*
-import kotlinx.coroutines.*
+import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
@@ -35,7 +40,7 @@ import kotlin.math.atan
 import kotlin.random.Random
 
 context(CurrentWorldProvider<WhyWorld>)
-class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
+class MapArea private constructor(val location: LocalTileRegion) {
 
     val biomeManager = currentWorld.biomeManager
     var modifiedSinceRender = true
@@ -49,8 +54,8 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
     val depthMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 8 bits
     val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
 
-    val file = currentWorld.mapRegionManager.getFile(location)
-    val thumbnailFile = currentWorld.mapRegionManager.getThumbnailFile(location)
+    val file = currentWorld.getFile(location)
+    val thumbnailFile = currentWorld.getThumbnailFile(location)
 
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
     val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
@@ -58,6 +63,12 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
     var lastThumbnailUpdate = 0L
+
+    init {
+        currentWorld.writeToLog("Initialized ${obfuscateObjectWithCommand(location, "init")}, file exists: ${file.exists()}")
+        if(file.exists())
+            load()
+    }
 
     fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
         //TODO load only if in exists array; save exists array to file
@@ -126,6 +137,7 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
     val random = Random(0)
 
     suspend fun save() = withContext(Dispatchers.IO) {
+        currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
             return@withContext
         //TODO write file versions and support migrations
@@ -164,7 +176,8 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
         modifiedSinceSave = false
     }
 
-    fun load() { //TODO load should be fired in init?
+    private fun load() {
+        currentWorld.writeToLog("Loading ${obfuscateObjectWithCommand(location, "load")}, file existed: ${file.exists()}")
         try {
             file.inputStream().use {
                 val data = ByteArray(storageTileBlocksSquared * 9)
@@ -186,6 +199,7 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
                 }
             }
         } catch (e: EOFException) {
+            currentWorld.writeToLog("ERROR Loading ${obfuscateObjectWithCommand(location, "error")}")
             LOGGER.error("ERROR LOADING TILE: ${file.absolutePath}")
         }
     }
@@ -198,7 +212,11 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
             for (x in 0 until 16) {
                 var y = hm[x, z] - 1
                 mutablePosition.set(x, y, z)
-                while (!getBlockState(mutablePosition).material.isSolid and (y > bottomY)) { //TODO or >= bottomY
+//                getBlockState(mutablePosition).isFullCube()
+//                getBlockState(mutablePosition).hasSidedTransparency()
+//                getBlockState(mutablePosition).isOpaque
+//                Block.isFaceFullSquare(null, Direction.UP)
+                while (!getBlockState(mutablePosition).material.isSolid and (y > bottomY)) { //TODO or isOpaque
                     mutablePosition.y = --y
                 }
                 output[z][x] = y //TODO this will point to air block just like regular heightmap
@@ -221,19 +239,17 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
         )
     }
 
-
-
-    override val wasUpdated: Boolean
-        get() = true
-
     fun updateChunk(chunk: Chunk) {
         if (
             chunk.pos.regionX != location.x ||
             chunk.pos.regionZ != location.z
         ) {
             LOGGER.error("Chunk wrong position!")
+            println("WhyMap Update Error: Chunk wrong position!")
+            currentWorld.writeToLog("ERROR ChunkUpdate ${obfuscateObjectWithCommand(location, "update-error")}")
             return
         }
+        modifiedSinceSave = true
         exists[chunk.pos.regionRelativeZ][chunk.pos.regionRelativeX] = true
 
         val worldLightView = lightingProvider[LightType.BLOCK]
@@ -333,8 +349,6 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
             else -> true
         }
     }
-
-    override suspend fun getThumbnail(): BufferedImage = getAndSaveThumbnail()
 
     suspend fun getAndSaveThumbnail(): BufferedImage {
         return if (::renderedThumbnail.isInitialized && !shouldBeReRendered(regionThumbnailScaleLog))
@@ -479,10 +493,16 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
 
     companion object {
 
+        context(CurrentWorldProvider<WhyWorld>)
+        fun GetIfExists(position: LocalTileRegion) = if (currentWorld.getFile(position).exists()) MapArea(position) else null
 
-        val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
-        val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
-        val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
+        context(CurrentWorldProvider<WhyWorld>)
+        fun GetForWrite(position: LocalTileRegion) = MapArea(position)
+
+
+        private val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
+        private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
+        private val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
         val foliageBlocks = minecraftBlocks.filter {
             it.contains("vine") ||
                     it.contains("leaves") ||
@@ -533,13 +553,3 @@ class MapArea(val location: LocalTileRegion): RenderedThumbnailProvider {
 
     }
 }
-
-@kotlinx.serialization.Serializable
-class BlockData(
-    val block :String,
-    val overlay :String,
-    val biome :String,
-    val height :Short,
-    val depth :UByte,
-    val light: Byte
-)
