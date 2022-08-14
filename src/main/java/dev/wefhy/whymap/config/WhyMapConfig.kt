@@ -63,5 +63,5 @@ object WhyMapConfig {
 
     val webExportDirectory = modPath.resolve("WebExport")
     val currentWorldName = "CurrentWorldName"
-
+    val mapLink = "http://localhost:7542"
 }

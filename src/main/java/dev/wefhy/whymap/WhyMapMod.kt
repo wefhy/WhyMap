@@ -3,7 +3,9 @@
 package dev.wefhy.whymap
 
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
+import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -13,14 +15,13 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents
 import net.minecraft.client.MinecraftClient
+import net.minecraft.text.ClickEvent
+import net.minecraft.text.LiteralText
 import org.slf4j.LoggerFactory
 
 
 class WhyMapMod : ModInitializer {
-
-
     override fun onInitialize() {
-
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
             if (cw == null || wc == null || wc.isEmpty) return@register
             if (DEV_VERSION) LOGGER.info("Loaded(${wc.pos.x}:${wc.pos.z})")
@@ -49,6 +50,11 @@ class WhyMapMod : ModInitializer {
         ClientPlayConnectionEvents.JOIN.register { handler, sender, client ->
             println("JOINED WORLD! ${client.world?.dimension?.coordinateScale}")
             activeWorld = CurrentWorld(client)
+
+            val message = LiteralText("WhyMap: see your map at ") + LiteralText(mapLink).apply {
+                style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
+            }
+            client.player!!.sendMessage(message, false)
         }
 
         GlobalScope.launch {

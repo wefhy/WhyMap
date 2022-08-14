@@ -5,25 +5,15 @@ Your map will be presented at http://localhost:7542
 
 ## Setup
 
-First install yarn packages for frontend:
-
-```bash
-cd src-vue
-yarn install
-cd ..
-```
+You need yarn installed in order to compile the project (for building the frontend)
 
 To run the mod:
 
-```bash
-gradle runClient
-```
+`gradle runClient`
 
 To compile `jar` file:
 
-```bash
-gradle build
-```
+`gradle build`
 
 ## License
 

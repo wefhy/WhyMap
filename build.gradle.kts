@@ -1,15 +1,14 @@
+import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
+
 // Copyright (c) 2022 wefhy
 
-object Constants {
-	const val modid = "WhyMap"
-	const val group = "dev.wefhy"
-	const val name = modid
-	const val version = "1.0.0"
-	const val minecraftVersion="1.18.2"
-	const val yarnMappings="1.18.2+build.1"
-	const val loaderVersion="0.13.3"
-	const val fabricVersion="0.47.8+1.18.2"
-}
+val mod_id: String by project
+val maven_group: String by project
+val mod_version: String by project
+val minecraft_version: String by project
+val yarn_mappings: String by project
+val loader_version: String by project
+val fabric_version: String by project
 
 plugins {
 	id ("fabric-loom") version "0.11-SNAPSHOT"
@@ -24,10 +23,10 @@ java {
 	withSourcesJar()
 }
 base {
-	archivesBaseName = Constants.name
+	archivesBaseName = mod_id.toLowerCaseAsciiOnly()
 }
-version = Constants.version
-group = Constants.group
+version = mod_version
+group = maven_group
 
 repositories {
 	mavenCentral()
@@ -44,10 +43,10 @@ val extraLibs: Configuration by configurations.creating
 
 
 dependencies {
-	minecraft ("com.mojang:minecraft:${Constants.minecraftVersion}")
-	mappings ("net.fabricmc:yarn:${Constants.yarnMappings}:v2")
-	modImplementation ("net.fabricmc:fabric-loader:${Constants.loaderVersion}")
-	modImplementation ("net.fabricmc.fabric-api:fabric-api:${Constants.fabricVersion}")
+	minecraft ("com.mojang:minecraft:${minecraft_version}")
+	mappings ("net.fabricmc:yarn:${yarn_mappings}:v2")
+	modImplementation ("net.fabricmc:fabric-loader:${loader_version}")
+	modImplementation ("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
 	modImplementation("net.fabricmc:fabric-language-kotlin:1.8.2+kotlin.1.7.10")
 
 	implementation ("io.ktor:ktor-server-core:2.0.3")
@@ -65,8 +64,6 @@ dependencies {
 	extraLibs ("io.ktor:ktor-server-html-builder:2.0.3")
 	extraLibs ("io.ktor:ktor-server-cors:2.0.3")
 	extraLibs  (group = "org.tukaani", name = "xz", version = "1.9")
-
-
 }
 
 tasks.getByName<ProcessResources>("processResources") {
@@ -81,20 +78,10 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
 	kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
 }
 
-//kotlin {
-//	targets.all {
-//		compilatons.all {
-//			kotlinOptions {
-//				freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-//			}
-//		}
-//	}
-//}
-
 tasks.withType<Jar> {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	from("LICENSE") {
-		rename { "${it}_${Constants.name}"}
+		rename { "${it}_${mod_id}"}
 	}
 	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
 //	from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
@@ -137,8 +124,6 @@ tasks.register<Exec>("serve") {
 	commandLine("yarn", "serve")
 }
 
-
-
 tasks {
 	"runClient" {
 		dependsOn(copyDistFolder)
@@ -157,22 +142,3 @@ tasks {
 		dependsOn(yarnBuild)
 	}
 }
-
-
-//val fatJar = task("fatJar", type = Jar::class) {
-//	baseName = "${project.name}-fat"
-//	manifest {
-//		attributes["Implementation-Title"] = "Gradle Jar File Example"
-//		attributes["Implementation-Version"] = version
-//		attributes["Main-Class"] = "com.mkyong.DateUtils"
-//	}
-////	from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
-//	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-//	with(tasks.jar.get() as CopySpec)
-//}
-//
-//tasks {
-//	"build" {
-//		dependsOn(fatJar)
-//	}
-//}

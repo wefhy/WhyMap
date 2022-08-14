@@ -27,7 +27,7 @@ import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
 
 object WhyServer {
-    suspend fun host() {
+    fun host() {
         embeddedServer(CIO, port = 7542) {
             install(ContentNegotiation) {
                 json(Json {
@@ -132,6 +132,9 @@ object WhyServer {
                 withContext(Dispatchers.IO) {
                     encodePNG(bitmap) //TODO test other formats performance and quality
                     /**
+                     * Weird error can happen very rarely. Is it like out of memory?
+                     * (in theory output stream provided by Ktor shouldn't have a length limit?)
+                     *
                      * java.lang.IndexOutOfBoundsException: null
                      * at javax.imageio.stream.FileCacheImageOutputStream.seek(FileCacheImageOutputStream.java:170)
                      * [...]

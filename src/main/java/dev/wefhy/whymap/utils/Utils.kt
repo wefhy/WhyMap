@@ -6,6 +6,7 @@ package dev.wefhy.whymap.utils
 
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
+import net.minecraft.text.Text
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
 import java.io.File
@@ -99,3 +100,6 @@ inline fun getDepthShade(depth: Byte): Float { //TODO use lookup table
 inline fun Int.coerceIn0255() = coerceIn(0, 255)
 
 inline fun UInt.coerceIn0255() = coerceIn(0u, 255u)
+
+inline operator fun Text.plus(other: Text): Text = copy().append(other)
+
