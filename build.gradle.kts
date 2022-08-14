@@ -108,6 +108,13 @@ val deleteOldWeb = tasks.register<Delete>("deleteOldWeb") {
 	delete(files("src/main/resources/web/js"))
 }
 
+val yarnInstall = task<Exec>("yarnInstall") {
+	inputs.file("src-vue/package.json")
+	outputs.dir("src-vue/node_modules")
+	workingDir = file("src-vue")
+	commandLine("yarn", "install")
+}
+
 //abstract class YarnServeTask : DefaultTask() {
 //	@TaskAction
 //	fun serve() {
@@ -140,5 +147,8 @@ tasks {
 	"copyDistFolder" {
 		dependsOn(deleteOldWeb)
 		dependsOn(yarnBuild)
+	}
+	"yarnBuild" {
+		dependsOn(yarnInstall)
 	}
 }
