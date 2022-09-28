@@ -16,7 +16,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents
 import net.minecraft.client.MinecraftClient
 import net.minecraft.text.ClickEvent
-import net.minecraft.text.LiteralText
+import net.minecraft.text.LiteralTextContent
+import net.minecraft.text.MutableText
+import net.minecraft.text.Text
 import org.slf4j.LoggerFactory
 
 
@@ -51,7 +53,7 @@ class WhyMapMod : ModInitializer {
             println("JOINED WORLD! ${client.world?.dimension?.coordinateScale}")
             activeWorld = CurrentWorld(client)
 
-            val message = LiteralText("WhyMap: see your map at ") + LiteralText(mapLink).apply {
+            val message = Text.literal("WhyMap: see your map at ") + Text.literal(mapLink).apply {
                 style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
             }
             client.player!!.sendMessage(message, false)

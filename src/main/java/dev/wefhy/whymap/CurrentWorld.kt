@@ -6,7 +6,6 @@ import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
-import dev.wefhy.whymap.mixin.DimensionTypeAccess
 import dev.wefhy.whymap.tiles.BiomeCurrentWorldManager
 import dev.wefhy.whymap.tiles.BiomeManager
 import dev.wefhy.whymap.tiles.BiomeOfflineManager
@@ -46,10 +45,9 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
     //    val alternativeName: String = mc.server!!.saveProperties.levelName
     val dimensionCoordinateScale = world.dimension.coordinateScale
 
-    override val dimensionName = when (dimension) {
-        DimensionTypeAccess.getOverworld() -> "Overworld"
-        DimensionTypeAccess.getNether() -> "Nether"
-        DimensionTypeAccess.getEnd() -> "End"
+    override val dimensionName = when {
+        dimension.bedWorks -> "Overworld"
+        dimension.respawnAnchorWorks -> "Nether"
         else -> customDimensionName(dimension)
     }
 
@@ -76,11 +74,11 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
 
         fun customDimensionName(dimension: DimensionType): String {
             val values = booleanArrayOf(
-                dimension.isBedWorking,
-                dimension.isUltrawarm,
-                dimension.isNatural,
-                dimension.isPiglinSafe,
-                dimension.isRespawnAnchorWorking
+                dimension.bedWorks,
+                dimension.ultrawarm,
+                dimension.natural,
+                dimension.piglinSafe(),
+                dimension.respawnAnchorWorks,
             )
             return "CustomDimension-${values.joinToString("") { if (it) "1" else "0" }}-${dimension.coordinateScale}-${dimension.height}-${dimension.logicalHeight}"
         }
