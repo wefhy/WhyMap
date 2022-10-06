@@ -22,12 +22,18 @@ object FileVersionManager {
             get() = this == latestFileVersion
 
         fun getMetadataHead(): ByteArray {
-            val arr = ByteArray(4)
+            val arr = ByteArray(8)
             val buffer = ByteBuffer.wrap(arr)
             buffer.putShort(i)
             buffer.putInt(Random(i.toInt()).nextInt())
             buffer.putShort(i.inv())
             buffer.flip()
+            return arr
+        }
+
+        fun getMetadataArray(): ByteArray {
+            val arr = ByteArray(tileMetadataSize)
+            getMetadataHead().copyInto(arr)
             return arr
         }
 

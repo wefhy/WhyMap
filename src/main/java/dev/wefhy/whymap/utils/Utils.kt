@@ -6,6 +6,7 @@ package dev.wefhy.whymap.utils
 
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
+import dev.wefhy.whymap.utils.ObfuscatedLogHelper.i
 import net.minecraft.text.Text
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
@@ -102,4 +103,17 @@ inline fun Int.coerceIn0255() = coerceIn(0, 255)
 inline fun UInt.coerceIn0255() = coerceIn(0u, 255u)
 
 inline operator fun Text.plus(other: Text): Text = copy().append(other)
+
+inline fun ShortArray.mapInPlace(transform: (Short) -> Short) {
+    for (i in this.indices) {
+        this[i] = transform(this[i])
+    }
+}
+
+inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
+    for (subArray in this) {
+        subArray.mapInPlace(transform)
+    }
+}
+
 

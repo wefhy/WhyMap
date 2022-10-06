@@ -7,6 +7,7 @@ import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
 import dev.wefhy.whymap.config.RenderConfig.shouldBlockOverlayBeIgnored
+import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
@@ -14,6 +15,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.*
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
@@ -167,6 +169,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutupt = ByteArrayOutputStream()
                 XZOutputStream(xzOutupt, LZMA2Options(3)).use {xz ->
+                    xz.write(latestFileVersion.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
@@ -185,7 +188,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         try {
             file.inputStream().use {
                 val data = ByteArray(storageTileBlocksSquared * 9)
-                XZInputStream(it).use { xz ->
+                val version = XZInputStream(it).use { xz ->
                     val metadata = ByteArray(tileMetadataSize)
                     xz.read(metadata)
                     val version = recognizeVersion(WhyMapMetadata(metadata))
@@ -196,6 +199,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                         xz.read(data)
                     }
                     xz.close()
+                    version
                 }
 
                 val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
@@ -209,10 +213,20 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     byteBuffer.get(lightMap[y])
                     byteBuffer.get(depthMap[y])
                 }
+
+                if (version != latestFileVersion) {
+                    val remapLookup = getRemapLookup(version, latestFileVersion)
+                    blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
+                    blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
+                }
+
             }
         } catch (e: EOFException) {
             currentWorld.writeToLog("ERROR Loading ${obfuscateObjectWithCommand(location, "error")}")
             LOGGER.error("ERROR LOADING TILE: ${file.absolutePath}")
+        } catch (e: IndexOutOfBoundsException) {
+            currentWorld.writeToLog("ERROR Upgrading ${obfuscateObjectWithCommand(location, "error")}")
+            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}")
         }
     }
 

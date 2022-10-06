@@ -25,15 +25,15 @@ object BlockMappingsManager {
         return mappings
     }
 
-    fun getRemapLookup(version1: WhyMapFileVersion, version2: WhyMapFileVersion): List<Int> {
+    fun getRemapLookup(version1: WhyMapFileVersion, version2: WhyMapFileVersion): List<Short> {
         return getRemapLookup(
             blockMappingsForVersion(version1),
             blockMappingsForVersion(version2)
         )
     }
 
-    private fun getRemapLookup(mappings1: List<String>, mappings2: List<String>): List<Int> {
-        return mappings1.map { mappings2.indexOf(it) }.map { if(it >= 0) it else mappings2.indexOf("block.minecraft.air") }
+    private fun getRemapLookup(mappings1: List<String>, mappings2: List<String>): List<Short> {
+        return mappings1.map { mappings2.indexOf(it).toShort() }.map { if(it >= 0) it else mappings2.indexOf("block.minecraft.air").toShort() }
     }
 
     fun remap(data: List<Int>, remapLookUp: List<Int>): List<Int> {
