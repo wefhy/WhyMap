@@ -56,6 +56,7 @@ class WhyMapMod : ModInitializer {
                 style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
             }
             client.player!!.sendMessage(message, false)
+//            BlockMappingsManager.exportBlockMappings()
         }
 
         GlobalScope.launch {
