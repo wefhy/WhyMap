@@ -4,6 +4,7 @@ package dev.wefhy.whymap
 
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.LocalTile
 import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*

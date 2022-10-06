@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.config
 
+import dev.wefhy.whymap.tiles.region.FileVersionManager
 import java.io.File
 import java.time.format.DateTimeFormatter
 
@@ -51,12 +52,16 @@ object WhyMapConfig {
     val tileResolution = storageTileBlocks //512
     val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
 
+    val tileMetadataSize = 16 // bytes
+    val latestFileVersion = FileVersionManager.WhyMapFileVersion.Version1
+
     val reRenderInterval = 10 // seconds
     val cleanupInterval = 60 // seconds
     val unloadDistance = 1024 //blocks
 
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
+    val mappingsExportDir = modPath.resolve("mappings-export")
     val logsPath = modPath.resolve("logs")
     val logsDateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     val logsEntryTimeFormatter = DateTimeFormatter.ofPattern("HHmmss.SSS")

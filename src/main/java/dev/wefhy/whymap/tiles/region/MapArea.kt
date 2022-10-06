@@ -12,6 +12,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
+import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
@@ -182,6 +183,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
             file.inputStream().use {
                 val data = ByteArray(storageTileBlocksSquared * 9)
                 XZInputStream(it).use { xz ->
+                    val metadata = ByteArray(tileMetadataSize)
+                    xz.read(metadata)
                     xz.read(data)
                     xz.close()
                 }
@@ -382,34 +385,38 @@ class MapArea private constructor(val location: LocalTileRegion) {
             BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
         val scale = 1 shl scaleLog
 
-        for (z in 0 until storageTileBlocks step scale) {
-            for (x in 0 until storageTileBlocks step scale) {
-                val block = decodeBlock(blockIdMap[z][x])
-                val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
-                val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-                val overlayBlockColor = if(waterBlocks.contains(overlayBlock))
-                    biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
-                else
-                    Color(decodeBlockColor(blockOverlayIdMap[z][x]))
-
-                val normal = getNormalSharp(x, z)
-                val depth = depthMap[z][x]
-
-                var color = (if (foliageBlocks.contains(block)) {
-                    baseBlockColor * foliageColor
-                } else baseBlockColor) * normal.shade
-
-                if (depth > 0 && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-                    var waterColor = overlayBlockColor + -depth.toInt() * 4
-                    waterColor = if (foliageBlocks.contains(overlayBlock))
-                        waterColor * foliageColor
+        try {
+            for (z in 0 until storageTileBlocks step scale) {
+                for (x in 0 until storageTileBlocks step scale) {
+                    val block = decodeBlock(blockIdMap[z][x])
+                    val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
+                    val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
+                    val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
+                    val overlayBlockColor = if(waterBlocks.contains(overlayBlock))
+                        biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
                     else
-                        waterColor
-                    color = waterColor.mixWeight(color, getDepthShade(depth))
+                        Color(decodeBlockColor(blockOverlayIdMap[z][x]))
+
+                    val normal = getNormalSharp(x, z)
+                    val depth = depthMap[z][x]
+
+                    var color = (if (foliageBlocks.contains(block)) {
+                        baseBlockColor * foliageColor
+                    } else baseBlockColor) * normal.shade
+
+                    if (depth > 0 && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+                        var waterColor = overlayBlockColor + -depth.toInt() * 4
+                        waterColor = if (foliageBlocks.contains(overlayBlock))
+                            waterColor * foliageColor
+                        else
+                            waterColor
+                        color = waterColor.mixWeight(color, getDepthShade(depth))
+                    }
+                    bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
                 }
-                bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
             }
+        } catch (_: IndexOutOfBoundsException) {
+            print("Failed to render map area (${location.x}, ${location.z})")
         }
         if (scaleLog == 0) {
             rendered = bitmap
@@ -469,6 +476,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
             get() {
                 val iShade = atanLookupTable[i + maxHeight]
                 val jShade = atanLookupTable[j + maxHeight]
+//                val iShade = atanLookupTable.getOrElse(i + maxHeight) { atanLookupTable[maxHeight] }
+//                val jShade = atanLookupTable.getOrElse(j + maxHeight) { atanLookupTable[maxHeight] }
                 return FloatColor(
                     r = 1 + iShade * ri + jShade * rj,
                     g = 1 + iShade * gi + jShade * gj,
@@ -500,7 +509,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         fun GetForWrite(position: LocalTileRegion) = MapArea(position)
 
 
-        private val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
+        internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
         private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
         private val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
         val foliageBlocks = minecraftBlocks.filter {
