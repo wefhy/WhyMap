@@ -14,6 +14,9 @@ import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.*
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import kotlinx.coroutines.Dispatchers
@@ -185,7 +188,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 XZInputStream(it).use { xz ->
                     val metadata = ByteArray(tileMetadataSize)
                     xz.read(metadata)
-                    xz.read(data)
+                    val version = recognizeVersion(WhyMapMetadata(metadata))
+                    if (version == Unknown) {
+                        metadata.copyInto(data)
+                        xz.read(data, metadata.size, data.size - metadata.size)
+                    } else {
+                        xz.read(data)
+                    }
                     xz.close()
                 }
 
@@ -385,10 +394,11 @@ class MapArea private constructor(val location: LocalTileRegion) {
             BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
         val scale = 1 shl scaleLog
 
-        try {
             for (z in 0 until storageTileBlocks step scale) {
                 for (x in 0 until storageTileBlocks step scale) {
-                    val block = decodeBlock(blockIdMap[z][x])
+                    try {
+
+                        val block = decodeBlock(blockIdMap[z][x])
                     val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
                     val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
                     val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
@@ -413,11 +423,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
                         color = waterColor.mixWeight(color, getDepthShade(depth))
                     }
                     bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
+                    } catch (_: IndexOutOfBoundsException) {
+//                        print("Failed to render map area (${location.x}, ${location.z})")
+                    }
                 }
             }
-        } catch (_: IndexOutOfBoundsException) {
-            print("Failed to render map area (${location.x}, ${location.z})")
-        }
+
         if (scaleLog == 0) {
             rendered = bitmap
             lastUpdate = currentTime()
