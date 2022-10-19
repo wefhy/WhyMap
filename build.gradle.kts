@@ -43,27 +43,27 @@ val extraLibs: Configuration by configurations.creating
 
 
 dependencies {
-	minecraft ("com.mojang:minecraft:${minecraft_version}")
-	mappings ("net.fabricmc:yarn:${yarn_mappings}:v2")
-	modImplementation ("net.fabricmc:fabric-loader:${loader_version}")
-	modImplementation ("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
+	minecraft("com.mojang:minecraft:${minecraft_version}")
+	mappings("net.fabricmc:yarn:${yarn_mappings}:v2")
+	modImplementation("net.fabricmc:fabric-loader:${loader_version}")
+	modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
 	modImplementation("net.fabricmc:fabric-language-kotlin:1.8.3+kotlin.1.7.10")
 
-	implementation ("io.ktor:ktor-server-core:2.0.3")
-	implementation ("io.ktor:ktor-server-cio:2.0.3")
-	implementation ("io.ktor:ktor-server-content-negotiation:2.0.3")
-	implementation ("io.ktor:ktor-serialization-kotlinx-json:2.0.3")
-	implementation ("io.ktor:ktor-server-html-builder:2.0.3")
-	implementation ("io.ktor:ktor-server-cors:2.0.3")
-	implementation  (group = "org.tukaani", name = "xz", version = "1.9")
+	implementation("io.ktor:ktor-server-core-jvm:2.1.2")
+	implementation("io.ktor:ktor-server-cio-jvm:2.1.2")
+	implementation("io.ktor:ktor-server-content-negotiation:2.0.3")
+	implementation("io.ktor:ktor-serialization-kotlinx-json:2.0.3")
+	implementation("io.ktor:ktor-server-html-builder:2.0.3")
+	implementation("io.ktor:ktor-server-cors:2.0.3")
+	implementation(group = "org.tukaani", name = "xz", version = "1.9")
 
-	extraLibs ("io.ktor:ktor-server-core:2.0.3")
-	extraLibs ("io.ktor:ktor-server-cio:2.0.3")
-	extraLibs ("io.ktor:ktor-server-content-negotiation:2.0.3")
-	extraLibs ("io.ktor:ktor-serialization-kotlinx-json:2.0.3")
-	extraLibs ("io.ktor:ktor-server-html-builder:2.0.3")
-	extraLibs ("io.ktor:ktor-server-cors:2.0.3")
-	extraLibs  (group = "org.tukaani", name = "xz", version = "1.9")
+	extraLibs("io.ktor:ktor-server-core-jvm:2.1.2")
+	extraLibs("io.ktor:ktor-server-cio-jvm:2.1.2")
+	extraLibs("io.ktor:ktor-server-content-negotiation:2.0.3")
+	extraLibs("io.ktor:ktor-serialization-kotlinx-json:2.0.3")
+	extraLibs("io.ktor:ktor-server-html-builder:2.0.3")
+	extraLibs("io.ktor:ktor-server-cors:2.0.3")
+	extraLibs(group = "org.tukaani", name = "xz", version = "1.9")
 }
 
 tasks.getByName<ProcessResources>("processResources") {

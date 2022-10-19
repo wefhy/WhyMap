@@ -33,13 +33,17 @@ class Waypoints {
             .filterNot { it.startsWith("#") }
             .map { it.split(":") }
             .filter { it.size > 10 }
-            .map {
-                LocalWaypoint(
-                    name = it[1],
-                    location = CoordXYZ(it[3].toInt(), it[4].toInt(), it[5].toInt()),
-                    initials = it[2],
-                    color = xaeroColors.getOrNull(it[6].toInt()) ?: "red"
-                )
+            .mapNotNull {
+                try {
+                    LocalWaypoint(
+                        name = it[1],
+                        location = CoordXYZ(it[3].toInt(), it[4].toIntOrNull() ?: 500, it[5].toInt()),
+                        initials = it[2],
+                        color = xaeroColors.getOrNull(it[6].toInt()) ?: "red"
+                    )
+                } catch (_: Throwable) {
+                    null
+                }
             }.forEach { newWaypoint ->
                 val old = waypoints.find { it.location == newWaypoint.location }
                     ?: return@forEach run { waypoints += newWaypoint }

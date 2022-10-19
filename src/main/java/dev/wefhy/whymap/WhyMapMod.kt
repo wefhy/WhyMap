@@ -31,7 +31,12 @@ class WhyMapMod : ModInitializer {
 //            val filename = ChunkSaver.chunkToBmp(wc)
 //            MinecraftClient.getInstance()!!.player!!.sendChatMessage("Saved: $filename")
             GlobalScope.launch(Dispatchers.Default) {
-                activeWorld!!.mapRegionManager.getRegionForWriteAndLoad(LocalTile.Region(wc.pos.regionX, wc.pos.regionZ)) {
+                activeWorld!!.mapRegionManager.getRegionForWriteAndLoad(
+                    LocalTile.Region(
+                        wc.pos.regionX,
+                        wc.pos.regionZ
+                    )
+                ) {
                     updateChunk(wc)
                 }
             }

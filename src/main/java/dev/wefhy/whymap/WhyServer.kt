@@ -102,23 +102,60 @@ object WhyServer {
 
             val bitmap: BufferedImage = when (s) {
                 WhyMapConfig.regionZoom, -WhyMapConfig.regionZoom -> {
-                    val regionTile = if (s >= 0) MapTile(x, z, TileZoom.RegionZoom).toLocalTile() else LocalTile(x, z, TileZoom.RegionZoom)
-                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info("Requested tile: ${Pair(x, z)}, scale: $s, region: $regionTile")
+                    val regionTile = if (s >= 0) MapTile(x, z, TileZoom.RegionZoom).toLocalTile() else LocalTile(
+                        x,
+                        z,
+                        TileZoom.RegionZoom
+                    )
+                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
+                        "Requested tile: ${
+                            Pair(
+                                x,
+                                z
+                            )
+                        }, scale: $s, region: $regionTile"
+                    )
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                         withContext(Dispatchers.IO) { getRendered() }
                     } ?: return@get call.respondText("Region unavailable")
 
                 }
+
                 WhyMapConfig.chunkZoom, -WhyMapConfig.chunkZoom -> {
-                    val chunkTile = if (s >= 0) MapTile(x, z, TileZoom.ChunkZoom).toLocalTile() else LocalTile(x, z, TileZoom.ChunkZoom)
-                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info("Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile")
-                    withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) } ?: return@get call.respondText("Chunk unavailable")
+                    val chunkTile = if (s >= 0) MapTile(x, z, TileZoom.ChunkZoom).toLocalTile() else LocalTile(
+                        x,
+                        z,
+                        TileZoom.ChunkZoom
+                    )
+                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
+                        "Requested tile: ${
+                            Pair(
+                                x,
+                                z
+                            )
+                        }, scale: $s, chunk: $chunkTile"
+                    )
+                    withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
+                        ?: return@get call.respondText("Chunk unavailable")
                 }
+
                 WhyMapConfig.thumbnailZoom, -WhyMapConfig.thumbnailZoom -> {
-                    val thumbnailTile = if (s >= 0) MapTile(x, z, TileZoom.ThumbnailZoom).toLocalTile() else LocalTile(x, z, TileZoom.ThumbnailZoom)
-                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info("Requested tile: ${Pair(x, z)}, scale: $s, thumbnail: $thumbnailTile")
+                    val thumbnailTile = if (s >= 0) MapTile(x, z, TileZoom.ThumbnailZoom).toLocalTile() else LocalTile(
+                        x,
+                        z,
+                        TileZoom.ThumbnailZoom
+                    )
+                    if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
+                        "Requested tile: ${
+                            Pair(
+                                x,
+                                z
+                            )
+                        }, scale: $s, thumbnail: $thumbnailTile"
+                    )
 //                                withContext(Dispatchers.IO) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
-                    val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile) ?: return@get call.respondText("Thumbnail unavailable")
+                    val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile)
+                        ?: return@get call.respondText("Thumbnail unavailable")
                     call.respondOutputStream(contentType = ContentType.Image.JPEG) {
                         withContext(Dispatchers.IO) {
                             write(byteOutputStream.toByteArray())
@@ -126,6 +163,7 @@ object WhyServer {
                     }
                     return@get
                 }
+
                 else -> return@get call.respondText("Unsupported scale!")
             }
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
@@ -185,7 +223,8 @@ object WhyServer {
             )
         }
         get("/player") {
-            val player = MinecraftClient.getInstance().player ?: run { call.respondText("Player does not exist"); return@get }
+            val player =
+                MinecraftClient.getInstance().player ?: run { call.respondText("Player does not exist"); return@get }
             val position = player.pos
             val onlinePlayer = OnlinePlayer(
                 player.displayName.string,
