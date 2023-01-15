@@ -8,5 +8,19 @@ object RenderConfig {
         "tripwire"
     )
 
+    private val forceOverlay = arrayOf(
+        "pointed_dripstone",
+        "mangrove_roots",
+        "cobweb",
+        "spawner",
+        "cactus"
+    )
+
+    private val forceSolid = arrayOf<String>(
+
+    )
+
     fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
+
+    fun isOverlayForced(name: String) = forceOverlay.any { name.contains(it) }
 }

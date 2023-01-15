@@ -6,6 +6,7 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
+import dev.wefhy.whymap.config.RenderConfig.isOverlayForced
 import dev.wefhy.whymap.config.RenderConfig.shouldBlockOverlayBeIgnored
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
@@ -16,7 +17,6 @@ import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.*
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
@@ -81,49 +81,53 @@ class MapArea private constructor(val location: LocalTileRegion) {
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
+        return Array(16) { z ->
             blockIdMap[startZ + z].slice(startX until (startX + 16)).map {
                 decodeBlock(it)
             }
         }
     }
+
     fun getChunkOverlay(position: ChunkPos): Array<List<BlockState>>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
+        return Array(16) { z ->
             blockOverlayIdMap[startZ + z].slice(startX until (startX + 16)).map {
                 decodeBlock(it)
             }
         }
     }
+
     fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<FloatColor, Color>>>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
+        return Array(16) { z ->
             biomeMap[startZ + z].slice(startX until (startX + 16)).map {
                 Pair(biomeManager.decodeBiomeFoliage(it), biomeManager.decodeBiomeWaterColor(it))
             }
         }
     }
+
     fun getChunkHeightmap(position: ChunkPos): Array<ShortArray>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
+        return Array(16) { z ->
             heightMap[startZ + z].sliceArray(startX until (startX + 16))
         }
     }
+
     fun getChunkDepthmap(position: ChunkPos): Array<ByteArray>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
+        return Array(16) { z ->
             depthMap[startZ + z].sliceArray(startX until (startX + 16))
         }
     }
@@ -132,8 +136,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
-        return Array(16) {z ->
-            Array(16) {x ->
+        return Array(16) { z ->
+            Array(16) { x ->
                 getNormalSharp(startX + x, startZ + z)
             }
         }
@@ -168,7 +172,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 shortShortBuffer.flip()
                 byteBuffer.flip()
                 val xzOutupt = ByteArrayOutputStream()
-                XZOutputStream(xzOutupt, LZMA2Options(3)).use {xz ->
+                XZOutputStream(xzOutupt, LZMA2Options(3)).use { xz ->
                     xz.write(latestFileVersion.getMetadataArray())
                     xz.write(data)
                     xz.close()
@@ -242,7 +246,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //                getBlockState(mutablePosition).hasSidedTransparency()
 //                getBlockState(mutablePosition).isOpaque
 //                Block.isFaceFullSquare(null, Direction.UP)
-                while (!getBlockState(mutablePosition).material.isSolid and (y > bottomY)) { //TODO or isOpaque
+//                while (!getBlockState(mutablePosition).material.isSolid && (y > bottomY) && (fastOverlayLookup.contains(getBlockState(mutablePosition).block.defaultState))) { //TODO or isOpaque
+                while (getBlockState(mutablePosition).let { block ->
+                        (!block.material.isSolid || fastOverlayLookup.contains(block.block.defaultState))
+                                && (y > bottomY)
+                    }
+                ) { //TODO or isOpaque
+
                     mutablePosition.y = --y
                 }
                 output[z][x] = y //TODO this will point to air block just like regular heightmap
@@ -328,7 +338,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //                }
 
 
-
                 blockIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(block)
                 blockOverlayIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(overlayBlock)
                 biomeMap[regionRelativeZ][regionRelativeX] = biomeManager.encodeBiome(biome)
@@ -363,15 +372,17 @@ class MapArea private constructor(val location: LocalTileRegion) {
     }
 
     private fun shouldBeReRendered(scaleLog: Int): Boolean {
-        return when(scaleLog) {
+        return when (scaleLog) {
             0 -> {
                 val elapsed = currentTime() - lastUpdate
 //                LOGGER.debug("Region: $location, elapsed: $elapsed, interval: $updateInterval, modified: $modifiedSinceRender, verdict: ${(elapsed >= updateInterval) && modifiedSinceRender}")
                 (elapsed >= reRenderInterval) && modifiedSinceRender
             }
+
             regionThumbnailScaleLog -> {
                 false
             }
+
             else -> true
         }
     }
@@ -408,15 +419,15 @@ class MapArea private constructor(val location: LocalTileRegion) {
             BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
         val scale = 1 shl scaleLog
 
-            for (z in 0 until storageTileBlocks step scale) {
-                for (x in 0 until storageTileBlocks step scale) {
-                    try {
+        for (z in 0 until storageTileBlocks step scale) {
+            for (x in 0 until storageTileBlocks step scale) {
+                try {
 
-                        val block = decodeBlock(blockIdMap[z][x])
+                    val block = decodeBlock(blockIdMap[z][x])
                     val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
                     val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
                     val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-                    val overlayBlockColor = if(waterBlocks.contains(overlayBlock))
+                    val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
                         biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
                     else
                         Color(decodeBlockColor(blockOverlayIdMap[z][x]))
@@ -437,11 +448,11 @@ class MapArea private constructor(val location: LocalTileRegion) {
                         color = waterColor.mixWeight(color, getDepthShade(depth))
                     }
                     bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
-                    } catch (_: IndexOutOfBoundsException) {
+                } catch (_: IndexOutOfBoundsException) {
 //                        print("Failed to render map area (${location.x}, ${location.z})")
-                    }
                 }
             }
+        }
 
         if (scaleLog == 0) {
             rendered = bitmap
@@ -537,6 +548,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
         internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
         private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
         private val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
+        private val fastOverlayLookup: List<BlockState> = blockNameMap.toList().filter { isOverlayForced(it.first) }.map { it.second }
+
         val foliageBlocks = minecraftBlocks.filter {
             it.contains("vine") ||
                     it.contains("leaves") ||
@@ -558,14 +571,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
         val fastLookupBlocks = minecraftBlocks.map { blockNameMap[it]!! }.toTypedArray()
         val fastLookupBlockColor = fastLookupBlocks.map {
             ExperimentalTextureProvider.getBitmap(it.block)?.run {
-                if(it in ignoreAlphaBlocks)
+                if (it in ignoreAlphaBlocks)
                     getAverageLeavesColor()
                 else
                     getAverageColor()
             } ?: it.material.color.color
         }.toIntArray().also { LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
-
-
 
 
 //        val biomes = BiomeKeys::class.java.declaredFields.filter { Modifier.isStatic(it.modifiers) }.map {
