@@ -192,7 +192,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     val metadata = ByteArray(tileMetadataSize)
                     xz.read(metadata)
                     val version = recognizeVersion(WhyMapMetadata(metadata))
-                    if (version == Unknown) {
+                    if (version.isUnknown) {
                         metadata.copyInto(data)
                         xz.read(data, metadata.size, data.size - metadata.size)
                     } else {
@@ -214,7 +214,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     byteBuffer.get(depthMap[y])
                 }
 
-                if (version != latestFileVersion) {
+                if (!version.isCurrent) {
                     val remapLookup = getRemapLookup(version, latestFileVersion)
                     blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }

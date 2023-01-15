@@ -5,6 +5,8 @@ package dev.wefhy.whymap
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
@@ -93,6 +95,12 @@ object WhyServer {
                 }
             } ?: return@get call.respondText("Region unavailable")
 
+        }
+        get("/blockMappings") {
+            return@get call.respondText(getMappings())
+        }
+        get("/exportBlockMappings") {
+            return@get call.respondText(exportBlockMappings())
         }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")

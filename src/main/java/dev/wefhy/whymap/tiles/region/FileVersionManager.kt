@@ -2,6 +2,7 @@ package dev.wefhy.whymap.tiles.region
 
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.forVersionNumber
 import java.nio.ByteBuffer
 import kotlin.experimental.inv
 import kotlin.random.Random
@@ -15,11 +16,21 @@ object FileVersionManager {
         }
     }
 
-    enum class WhyMapFileVersion(val i: Short) {
-        Unknown(0), Version1(1);
+    sealed class WhyMapFileVersion(val i: Short) {
+
+        class Custom(i: Short): WhyMapFileVersion(i)
 
         val isCurrent: Boolean
             get() = this == latestFileVersion
+
+        val isUnknown: Boolean
+            get() = this == Unknown
+
+        val fileName: String
+            get() = "$i.blockmap"
+
+        val next: WhyMapFileVersion
+            get() = Custom((i + 1).toShort())
 
         fun getMetadataHead(): ByteArray {
             val arr = ByteArray(8)
@@ -38,7 +49,19 @@ object FileVersionManager {
         }
 
         companion object {
-            private fun forVersionNumber(i: Short) = values().find { it.i == i } ?: Unknown
+
+            object Unknown: WhyMapFileVersion(0)
+            object Version1: WhyMapFileVersion(1)
+            object Version2: WhyMapFileVersion(2)
+
+            val latest = Version2
+
+            private val existingVersions = listOf(
+                Unknown,
+                Version1,
+                Version2
+            )
+            private fun forVersionNumber(i: Short) = existingVersions.find { it.i == i } ?: Unknown
 
             fun recognizeVersion(metadata: WhyMapMetadata): WhyMapFileVersion {
                 val buffer = ByteBuffer.wrap(metadata.data)
@@ -46,7 +69,7 @@ object FileVersionManager {
                 val c1 = Random(version.toInt()).nextInt()
                 val c2 = version.inv()
                 if (c1 != buffer.int || c2 != buffer.short) return Unknown
-                return WhyMapFileVersion.forVersionNumber(version)
+                return forVersionNumber(version)
             }
         }
     }

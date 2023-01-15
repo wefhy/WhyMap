@@ -11,10 +11,10 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "0.12-SNAPSHOT"
+	id ("fabric-loom") version "1.0.17"
 	id ("maven-publish")
-	id ("org.jetbrains.kotlin.jvm") version "1.7.10"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "1.7.10"
+	id ("org.jetbrains.kotlin.jvm") version "1.8.0"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
 }
 
 java {
@@ -47,7 +47,7 @@ dependencies {
 	mappings("net.fabricmc:yarn:${yarn_mappings}:v2")
 	modImplementation("net.fabricmc:fabric-loader:${loader_version}")
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
-	modImplementation("net.fabricmc:fabric-language-kotlin:1.8.3+kotlin.1.7.10")
+	modImplementation("net.fabricmc:fabric-language-kotlin:1.9.0+kotlin.1.8.0")
 
 	implementation("io.ktor:ktor-server-core-jvm:2.2.2")
 	implementation("io.ktor:ktor-server-cio-jvm:2.2.2")

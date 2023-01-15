@@ -53,7 +53,7 @@ object WhyMapConfig {
     val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
 
     val tileMetadataSize = 16 // bytes
-    val latestFileVersion = FileVersionManager.WhyMapFileVersion.Version1
+    val latestFileVersion = FileVersionManager.WhyMapFileVersion.latest
 
     val reRenderInterval = 10 // seconds
     val cleanupInterval = 60 // seconds
