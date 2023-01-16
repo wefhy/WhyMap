@@ -7,6 +7,7 @@ import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
 import dev.wefhy.whymap.config.RenderConfig.isOverlayForced
+import dev.wefhy.whymap.config.RenderConfig.isSolidForced
 import dev.wefhy.whymap.config.RenderConfig.shouldBlockOverlayBeIgnored
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
@@ -247,12 +248,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //                getBlockState(mutablePosition).isOpaque
 //                Block.isFaceFullSquare(null, Direction.UP)
 //                while (!getBlockState(mutablePosition).material.isSolid && (y > bottomY) && (fastOverlayLookup.contains(getBlockState(mutablePosition).block.defaultState))) { //TODO or isOpaque
-                while (getBlockState(mutablePosition).let { block ->
-                        (!block.material.isSolid || fastOverlayLookup.contains(block.block.defaultState))
-                                && (y > bottomY)
-                    }
-                ) { //TODO or isOpaque
-
+                while (isOverlay(getBlockState(mutablePosition)) && (y > bottomY)) { //TODO or isOpaque
                     mutablePosition.y = --y
                 }
                 output[z][x] = y //TODO this will point to air block just like regular heightmap
@@ -547,8 +543,9 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
         private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
+        private val forceOverlayLookup = Block.STATE_IDS.filter { isOverlayForced(it.block.translationKey) }.toSet()
+        private val forceSolidLookup = Block.STATE_IDS.filter { isSolidForced(it.block.translationKey) }.toSet()
         private val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
-        private val fastOverlayLookup: List<BlockState> = blockNameMap.toList().filter { isOverlayForced(it.first) }.map { it.second }
 
         val foliageBlocks = minecraftBlocks.filter {
             it.contains("vine") ||
@@ -592,6 +589,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
             val defaultState = blockState.block.translationKey
             return minecraftBlocks.binarySearch(defaultState).toShort()
         }
+
+        fun isOverlay(blockState: BlockState) = (blockState.material.isSolid || (blockState in forceOverlayLookup)) && (blockState !in forceSolidLookup)
 
         fun decodeBlock(id: Short) = fastLookupBlocks[id.toInt()]
         fun decodeBlockColor(id: Short) = fastLookupBlockColor[id.toInt()]

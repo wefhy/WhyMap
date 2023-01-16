@@ -23,4 +23,6 @@ object RenderConfig {
     fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
 
     fun isOverlayForced(name: String) = forceOverlay.any { name.contains(it) }
+
+    fun isSolidForced(name: String) = forceSolid.any { name.contains(it) }
 }
