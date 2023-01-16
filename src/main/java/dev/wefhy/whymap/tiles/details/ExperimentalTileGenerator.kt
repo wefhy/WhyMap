@@ -4,8 +4,8 @@ package dev.wefhy.whymap.tiles.details
 
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyWorld
-import dev.wefhy.whymap.tiles.region.MapArea.Companion.foliageBlocks
-import dev.wefhy.whymap.tiles.region.MapArea.Companion.waterBlocks
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.foliageBlocksSet
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.waterBlocks
 import dev.wefhy.whymap.utils.Color
 import dev.wefhy.whymap.utils.FloatColor
 import dev.wefhy.whymap.utils.LocalTile
@@ -60,7 +60,7 @@ class ExperimentalTileGenerator {
                             val normalShade = normalmap[y][x].shade
 
                             val blockColorFilter =
-                                if (foliageBlocks.contains(block)) {
+                                if (foliageBlocksSet.contains(block)) {
                                     (foliageColor * normalShade).floatArray
                                 } else {
                                     normalShade.floatArray
@@ -82,7 +82,7 @@ class ExperimentalTileGenerator {
                             val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
                             val alpha = (3 - tmp1 * tmp1) / 3
                             val darken = -depth / 64f
-                            val blockOverlayColorFilter = if (foliageBlocks.contains(blockOverlay)) {
+                            val blockOverlayColorFilter = if (foliageBlocksSet.contains(blockOverlay)) {
                                 (foliageColor * normalShade).floatArray
                             } else {
                                 normalShade.floatArray

@@ -20,6 +20,26 @@ object RenderConfig {
 
     )
 
+    private val foliageBlocks = listOf(
+        "vine",
+        "leaves",
+        "grass",
+        "sugar",
+        "fern",
+        "lily",
+        "bedrock",
+    )
+
+    private val blockColorIgnoreAlpha = listOf(
+        "leaves"
+    )
+
+    fun shouldIgnoreAlpha(name: String) = blockColorIgnoreAlpha.any { name.contains(it) }
+
+    fun isWaterBlock(name: String) = name.contains("water")
+
+    fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) }
+
     fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
 
     fun isOverlayForced(name: String) = forceOverlay.any { name.contains(it) }

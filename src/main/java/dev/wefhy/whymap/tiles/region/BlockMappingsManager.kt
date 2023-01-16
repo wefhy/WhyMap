@@ -3,14 +3,12 @@ package dev.wefhy.whymap.tiles.region
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.mappingsExportDir
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.minecraftBlocks
 import dev.wefhy.whymap.utils.mkDirsIfNecessary
 
 object BlockMappingsManager {
 
-    fun getMappings(): String {
-        val mappings = MapArea.minecraftBlocks
-        return mappings.joinToString("\n")
-    }
+    fun getMappings() = minecraftBlocks.joinToString("\n")
 
     fun exportBlockMappings(): String {
         val data = getMappings()

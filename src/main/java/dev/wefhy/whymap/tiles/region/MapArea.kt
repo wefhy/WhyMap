@@ -6,9 +6,6 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
-import dev.wefhy.whymap.config.RenderConfig.isOverlayForced
-import dev.wefhy.whymap.config.RenderConfig.isSolidForced
-import dev.wefhy.whymap.config.RenderConfig.shouldBlockOverlayBeIgnored
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
@@ -16,10 +13,16 @@ import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
-import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.decodeBlock
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.decodeBlockColor
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.encodeBlock
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.fastIgnoreLookup
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.foliageBlocksSet
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.isOverlay
+import dev.wefhy.whymap.tiles.region.MinecraftHelper.waterBlocks
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +30,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
@@ -73,7 +75,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     init {
         currentWorld.writeToLog("Initialized ${obfuscateObjectWithCommand(location, "init")}, file exists: ${file.exists()}")
-        if(file.exists())
+        if (file.exists())
             load()
     }
 
@@ -235,7 +237,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    fun Chunk.getOceanFloorHeightMapHotFix(): Array<IntArray> {
+    private fun Chunk.getOceanFloorHeightMapHotFix(): Array<IntArray> {
         val hm = getHeightmap(Heightmap.Type.WORLD_SURFACE)
         val output = Array(16) { IntArray(16) }
         val mutablePosition = BlockPos.Mutable()
@@ -329,11 +331,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     ?: biomeAccess.getBiomeForNoiseGen(absoluteBlockPos).value()
 
 
-//                if(biomeManager.biomeGetName(biome)?.contains("plains") == true) {
-//                    println("plains")
-//                }
-
-
                 blockIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(block)
                 blockOverlayIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(overlayBlock)
                 biomeMap[regionRelativeZ][regionRelativeX] = biomeManager.encodeBiome(biome)
@@ -352,7 +349,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //
 //        }
 //
-//
 //        CoroutineScope(Dispatchers.Default).launch {
 //
 //        }
@@ -360,7 +356,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //        CoroutineScope(EmptyCoroutineContext).launch {
 //
 //        }
-
 
         GlobalScope.launch {
             reRenderAndSaveThumbnail()
@@ -431,13 +426,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     val normal = getNormalSharp(x, z)
                     val depth = depthMap[z][x]
 
-                    var color = (if (foliageBlocks.contains(block)) {
+                    var color = (if (foliageBlocksSet.contains(block)) {
                         baseBlockColor * foliageColor
                     } else baseBlockColor) * normal.shade
 
                     if (depth > 0 && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
                         var waterColor = overlayBlockColor + -depth.toInt() * 4
-                        waterColor = if (foliageBlocks.contains(overlayBlock))
+                        waterColor = if (foliageBlocksSet.contains(overlayBlock))
                             waterColor * foliageColor
                         else
                             waterColor
@@ -445,7 +440,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     }
                     bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
                 } catch (_: IndexOutOfBoundsException) {
-//                        print("Failed to render map area (${location.x}, ${location.z})")
+                        print("Failed to render map area (${location.x}, ${location.z})")
                 }
             }
         }
@@ -457,9 +452,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
         } else if (scaleLog == regionThumbnailScaleLog) {
             lastThumbnailUpdate = currentTime()
         }
-//        if (scaleLog != 0) {
-//            LOGGER.debug("RENDERED NON STANDARD $location, scale = $scaleLog")
-//        }
         bitmap
     }
 
@@ -539,61 +531,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         context(CurrentWorldProvider<WhyWorld>)
         fun GetForWrite(position: LocalTileRegion) = MapArea(position)
-
-
-        internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
-        private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
-        private val forceOverlayLookup = Block.STATE_IDS.filter { isOverlayForced(it.block.translationKey) }.toSet()
-        private val forceSolidLookup = Block.STATE_IDS.filter { isSolidForced(it.block.translationKey) }.toSet()
-        private val fastIgnoreLookup = minecraftBlocks.map { shouldBlockOverlayBeIgnored(it) }.toTypedArray()
-
-        val foliageBlocks = minecraftBlocks.filter {
-            it.contains("vine") ||
-                    it.contains("leaves") ||
-                    it.contains("grass") ||
-                    it.contains("sugar") ||
-                    it.contains("fern") ||
-                    it.contains("lily") ||
-                    it.contains("bedrock")
-        }.map { blockNameMap[it] }.toSet()
-
-        val waterBlocks = minecraftBlocks.filter {
-            it.contains("water")
-        }.map { blockNameMap[it] }.toSet()
-
-        val ignoreAlphaBlocks = minecraftBlocks.filter {
-            it.contains("leaves")
-        }.map { blockNameMap[it] }.toSet()
-
-        val fastLookupBlocks = minecraftBlocks.map { blockNameMap[it]!! }.toTypedArray()
-        val fastLookupBlockColor = fastLookupBlocks.map {
-            ExperimentalTextureProvider.getBitmap(it.block)?.run {
-                if (it in ignoreAlphaBlocks)
-                    getAverageLeavesColor()
-                else
-                    getAverageColor()
-            } ?: it.material.color.color
-        }.toIntArray().also { LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
-
-
-//        val biomes = BiomeKeys::class.java.declaredFields.filter { Modifier.isStatic(it.modifiers) }.map {
-//            val instance = it::class.java.newInstance()
-//            it.get(instance)
-//            instance as RegistryKey<Biome>
-//        }
-//        val biomes = Registry.BIOME_KEY
-//        val biomes = Registry.BIOME_SOURCE
-//        val biomees =
-
-        fun encodeBlock(blockState: BlockState): Short {
-            val defaultState = blockState.block.translationKey
-            return minecraftBlocks.binarySearch(defaultState).toShort()
-        }
-
-        fun isOverlay(blockState: BlockState) = (blockState.material.isSolid || (blockState in forceOverlayLookup)) && (blockState !in forceSolidLookup)
-
-        fun decodeBlock(id: Short) = fastLookupBlocks[id.toInt()]
-        fun decodeBlockColor(id: Short) = fastLookupBlockColor[id.toInt()]
 
     }
 }
