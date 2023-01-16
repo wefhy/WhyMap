@@ -1,3 +1,4 @@
+@file:Suppress("NOTHING_TO_INLINE")
 package dev.wefhy.whymap.tiles.region
 
 import dev.wefhy.whymap.WhyMapMod
@@ -30,14 +31,16 @@ object MinecraftHelper {
         } ?: it.material.color.color
     }.toIntArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
 
-    fun encodeBlock(blockState: BlockState): Short {
+    internal inline fun encodeBlock(blockState: BlockState): Short {
         val defaultState = blockState.block.translationKey
         return minecraftBlocks.binarySearch(defaultState).toShort()
     }
 
-    fun isOverlay(blockState: BlockState) = (blockState.material.isSolid || (blockState in forceOverlayLookup)) && (blockState !in forceSolidLookup)
+    internal inline fun isSolid(blockState: BlockState) = (blockState.material.isSolid  || blockState in forceSolidLookup) && (blockState !in forceOverlayLookup)
 
-    fun decodeBlock(id: Short) = fastLookupBlocks[id.toInt()]
+    internal inline fun isOverlay(blockState: BlockState) = !isSolid(blockState)
 
-    fun decodeBlockColor(id: Short) = fastLookupBlockColor[id.toInt()]
+    internal inline fun decodeBlock(id: Short) = fastLookupBlocks[id.toInt()]
+
+    internal inline fun decodeBlockColor(id: Short) = fastLookupBlockColor[id.toInt()]
 }

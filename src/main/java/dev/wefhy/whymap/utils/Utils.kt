@@ -115,5 +115,12 @@ inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
         subArray.mapInPlace(transform)
     }
 }
-
+//
+//@JvmInline
+//value class OverflowArray<T>(val array: ArrayList<T>) {
+//    operator fun get(index: Int) = array[index.rem(array.size)]
+//    operator fun set(index: Int, value: T) {
+//        array[index.mod(array.size)] = value
+//    }
+//}
 

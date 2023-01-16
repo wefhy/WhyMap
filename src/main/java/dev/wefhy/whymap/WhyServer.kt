@@ -3,6 +3,7 @@
 package dev.wefhy.whymap
 
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
@@ -21,6 +22,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.pipeline.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -28,32 +30,44 @@ import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
 
+fun Application.myApplicationModule() {
+    install(ContentNegotiation) {
+        json(Json {
+//                        prettyPrint = true
+            isLenient = true
+            ignoreUnknownKeys = true
+        })
+    }
+    install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowHeader(HttpHeaders.AccessControlAllowHeaders)
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.AccessControlAllowOrigin)
+        exposeHeader(HttpHeaders.AccessControlAllowHeaders)
+        exposeHeader(HttpHeaders.ContentType)
+        exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+        allowCredentials = true
+        anyHost()
+    }
+    routing {
+        serverRouting()
+    }
+}
+
 object WhyServer {
     fun host() {
-        embeddedServer(CIO, port = 7542) {
-            install(ContentNegotiation) {
-                json(Json {
-//                        prettyPrint = true
-                    isLenient = true
-                    ignoreUnknownKeys = true
-                })
-            }
-            install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
-                allowMethod(HttpMethod.Get)
-                allowMethod(HttpMethod.Post)
-                allowHeader(HttpHeaders.AccessControlAllowHeaders)
-                allowHeader(HttpHeaders.ContentType)
-                allowHeader(HttpHeaders.AccessControlAllowOrigin)
-                exposeHeader(HttpHeaders.AccessControlAllowHeaders)
-                exposeHeader(HttpHeaders.ContentType)
-                exposeHeader(HttpHeaders.AccessControlAllowOrigin)
-                allowCredentials = true
-                anyHost()
-            }
-            routing {
-                serverRouting()
-            }
-        }.start(wait = true)
+        embeddedServer(CIO, port = 7542, module = Application::myApplicationModule).start(wait = true)
+    }
+
+    fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
+        return paramName.map { call.parameters[it]?.toInt() ?: return null }.toIntArray()
+    }
+
+    inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
+        return activeWorld?.also {
+            block(it)
+        }
     }
 
     fun Routing.serverRouting() {
@@ -72,8 +86,7 @@ object WhyServer {
         }
         get("/block/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
+            val (x, z) = getParams("x", "z") ?: return@get call.respondText("Can't parse request")
             val block = LocalTile.Block(x, z)
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(block.parent(TileZoom.RegionZoom)) {
                 call.respond(
@@ -83,9 +96,7 @@ object WhyServer {
         }
         get("/customRegion/{s}/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val s = call.parameters["s"]?.toInt() ?: return@get call.respondText("Can't parse request")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText("Can't parse request")
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) {
                 val bitmap = withContext(Dispatchers.IO) { getCustomRender(s) }
                 call.respondOutputStream(contentType = WhyMapMod.contentType) {
@@ -104,9 +115,7 @@ object WhyServer {
         }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
-            val s = call.parameters["s"]?.toInt() ?: return@get call.respondText("Can't parse request")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText("Can't parse request")
 
             val bitmap: BufferedImage = when (s) {
                 WhyMapConfig.regionZoom, -WhyMapConfig.regionZoom -> {
