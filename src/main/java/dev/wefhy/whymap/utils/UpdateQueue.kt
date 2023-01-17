@@ -30,14 +30,14 @@ object UpdateQueue { //TODO separate for every world / dimension?
         removeLast(x, z)
         val time = unixTime()
         queue.addLast(ChunkUpdatePosition(x, z, time))
-//        if (lastCleanup + capacity < time) {
-//            removeOld()
-//        }
+        if (lastCleanup + capacity < time) {
+            removeOld()
+        }
     }
 
 //    internal fun getAllUpdates() = queue.toTypedArray()
 
-    internal fun reset() { //TODO to be called when changing worlds / dimensions
+    internal fun reset() {
         queue.clear()
     }
 

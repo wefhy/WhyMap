@@ -6,6 +6,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.utils.UpdateQueue
 import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -45,12 +46,14 @@ class WhyMapMod : ModInitializer {
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register { player, oldWorld, newWorld ->
             println("CHANGED WORLD! old: ${oldWorld.dimension.coordinateScale}, new: ${newWorld.dimension.coordinateScale}")
             activeWorld!!.close()
+            UpdateQueue.reset()
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
         }
 
         ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()
+            UpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = null
         }
