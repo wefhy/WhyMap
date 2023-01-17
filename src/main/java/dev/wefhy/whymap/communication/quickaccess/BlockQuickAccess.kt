@@ -1,7 +1,7 @@
 // Copyright (c) 2023 wefhy
 
 @file:Suppress("NOTHING_TO_INLINE")
-package dev.wefhy.whymap.tiles.region
+package dev.wefhy.whymap.communication.quickaccess
 
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.config.RenderConfig
@@ -14,7 +14,7 @@ import dev.wefhy.whymap.utils.getAverageLeavesColor
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 
-object MinecraftHelper {
+object BlockQuickAccess {
     internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
     private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
     private val forceOverlayLookup = Block.STATE_IDS.filter { RenderConfig.isOverlayForced(it.block.translationKey) }.toSet()

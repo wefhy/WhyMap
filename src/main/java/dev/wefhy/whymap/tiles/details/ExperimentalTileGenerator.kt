@@ -4,8 +4,8 @@ package dev.wefhy.whymap.tiles.details
 
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyWorld
-import dev.wefhy.whymap.tiles.region.MinecraftHelper.foliageBlocksSet
-import dev.wefhy.whymap.tiles.region.MinecraftHelper.waterBlocks
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.utils.Color
 import dev.wefhy.whymap.utils.FloatColor
 import dev.wefhy.whymap.utils.LocalTile
