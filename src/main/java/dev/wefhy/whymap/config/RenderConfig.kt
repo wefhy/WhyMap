@@ -13,7 +13,8 @@ object RenderConfig {
         "mangrove_roots",
         "cobweb",
         "spawner",
-        "cactus"
+        "cactus",
+        "bamboo"
     )
 
     private val forceSolid = arrayOf<String>(
@@ -33,6 +34,13 @@ object RenderConfig {
     private val blockColorIgnoreAlpha = listOf(
         "leaves"
     )
+
+    private val waterloggedBlocks = listOf(
+        "lily",
+        "seagrass"
+    )
+
+    fun isWaterlogged(name: String) = waterloggedBlocks.any { name.contains(it) }
 
     fun shouldIgnoreAlpha(name: String) = blockColorIgnoreAlpha.any { name.contains(it) }
 

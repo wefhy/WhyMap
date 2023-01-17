@@ -3,6 +3,8 @@
 High performance minecraft world map with web-based interface and infinite zoom.
 Your map will be presented at http://localhost:7542
 
+Join my discord for support and updates: https://discord.gg/FzCKRPHR
+
 ## Setup
 
 First install yarn packages for frontend:

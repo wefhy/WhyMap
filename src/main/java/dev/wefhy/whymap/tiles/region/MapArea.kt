@@ -77,6 +77,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
         currentWorld.writeToLog("Initialized ${obfuscateObjectWithCommand(location, "init")}, file exists: ${file.exists()}")
         if (file.exists())
             load()
+//        else
+//            UpdateQueue.addUpdate(location.x, location.z)
     }
 
     fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
@@ -344,6 +346,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
+        UpdateQueue.addUpdate(location.x, location.z)
 
 //        CoroutineScope(Job()).launch {
 //

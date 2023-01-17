@@ -1,4 +1,4 @@
-// Copyright (c) 2022 wefhy
+// Copyright (c) 2023 wefhy
 
 @file:Suppress("NOTHING_TO_INLINE")
 
@@ -115,6 +115,8 @@ inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
         subArray.mapInPlace(transform)
     }
 }
+
+inline fun unixTime() = System.currentTimeMillis() / 1000
 //
 //@JvmInline
 //value class OverflowArray<T>(val array: ArrayList<T>) {

@@ -113,6 +113,10 @@ object WhyServer {
         get("/exportBlockMappings") {
             return@get call.respondText(exportBlockMappings())
         }
+        get("/lastUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: return@get call.respondText("Can't parse request")
+            call.respond(UpdateQueue.getLatestUpdates(threshold))
+        }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText("Can't parse request")

@@ -1,3 +1,5 @@
+// Copyright (c) 2023 wefhy
+
 @file:Suppress("NOTHING_TO_INLINE")
 package dev.wefhy.whymap.tiles.region
 
@@ -17,9 +19,9 @@ object MinecraftHelper {
     private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
     private val forceOverlayLookup = Block.STATE_IDS.filter { RenderConfig.isOverlayForced(it.block.translationKey) }.toSet()
     private val forceSolidLookup = Block.STATE_IDS.filter { RenderConfig.isSolidForced(it.block.translationKey) }.toSet()
-    val fastIgnoreLookup = minecraftBlocks.map { RenderConfig.shouldBlockOverlayBeIgnored(it) }.toTypedArray()
-    val foliageBlocksSet = minecraftBlocks.filter { isFoliageBlock(it) }.map { blockNameMap[it] }.toSet()
-    val waterBlocks = minecraftBlocks.filter { isWaterBlock(it) }.map { blockNameMap[it] }.toSet()
+    internal val fastIgnoreLookup = minecraftBlocks.map { RenderConfig.shouldBlockOverlayBeIgnored(it) }.toTypedArray()
+    internal val foliageBlocksSet = minecraftBlocks.filter { isFoliageBlock(it) }.map { blockNameMap[it] }.toSet()
+    internal val waterBlocks = minecraftBlocks.filter { isWaterBlock(it) }.map { blockNameMap[it] }.toSet()
     private val ignoreAlphaBlocks = minecraftBlocks.filter { shouldIgnoreAlpha(it) }.map { blockNameMap[it] }.toSet()
     private val fastLookupBlocks = minecraftBlocks.map { blockNameMap[it]!! }.toTypedArray()
     private val fastLookupBlockColor = fastLookupBlocks.map {
