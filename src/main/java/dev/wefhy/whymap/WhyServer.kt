@@ -115,7 +115,9 @@ object WhyServer {
         }
         get("/lastUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: return@get call.respondText("Can't parse request")
-            call.respond(UpdateQueue.getLatestUpdates(threshold))
+            return@get call.respond(UpdateQueue.getLatestUpdates(threshold))
+
+//            call.respond("hello")
         }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")

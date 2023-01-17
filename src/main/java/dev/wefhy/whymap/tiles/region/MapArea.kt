@@ -346,7 +346,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
-        UpdateQueue.addUpdate(location.x, location.z)
 
 //        CoroutineScope(Job()).launch {
 //
@@ -362,6 +361,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         GlobalScope.launch {
             reRenderAndSaveThumbnail()
+            UpdateQueue.addUpdate(location.x, location.z)
         }
     }
 

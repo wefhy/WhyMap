@@ -47,6 +47,7 @@ class WhyMapMod : ModInitializer {
             println("CHANGED WORLD! old: ${oldWorld.dimension.coordinateScale}, new: ${newWorld.dimension.coordinateScale}")
             activeWorld!!.close()
             UpdateQueue.reset()
+            LOGGER.info("Saved all data")
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
         }
 
