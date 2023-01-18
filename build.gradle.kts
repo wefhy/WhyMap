@@ -141,9 +141,6 @@ tasks {
 	"processResources" {
 		dependsOn(copyDistFolder)
 	}
-	"sourcesJar" {
-		dependsOn(copyDistFolder)
-	}
 	"copyDistFolder" {
 		dependsOn(deleteOldWeb)
 		dependsOn(yarnBuild)
