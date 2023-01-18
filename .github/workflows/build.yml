@@ -18,8 +18,10 @@ jobs:
         os: [ubuntu-20.04, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: checkout repository
+      - name: checkout repository and submodules
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: setup jdk ${{ matrix.java }}
