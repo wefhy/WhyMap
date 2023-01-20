@@ -38,10 +38,10 @@ object MeshGenerator {
 //    context(VertexIndexer)
     fun getTopFace(x: Int, z: Int, height: Short): Face {
         return Face(
-            Vertex(x * (faceSize + 0), z * (faceSize + 0), height * faceSize),
-            Vertex(x * (faceSize + 1), z * (faceSize + 0), height * faceSize),
-            Vertex(x * (faceSize + 1), z * (faceSize + 1), height * faceSize),
-            Vertex(x * (faceSize + 0), z * (faceSize + 1), height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
         )
     }
 }
