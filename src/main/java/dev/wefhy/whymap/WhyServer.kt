@@ -8,6 +8,7 @@ import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.events.TileUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
+import dev.wefhy.whymap.tiles.mesh.MeshGenerator
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
@@ -125,6 +126,62 @@ object WhyServer {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
+//        get("/3d/tiles/15/{x}/{z}") {
+//            activeWorld ?: return@get call.respondText("World not loaded!")
+//            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+//            val chunkTile = if (s >= 0)
+//                MapTile(x, z, TileZoom.ChunkZoom).toLocalTile()
+//            else
+//                LocalTile(x, z, TileZoom.ChunkZoom)
+//
+//            if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
+//                "Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile"
+//            )
+//            val bitmap: BufferedImage = withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
+//                ?: return@get call.respondText("Chunk unavailable")
+//
+//
+//
+//        }
+        get("/3d/tiles/{s}/{x}/{z}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            if ((s != 17) && (s != -17)) return@get call.respondText("unsupportedZoomLevel")
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val result = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                MeshGenerator.generateMesh()
+            } ?: return@get call.respondText("Chunk unavailable")
+            call.respondText(result)
+
+
+        }
+        get("/regionheight/{x}/{z}/{s}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val heightMap = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                heightMap
+            }
+//            val region = activeWorld?.mapRegionManager?.getLoadedRegionForRead(LocalTile.Region(x, z)) ?: return@get call.respondText("Region unavailable")
+//            call.respondText { region.heightMap.joinToString(","){it.joinToString(",")} }
+        }
+
+
+
+
+
+
+
+
+
+
+
         //TODO all tile requests should be cancellable
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
