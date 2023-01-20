@@ -1,4 +1,4 @@
-// Copyright (c) 2022 wefhy
+// Copyright (c) 2022-2023 wefhy
 
 package dev.wefhy.whymap
 
@@ -115,7 +115,7 @@ object WhyServer {
         }
         get("/lastUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: return@get call.respondText("Can't parse request")
-            return@get call.respond(UpdateQueue.getLatestUpdates(threshold))
+            return@get call.respond(TileUpdateQueue.getLatestUpdates(threshold))
 
 //            call.respond("hello")
         }

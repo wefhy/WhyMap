@@ -1,4 +1,4 @@
-// Copyright (c) 2022 wefhy
+// Copyright (c) 2022-2023 wefhy
 
 package dev.wefhy.whymap.tiles.region
 
@@ -361,7 +361,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         GlobalScope.launch {
             reRenderAndSaveThumbnail()
-            UpdateQueue.addUpdate(location.x, location.z)
+            TileUpdateQueue.addUpdate(location.x, location.z)
         }
     }
 

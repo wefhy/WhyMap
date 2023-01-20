@@ -1,12 +1,11 @@
-// Copyright (c) 2022 wefhy
+// Copyright (c) 2022-2023 wefhy
 
 package dev.wefhy.whymap
 
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.LocalTile
-import dev.wefhy.whymap.utils.UpdateQueue
+import dev.wefhy.whymap.utils.TileUpdateQueue
 import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +17,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents
 import net.minecraft.client.MinecraftClient
 import net.minecraft.text.ClickEvent
-import net.minecraft.text.LiteralTextContent
-import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import org.slf4j.LoggerFactory
 
@@ -46,7 +43,7 @@ class WhyMapMod : ModInitializer {
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register { player, oldWorld, newWorld ->
             println("CHANGED WORLD! old: ${oldWorld.dimension.coordinateScale}, new: ${newWorld.dimension.coordinateScale}")
             activeWorld!!.close()
-            UpdateQueue.reset()
+            TileUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
         }
@@ -54,7 +51,7 @@ class WhyMapMod : ModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()
-            UpdateQueue.reset()
+            TileUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = null
         }

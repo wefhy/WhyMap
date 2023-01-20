@@ -3,54 +3,44 @@
 package dev.wefhy.whymap.utils
 
 import kotlinx.serialization.Serializable
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
-import kotlin.collections.ArrayList
 
-
-/**
- * Heavily optimized for this only purpose
- */
-object UpdateQueue { //TODO separate for every world / dimension?
-
-    //TODO add new areas to queue!
+abstract class UpdateQueue<T> {
 
     @Serializable
-    class QueueResponse (val time: Long, val updates: ArrayList<ChunkUpdatePosition>)
-
-    @Serializable
-    class ChunkUpdatePosition (val x: Int, val z: Int, @kotlinx.serialization.Transient val time: Long = 0)
+    class QueueResponse<T>(val time: Long, val updates: ArrayList<T>)
 
     private var lastCleanup = 0L
     private val capacity = 60L //seconds
-    private val queue = ConcurrentLinkedDeque<ChunkUpdatePosition>() //TODO replace with regular linkedlist and add good synchronization
+    private val queue = ConcurrentLinkedDeque<EventQueueEntry<T>>() //TODO replace with regular linkedlist and add good synchronization
     //Holy crap, kotlin library are so f***ed when dealing with linked lists... They use indexes... EVERYWHERE, even in iterators
 
-    internal fun addUpdate(x: Int, z: Int) {
-        removeLast(x, z)
+    @Serializable
+    class EventQueueEntry<T>(val entry: T, @kotlinx.serialization.Transient val time: Long = 0)
+
+    internal fun addUpdate(item: T) {
+        removeLast(item)
         val time = unixTime()
-        queue.addLast(ChunkUpdatePosition(x, z, time))
+        queue.addLast(EventQueueEntry(item, time))
         if (lastCleanup + capacity < time) {
             removeOld()
         }
     }
 
-//    internal fun getAllUpdates() = queue.toTypedArray()
-
     internal fun reset() {
         queue.clear()
     }
 
-    internal fun getLatestUpdates(threshold: Long): QueueResponse {
+    internal fun getLatestUpdates(threshold: Long): QueueResponse<T> {
         val time = unixTime()
-        val updates = ArrayList<ChunkUpdatePosition>(queue.size)
+        val updates = ArrayList<T>(queue.size)
         val iterator = queue.descendingIterator()
         while (iterator.hasNext()) {
             val t = iterator.next()
             if (t.time < threshold) {
                 break
             }
-            updates += t
+            updates += t.entry
         }
         return QueueResponse(time, updates)
     }
@@ -66,13 +56,12 @@ object UpdateQueue { //TODO separate for every world / dimension?
 
     /**
      * Searches list from the end because it's most likely the chunk was updated recently
-     *
      * There can be only one occurence anyway
      */
-    private fun removeLast(x: Int, z: Int) {
+    private fun removeLast(entry: T) {
         val iterator = queue.descendingIterator()
         while (iterator.hasNext()) {
-            if (iterator.next().let { it.x == x && it.z == z }) {
+            if (iterator.next().entry == entry) {
                 iterator.remove()
                 return
             }
