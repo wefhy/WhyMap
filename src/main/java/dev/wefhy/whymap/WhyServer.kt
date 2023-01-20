@@ -125,6 +125,7 @@ object WhyServer {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
+        //TODO all tile requests should be cancellable
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
@@ -192,6 +193,10 @@ object WhyServer {
                      * [...]
                      * at dev.wefhy.whymap.utils.ImageWriter.encodePNG(ImageWriter.kt:50) ~[main/:?]
                      * at dev.wefhy.whymap.WhyServer$serverRouting$4$1$1.invokeSuspend(WhyServer.kt:133) ~[main/:?]
+                     */
+
+                    /**
+                     * And another one in file Nodes.md as `Ex 2`
                      */
                 }
             }

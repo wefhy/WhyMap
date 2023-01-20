@@ -37,6 +37,23 @@ class WhyMapMod : ModInitializer {
                     )
                 ) {
                     updateChunk(wc)
+                    /**
+                    TODO Actually these coroutines NEED to be cancelled?
+                    TODO Or I need to properly support browsing background dimensions? But no way to keep chunk loaded until it's saved
+
+[19:52:53] [DefaultDispatcher-worker-57/ERROR] (FabricLoader) Uncaught exception in thread "DefaultDispatcher-worker-57"
+ java.lang.NullPointerException: getBlockState(mutablePosition) must not be null
+	at dev.wefhy.whymap.tiles.region.MapArea.getOceanFloorHeightMapHotFix(MapArea.kt:256) ~[main/:?]
+	at dev.wefhy.whymap.tiles.region.MapArea.updateChunk(MapArea.kt:295) ~[main/:?]
+	at dev.wefhy.whymap.WhyMapMod$onInitialize$1$1.invokeSuspend(WhyMapMod.kt:39) ~[main/:?]
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33) ~[kotlin-stdlib-1.8.0.jar:?]
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:570) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:750) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:677) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:664) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+	Suppressed: kotlinx.coroutines.DiagnosticCoroutineContextException
+                     */
                 }
             }
 

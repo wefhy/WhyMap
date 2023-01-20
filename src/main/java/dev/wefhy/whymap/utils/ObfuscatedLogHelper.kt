@@ -2,9 +2,12 @@
 
 package dev.wefhy.whymap.utils
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+
 object ObfuscatedLogHelper {
 
-    val objectMap = mutableMapOf<Any, Int>()
+    val objectMap = ConcurrentHashMap<Any, Int>()
 //    val commandMap = mutableMapOf<Pair<String, String>, Int>()
 
     val cmdMap = mutableMapOf<String, MutableList<String>>()
