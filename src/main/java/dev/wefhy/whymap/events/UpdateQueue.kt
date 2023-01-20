@@ -1,7 +1,8 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.utils
+package dev.wefhy.whymap.events
 
+import dev.wefhy.whymap.utils.unixTime
 import kotlinx.serialization.Serializable
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -11,7 +12,7 @@ abstract class UpdateQueue<T> {
     class QueueResponse<T>(val time: Long, val updates: ArrayList<T>)
 
     private var lastCleanup = 0L
-    private val capacity = 60L //seconds
+    protected open val capacity = 60L //seconds
     private val queue = ConcurrentLinkedDeque<EventQueueEntry<T>>() //TODO replace with regular linkedlist and add good synchronization
     //Holy crap, kotlin library are so f***ed when dealing with linked lists... They use indexes... EVERYWHERE, even in iterators
 

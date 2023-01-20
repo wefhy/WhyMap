@@ -6,6 +6,8 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
+import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
@@ -56,6 +58,8 @@ fun Application.myApplicationModule() {
 }
 
 object WhyServer {
+    private const val parsingError: String = "Can't parse request"
+
     fun host() {
         embeddedServer(CIO, port = 7542, module = Application::myApplicationModule).start(wait = true)
     }
@@ -86,7 +90,7 @@ object WhyServer {
         }
         get("/block/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val (x, z) = getParams("x", "z") ?: return@get call.respondText("Can't parse request")
+            val (x, z) = getParams("x", "z") ?: return@get call.respondText(parsingError)
             val block = LocalTile.Block(x, z)
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(block.parent(TileZoom.RegionZoom)) {
                 call.respond(
@@ -96,7 +100,7 @@ object WhyServer {
         }
         get("/customRegion/{s}/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText("Can't parse request")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) {
                 val bitmap = withContext(Dispatchers.IO) { getCustomRender(s) }
                 call.respondOutputStream(contentType = WhyMapMod.contentType) {
@@ -108,35 +112,32 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            return@get call.respondText(getMappings())
+            call.respondText(getMappings())
         }
         get("/exportBlockMappings") {
-            return@get call.respondText(exportBlockMappings())
+            call.respondText(exportBlockMappings())
         }
         get("/lastUpdates/{threshold}") {
-            val threshold = call.parameters["threshold"]?.toLong() ?: return@get call.respondText("Can't parse request")
-            return@get call.respond(TileUpdateQueue.getLatestUpdates(threshold))
-
-//            call.respond("hello")
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(TileUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/worldEvents/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
-            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText("Can't parse request")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
 
             val bitmap: BufferedImage = when (s) {
                 WhyMapConfig.regionZoom, -WhyMapConfig.regionZoom -> {
-                    val regionTile = if (s >= 0) MapTile(x, z, TileZoom.RegionZoom).toLocalTile() else LocalTile(
-                        x,
-                        z,
-                        TileZoom.RegionZoom
-                    )
+                    val regionTile = if (s >= 0)
+                        MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+                    else
+                        LocalTile(x, z, TileZoom.RegionZoom)
+
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
-                        "Requested tile: ${
-                            Pair(
-                                x,
-                                z
-                            )
-                        }, scale: $s, region: $regionTile"
+                        "Requested tile: ${Pair(x, z)}, scale: $s, region: $regionTile"
                     )
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                         withContext(Dispatchers.IO) { getRendered() }
@@ -145,36 +146,26 @@ object WhyServer {
                 }
 
                 WhyMapConfig.chunkZoom, -WhyMapConfig.chunkZoom -> {
-                    val chunkTile = if (s >= 0) MapTile(x, z, TileZoom.ChunkZoom).toLocalTile() else LocalTile(
-                        x,
-                        z,
-                        TileZoom.ChunkZoom
-                    )
+                    val chunkTile = if (s >= 0)
+                        MapTile(x, z, TileZoom.ChunkZoom).toLocalTile()
+                    else
+                        LocalTile(x, z, TileZoom.ChunkZoom)
+
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
-                        "Requested tile: ${
-                            Pair(
-                                x,
-                                z
-                            )
-                        }, scale: $s, chunk: $chunkTile"
+                        "Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile"
                     )
                     withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
                         ?: return@get call.respondText("Chunk unavailable")
                 }
 
                 WhyMapConfig.thumbnailZoom, -WhyMapConfig.thumbnailZoom -> {
-                    val thumbnailTile = if (s >= 0) MapTile(x, z, TileZoom.ThumbnailZoom).toLocalTile() else LocalTile(
-                        x,
-                        z,
-                        TileZoom.ThumbnailZoom
-                    )
+                    val thumbnailTile = if (s >= 0)
+                        MapTile(x, z, TileZoom.ThumbnailZoom).toLocalTile()
+                    else
+                        LocalTile(x, z, TileZoom.ThumbnailZoom)
+
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
-                        "Requested tile: ${
-                            Pair(
-                                x,
-                                z
-                            )
-                        }, scale: $s, thumbnail: $thumbnailTile"
+                        "Requested tile: ${Pair(x, z)}, scale: $s, thumbnail: $thumbnailTile"
                     )
 //                                withContext(Dispatchers.IO) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
                     val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile)
@@ -205,13 +196,6 @@ object WhyServer {
                 }
             }
         }
-//                    get("/regionheight/{x}/{z}") {
-//                        activeWorld ?: return@get call.respondText("World not loaded!")
-//                        val x = call.parameters["x"]?.toInt() ?: return@get call.respondText("Can't parse request")
-//                        val z = call.parameters["z"]?.toInt() ?: return@get call.respondText("Can't parse request")
-//                        val region = activeWorld?.mapRegionManager?.getLoadedRegionForRead(LocalTile.Region(x, z)) ?: return@get call.respondText("Region unavailable")
-//                        call.respondText { region.heightMap.joinToString(","){it.joinToString(",")} }
-//                    }
 
 //                    get("/export") {
 //                        MinecraftClient.getInstance().world ?: return@get call.respondText("World not loaded!")
@@ -230,16 +214,6 @@ object WhyServer {
             staticBasePackage = "web"
             resources(".")
         }
-//                    val classloader = javaClass.classLoader
-//                    val resource = classloader.getResource("web")
-//                    val webDirectory = File(resource.toURI())
-//                    Files.walk(webDirectory.toPath()).forEach {
-//                        val file = it.toFile()
-//                        val relativePath = file.relativeTo(webDirectory).path
-//                        get("/$relativePath") {
-//                            call.respondFile(file)
-//                        }
-//                    }
         get("/waypoints") {
             call.respond(
                 activeWorld?.waypoints?.onlineWaypoints ?: listOf()

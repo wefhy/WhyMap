@@ -1,6 +1,6 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.utils
+package dev.wefhy.whymap.events
 
 import kotlinx.serialization.Serializable
 

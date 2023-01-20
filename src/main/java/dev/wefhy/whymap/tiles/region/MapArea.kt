@@ -23,6 +23,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.fastIgnoreLoo
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.events.TileUpdateQueue
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import kotlinx.coroutines.Dispatchers

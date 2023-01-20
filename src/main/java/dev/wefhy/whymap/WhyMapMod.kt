@@ -5,7 +5,8 @@ package dev.wefhy.whymap
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.utils.LocalTile
-import dev.wefhy.whymap.utils.TileUpdateQueue
+import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class WhyMapMod : ModInitializer {
             TileUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
         }
 
         ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
@@ -54,6 +56,7 @@ class WhyMapMod : ModInitializer {
             TileUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = null
+            WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.LeaveWorld)
         }
 
         ClientPlayConnectionEvents.JOIN.register { handler, sender, client ->
@@ -64,6 +67,7 @@ class WhyMapMod : ModInitializer {
                 style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
             }
             client.player!!.sendMessage(message, false)
+            WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.EnterWorld)
         }
 
         GlobalScope.launch {
