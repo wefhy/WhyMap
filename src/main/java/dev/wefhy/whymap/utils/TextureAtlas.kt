@@ -13,23 +13,26 @@ object TextureAtlas {
 
     val textureAtlas by lazy { createTextureAtlas() }
 
+    val blocks = Block.STATE_IDS.map { it.block }.toSet()
+
     private fun createTextureAtlas(): BufferedImage {
-        val atlasSize = ceil(sqrt(BlockQuickAccess.minecraftBlocks.size.toDouble())).toInt()
+
+        val atlasSize = ceil(sqrt(blocks.size.toDouble())).toInt()
         val atlasResolution = atlasSize * 16
 
         val bufferedImage = BufferedImage(atlasResolution, atlasResolution, BufferedImage.TYPE_INT_RGB)
         val g2d = bufferedImage.createGraphics()
 
-        Block.STATE_IDS.forEachIndexed { i, blockState ->
+        blocks.forEachIndexed { i, block ->
             val x = i / atlasSize
             val y = i % atlasSize
             val xPos = x * 16
             val yPos = y * 16
-            val source = ExperimentalTextureProvider.getBitmap(blockState.block)
+            val source = ExperimentalTextureProvider.getBitmap(block)
             if (source != null) {
                 g2d.drawImage(source, xPos, yPos, null)
             } else {
-                g2d.color = java.awt.Color(blockState.material.color.color)
+                g2d.color = java.awt.Color(block.defaultState.material.color.color)
                 g2d.fillRect(xPos, yPos, 16, 16)
             }
         }
