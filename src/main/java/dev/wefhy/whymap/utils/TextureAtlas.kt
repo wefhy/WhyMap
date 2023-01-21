@@ -2,19 +2,26 @@
 
 package dev.wefhy.whymap.utils
 
+import dev.wefhy.whymap.CurrentWorldProvider
+import dev.wefhy.whymap.WhyWorld
+import dev.wefhy.whymap.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.mesh.Uv
 import dev.wefhy.whymap.tiles.mesh.UvCoordinate
+import dev.wefhy.whymap.tiles.region.MapArea
 import net.minecraft.block.Block
 import java.awt.image.BufferedImage
+import java.awt.image.RescaleOp
 
 /**
  * Trim sheet implementation
  */
+
 object TextureAtlas {
 
-
-    val textureAtlas by lazy { createTextureAtlas() }
+    context(CurrentWorldProvider<WhyWorld>)
+    val textureAtlas
+        get() = createTextureAtlas()
 
     private val blocks by lazy { Block.STATE_IDS.map { it.block }.toSet().sortedBy { it.translationKey } }
     private val atlasSize by lazy { blocks.size }
@@ -41,18 +48,38 @@ object TextureAtlas {
         )
     }
 
+    context(CurrentWorldProvider<WhyWorld>)
     private fun createTextureAtlas(): BufferedImage {
 
         val atlasResolution = atlasSize * 16
 
         val bufferedImage = BufferedImage(atlasResolution, 16, BufferedImage.TYPE_INT_RGB)
         val g2d = bufferedImage.createGraphics()
+        currentWorld.biomeManager
+//        val foliageColor = currentWorld.biomeManager.decodeBiomeFoliage(0).floatArray.dropLast(1).toFloatArray()
+        val foliageColor = floatArrayOf(0.33f, 1f, 0.07f).map { it*0.7f }.toFloatArray()
+//        val normalShade = MapArea.Normal(0, 0).shade
+        val floatArray = floatArrayOf(1f, 1f, 1f)
 
         blocks.forEachIndexed { i, block ->
             val pos = i * 16
             val source = ExperimentalTextureProvider.getBitmap(block)
+            val blockColorFilter = if (BlockQuickAccess.foliageBlocksSet.contains(block.defaultState)) {
+                foliageColor
+            } else {
+                floatArray
+            }
             if (source != null) {
-                g2d.drawImage(source, pos, 0, null)
+                try {
+                    g2d.drawImage(
+                        source,
+                        RescaleOp(blockColorFilter, FloatArray(3), null),
+                        pos,
+                        0
+                    )
+                } catch (e: IllegalArgumentException) {
+                    println("Indexed image! ${block.translationKey}")
+                }
             } else {
                 g2d.color = java.awt.Color(block.defaultState.material.color.color)
                 g2d.fillRect(pos, 0, 16, 16)

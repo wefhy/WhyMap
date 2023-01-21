@@ -9,3 +9,5 @@ class FloatColor(val r: Float, val g: Float, val b: Float) {
         b * o.b
     )
 }
+val FloatColor.floatArray
+    get() = floatArrayOf(r, g, b, 1f)

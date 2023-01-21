@@ -9,6 +9,7 @@ import dev.wefhy.whymap.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.utils.Color
 import dev.wefhy.whymap.utils.FloatColor
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.utils.floatArray
 import kotlinx.coroutines.runBlocking
 import net.minecraft.util.math.ChunkPos
 import java.awt.AlphaComposite
@@ -26,10 +27,6 @@ class ExperimentalTileGenerator {
     fun getTile(position: ChunkPos): BufferedImage? = renderedTiles.getOrPut(position) {
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
-
-    val FloatColor.floatArray
-        get() = floatArrayOf(r, g, b, 1f)
-
 
     private fun renderTile(position: ChunkPos): BufferedImage? {
         //TODO switch context

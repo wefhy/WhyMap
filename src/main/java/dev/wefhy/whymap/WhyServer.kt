@@ -127,7 +127,10 @@ object WhyServer {
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
         get("/textureAtlas") {
-            val bitmap = withContext(Dispatchers.Default) { TextureAtlas.textureAtlas }
+            val bitmap = with(activeWorld?.provider) {
+                if (this == null) return@get call.respondText("World not loaded!")
+                withContext(Dispatchers.Default) { TextureAtlas.textureAtlas }
+            }
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
                 withContext(Dispatchers.IO) {
                     encodePNG(bitmap)
