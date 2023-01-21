@@ -126,6 +126,14 @@ object WhyServer {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
+        get("/textureAtlas") {
+            val bitmap = withContext(Dispatchers.Default) { TextureAtlas.textureAtlas }
+            call.respondOutputStream(contentType = WhyMapMod.contentType) {
+                withContext(Dispatchers.IO) {
+                    encodePNG(bitmap)
+                }
+            }
+        }
 //        get("/3d/tiles/15/{x}/{z}") {
 //            activeWorld ?: return@get call.respondText("World not loaded!")
 //            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
