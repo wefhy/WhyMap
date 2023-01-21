@@ -32,19 +32,26 @@ object MeshGenerator {
         uv_data[poly.loop_indices[1]].uv = uvs[i][1]
         uv_data[poly.loop_indices[2]].uv = uvs[i][2]
         uv_data[poly.loop_indices[3]].uv = uvs[i][3]
+    mat = bpy.data.materials.get("whymap")
+    if o.data.materials:
+        o.data.materials[0] = mat
+    else:
+        o.data.materials.append(mat)
     """.trimIndent()
 
     context(MapArea)
     fun getBlenderPythonMesh(): String {
         val centerChunk = location.getCenter().parent(TileZoom.ChunkZoom)
-        val chunks = listOf(
-            centerChunk,
-            LocalTile.Chunk(centerChunk.x, centerChunk.z + 1),
-            LocalTile.Chunk(centerChunk.x + 1, centerChunk.z + 1),
-            LocalTile.Chunk(centerChunk.x + 1, centerChunk.z),
+
+        val chunkOffsets = listOf(
+            0 to 0,
+            0 to 1,
+            1 to 1,
+            1 to 0,
         )
-        val allFaces = chunks.map { chunk ->
-            getChunkMesh(chunk)
+
+        val allFaces = chunkOffsets.map { offset ->
+            getChunkMesh(LocalTile.Chunk(centerChunk.x + offset.first, centerChunk.z + offset.second), offset)
         }
 
         val mesh = Mesh()
@@ -53,12 +60,14 @@ object MeshGenerator {
     }
 
     context(MapArea)
-    private fun getChunkMesh(chunk: LocalTileChunk): List<List<List<Face>>> {
+    private fun getChunkMesh(chunk: LocalTileChunk, offset: Pair<Int, Int> = 0 to 0): List<List<List<Face>>> {
         val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!
         val chunkBlocks = getChunk(chunk.chunkPos)!!
         return chunkHeightMap.mapIndexed { zz, lines ->
             lines.mapIndexed { xx, height ->
-                (getSideFaces(xx, zz, height) + getTopFace(xx, zz, height)).onEach {
+                (getSideFaces(xx + 16 * offset.first, zz + 16 * offset.second, height)).onEach {
+                    it.uv = TextureAtlas.getBlockSideUv(chunkBlocks[zz][xx].block, height)
+                }  + getTopFace(xx + 16 * offset.first, zz + 16 * offset.second, height).also {
                     it.uv = TextureAtlas.getBlockUV(chunkBlocks[zz][xx].block)
                 }
             }
