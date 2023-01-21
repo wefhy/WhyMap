@@ -3,9 +3,7 @@
 package dev.wefhy.whymap.tiles.mesh
 
 import dev.wefhy.whymap.tiles.region.MapArea
-import dev.wefhy.whymap.utils.TextureAtlas
-import dev.wefhy.whymap.utils.TileZoom
-import dev.wefhy.whymap.utils.chunkPos
+import dev.wefhy.whymap.utils.*
 
 object MeshGenerator {
     private const val faceSize: Float = 0.1f
@@ -37,22 +35,36 @@ object MeshGenerator {
     """.trimIndent()
 
     context(MapArea)
-    fun generateMesh(): String {
-        val chunk = location.getCenter().parent(TileZoom.ChunkZoom)
+    fun getBlenderPythonMesh(): String {
+        val centerChunk = location.getCenter().parent(TileZoom.ChunkZoom)
+        val chunks = listOf(
+            centerChunk,
+            LocalTile.Chunk(centerChunk.x, centerChunk.z + 1),
+            LocalTile.Chunk(centerChunk.x + 1, centerChunk.z + 1),
+            LocalTile.Chunk(centerChunk.x + 1, centerChunk.z),
+        )
+        val allFaces = chunks.map { chunk ->
+            getChunkMesh(chunk)
+        }
+
+        val mesh = Mesh()
+        mesh.addFaces(allFaces.flatten().flatten().flatten())
+        return "$head\n${mesh.toPython()}\n$tail"
+    }
+
+    context(MapArea)
+    private fun getChunkMesh(chunk: LocalTileChunk): List<List<List<Face>>> {
         val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!
         val chunkBlocks = getChunk(chunk.chunkPos)!!
-        val faces = chunkHeightMap.mapIndexed { zz, lines ->
+        return chunkHeightMap.mapIndexed { zz, lines ->
             lines.mapIndexed { xx, height ->
                 (getSideFaces(xx, zz, height) + getTopFace(xx, zz, height)).onEach {
                     it.uv = TextureAtlas.getBlockUV(chunkBlocks[zz][xx].block)
                 }
             }
         }
-
-        val mesh = Mesh()
-        mesh.addFaces(faces.flatten().flatten())
-        return "$head\n${mesh.toPython()}\n$tail"
     }
+
 
     private fun getTopFace(x: Int, z: Int, height: Short): Face {
         return Face(

@@ -160,7 +160,7 @@ object WhyServer {
             else
                 LocalTile(x, z, TileZoom.RegionZoom)
             val result = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                MeshGenerator.generateMesh()
+                MeshGenerator.getBlenderPythonMesh()
             } ?: return@get call.respondText("Chunk unavailable")
             call.respondText(result)
 
