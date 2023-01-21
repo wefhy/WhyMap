@@ -2,10 +2,11 @@
 
 package dev.wefhy.whymap.tiles.mesh
 
-class Mesh: PythonObject {
+class Mesh : PythonObject {
 
     val vertexStorage = arrayListOf<Vertex>()
     val faceStorage = arrayListOf<BlenderFace>()
+    val uvStorage = arrayListOf<Uv>()
 
     fun addFaces(faces: Collection<Face>) {
         for (face in faces) {
@@ -14,13 +15,15 @@ class Mesh: PythonObject {
                 vertexStorage.lastIndex
             }.toIntArray()
             faceStorage += BlenderFace(*vertexIndices)
+            uvStorage += face.uv ?: Uv(*face.vertices.map { UvCoordinate(-1.0, -1.0) }.toTypedArray())
         }
     }
 
     override fun toPython(): String {
         return """
-            vertices = [${vertexStorage.joinToString{it.toPython()}}]
-            faces = [${faceStorage.joinToString{it.toPython()}}]
+            vertices = [${vertexStorage.joinToString { it.toPython() }}]
+            faces = [${faceStorage.joinToString { it.toPython() }}]
+            uvs = [${uvStorage.joinToString { it.toPython() }}]
         """.trimIndent()
     }
 }

@@ -21,12 +21,12 @@ object TextureAtlas {
         val i = blocks.indexOf(block)
         val x = i / atlasSize
         val y = i % atlasSize
-        val aS = (1 / atlasSize).toDouble()
+        val aS = (1.0 / atlasSize)
         return Uv(
-            UvCoordinate((x + 0) * aS, (y + 0) * aS),
-            UvCoordinate((x + 1) * aS, (y + 0) * aS),
-            UvCoordinate((x + 1) * aS, (y + 1) * aS),
-            UvCoordinate((x + 0) * aS, (y + 1) * aS),
+            UvCoordinate((x + 0) * aS, 1 - (y + 0) * aS),
+            UvCoordinate((x + 1) * aS, 1 - (y + 0) * aS),
+            UvCoordinate((x + 1) * aS, 1 - (y + 1) * aS),
+            UvCoordinate((x + 0) * aS, 1 - (y + 1) * aS),
         )
     }
 
