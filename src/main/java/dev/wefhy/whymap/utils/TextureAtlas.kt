@@ -2,8 +2,9 @@
 
 package dev.wefhy.whymap.utils
 
-import dev.wefhy.whymap.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
+import dev.wefhy.whymap.tiles.mesh.Uv
+import dev.wefhy.whymap.tiles.mesh.UvCoordinate
 import net.minecraft.block.Block
 import java.awt.image.BufferedImage
 import kotlin.math.ceil
@@ -13,11 +14,24 @@ object TextureAtlas {
 
     val textureAtlas by lazy { createTextureAtlas() }
 
-    val blocks = Block.STATE_IDS.map { it.block }.toSet()
+    private val blocks by lazy { Block.STATE_IDS.map { it.block }.toSet().sortedBy { it.translationKey } }
+    private val atlasSize by lazy { ceil(sqrt(blocks.size.toDouble())).toInt() }
+
+    fun getBlockUV(block: Block): Uv {
+        val i = blocks.indexOf(block)
+        val x = i / atlasSize
+        val y = i % atlasSize
+        val aS = (1 / atlasSize).toDouble()
+        return Uv(
+            UvCoordinate((x + 0) * aS, (y + 0) * aS),
+            UvCoordinate((x + 1) * aS, (y + 0) * aS),
+            UvCoordinate((x + 1) * aS, (y + 1) * aS),
+            UvCoordinate((x + 0) * aS, (y + 1) * aS),
+        )
+    }
 
     private fun createTextureAtlas(): BufferedImage {
 
-        val atlasSize = ceil(sqrt(blocks.size.toDouble())).toInt()
         val atlasResolution = atlasSize * 16
 
         val bufferedImage = BufferedImage(atlasResolution, atlasResolution, BufferedImage.TYPE_INT_RGB)
