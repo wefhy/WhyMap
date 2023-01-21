@@ -8,7 +8,6 @@ import dev.wefhy.whymap.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.mesh.Uv
 import dev.wefhy.whymap.tiles.mesh.UvCoordinate
-import dev.wefhy.whymap.tiles.region.MapArea
 import net.minecraft.block.Block
 import java.awt.image.BufferedImage
 import java.awt.image.RescaleOp
@@ -57,7 +56,7 @@ object TextureAtlas {
         val g2d = bufferedImage.createGraphics()
         currentWorld.biomeManager
 //        val foliageColor = currentWorld.biomeManager.decodeBiomeFoliage(0).floatArray.dropLast(1).toFloatArray()
-        val foliageColor = floatArrayOf(0.33f, 1f, 0.07f).map { it*0.7f }.toFloatArray()
+        val foliageColor = floatArrayOf(0.33f, 1f, 0.07f).map { it * 0.7f }.toFloatArray()
 //        val normalShade = MapArea.Normal(0, 0).shade
         val floatArray = floatArrayOf(1f, 1f, 1f)
 

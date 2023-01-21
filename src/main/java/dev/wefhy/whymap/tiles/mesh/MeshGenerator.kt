@@ -43,12 +43,18 @@ object MeshGenerator {
     fun getBlenderPythonMesh(): String {
         val centerChunk = location.getCenter().parent(TileZoom.ChunkZoom)
 
-        val chunkOffsets = listOf(
-            0 to 0,
-            0 to 1,
-            1 to 1,
-            1 to 0,
-        )
+        val chunkOffsets = (0 until 3).map { z ->
+            (0 until 8).map { x ->
+                x to z
+            }
+        }.flatten()
+
+//        val chunkOffsets = listOf(
+//            0 to 0,
+//            0 to 1,
+//            1 to 1,
+//            1 to 0,
+//        )
 
         val allFaces = chunkOffsets.map { offset ->
             getChunkMesh(LocalTile.Chunk(centerChunk.x + offset.first, centerChunk.z + offset.second), offset)
