@@ -5,6 +5,8 @@ Your map will be presented at http://localhost:7542
 
 Join my discord for support and updates: https://discord.gg/FzCKRPHR
 
+Find the mod on CurseForge: https://www.curseforge.com/minecraft/mc-mods/whymap
+
 ## Setup
 
 First install yarn packages for frontend:

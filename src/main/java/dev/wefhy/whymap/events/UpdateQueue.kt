@@ -4,23 +4,43 @@ package dev.wefhy.whymap.events
 
 import dev.wefhy.whymap.utils.unixTime
 import kotlinx.serialization.Serializable
-import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.*
 
-abstract class UpdateQueue<T> {
+abstract class UpdateQueue<T : Any> {
 
     @Serializable
-    class QueueResponse<T>(val time: Long, val updates: ArrayList<T>)
+    class QueueResponse<T : Any>(val time: Long, val updates: ArrayList<T>)
 
     private var lastCleanup = 0L
     protected open val capacity = 60L //seconds
-    private val queue = ConcurrentLinkedDeque<EventQueueEntry<T>>() //TODO replace with regular linkedlist and add good synchronization
+    private val queue = LinkedList<EventQueueEntry<T>>() //TODO replace with regular linkedlist and add good synchronization
     //Holy crap, kotlin library are so f***ed when dealing with linked lists... They use indexes... EVERYWHERE, even in iterators
 
     @Serializable
-    class EventQueueEntry<T>(val entry: T, @kotlinx.serialization.Transient val time: Long = 0)
+    class EventQueueEntry<T : Any>(val entry: T, @kotlinx.serialization.Transient val time: Long = 0) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
 
-    internal fun addUpdate(item: T) {
+            other as EventQueueEntry<*>
+
+            if (entry != other.entry) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return entry.hashCode()
+        }
+
+        override fun toString(): String {
+            return "EQE(e=$entry, t=$time)"
+        }
+    }
+
+    internal fun addUpdate(item: T) = synchronized(this) {
         removeLast(item)
+//            println("Added $item, removed: $didRemove, length: ${queue.size}, distinct: ${queue.toSet().size}, items: ${queue.joinToString { "($it: ${it.hashCode()})" }}")
         val time = unixTime()
         queue.addLast(EventQueueEntry(item, time))
         if (lastCleanup + capacity < time) {
@@ -28,11 +48,12 @@ abstract class UpdateQueue<T> {
         }
     }
 
-    internal fun reset() {
+    internal fun reset() = synchronized(this) {
         queue.clear()
     }
 
-    internal fun getLatestUpdates(threshold: Long): QueueResponse<T> {
+
+    internal fun getLatestUpdates(threshold: Long): QueueResponse<T> = synchronized(this) {
         val time = unixTime()
         val updates = ArrayList<T>(queue.size)
         val iterator = queue.descendingIterator()
@@ -45,6 +66,7 @@ abstract class UpdateQueue<T> {
         }
         return QueueResponse(time, updates)
     }
+
 
     private fun removeOld() {
         val time = unixTime()

@@ -34,6 +34,7 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
     val world = mc.world!!
     val player = mc.player!!
     val dimension = world.dimension
+    override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
 
@@ -94,6 +95,7 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
 class OfflineWorld(override val name: String, override val dimensionName: String) : WhyWorld() {
     override val provider = CurrentWorldProvider(this)
     override val biomeManager = BiomeOfflineManager()
+    override val dimensionScale = TODO("Not yet implemented")
 
     override fun close() {
         super.close()
@@ -105,6 +107,7 @@ abstract class WhyWorld : Closeable {
     abstract val dimensionName: String
     abstract val provider: CurrentWorldProvider<WhyWorld>
     abstract val biomeManager: BiomeManager
+    abstract val dimensionScale: Double
 
     val worldPath by lazy { modPath.resolve(name).resolve(dimensionName) }
     val mapTilesPath by lazy { worldPath.resolve("tiles") }
