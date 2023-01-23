@@ -1,0 +1,41 @@
+{
+  "categories": [
+    {
+      "title": "## 🚀 Features",
+      "labels": ["feature", "feat"]
+    },
+    {
+      "title": "## 🗺️ Frontend",
+      "labels": ["frontend"]
+    },
+    {
+      "title": "## 🐛 Fixes",
+      "labels": ["fix"]
+    },
+    {
+      "title": "## 🧪 Tests",
+      "labels": ["test"]
+    },
+    {
+      "title": "## 📦 Dependencies",
+      "labels": ["dependencies", "deps"]
+    },
+    {
+      "title": "## 🪄 Others",
+      "labels": ["magic", "other", "perf", "revert"]
+    }
+  ],
+  "ignore_labels": [
+    "ignore"
+  ],
+  "sort": {
+    "order": "ASC"
+  },
+  "template": "${{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n${{UNCATEGORIZED}}\n</details>",
+  "pr_template": "- ${{TITLE}}",
+  "empty_template": "- no changes",
+  "trim_values": true,
+  "max_tags_to_fetch": 200,
+  "max_pull_requests": 200,
+  "max_back_track_time_days": 1000
+}
