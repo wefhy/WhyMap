@@ -4,16 +4,19 @@
   "version": "${version}",
 
   "name": "WhyMap",
-  "description": "WhyMap is a fairplay worldmap mod created by wefhy",
+  "description": "WhyMap is a fairplay worldmap mod created by wefhy. The map can be accessed in your browser at http://localhost:7542",
   "authors": [
     "wefhy"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/whymap",
+    "sources": "https://github.com/wefhy/WhyMap",
+    "issues": "https://discord.gg/swfXTSvEVC",
+    "discord": "https://discord.gg/swfXTSvEVC",
+    "map": "http://localhost:7542"
   },
 
-  "license": "Apache-2.0",
+  "license": "GPLv3",
   "icon": "assets/whymap/icon.png",
 
   "environment": "*",
@@ -37,6 +40,18 @@
     "java": ">=17"
   },
   "suggests": {
-    "another-mod": "*"
+  },
+  "custom": {
+    "modupdater": {
+      "strategy": "curseforge",
+      "projectID": 815690,
+      "strict": false
+    },
+    "modmenu": {
+      "links": {
+        "See your map here": "http://localhost:7542",
+        "modmenu.discord": "https://discord.gg/swfXTSvEVC"
+      }
+    }
   }
 }
