@@ -106,6 +106,7 @@ val copyDistFolder = tasks.register<Copy>("copyDistFolder") {
 val deleteOldWeb = tasks.register<Delete>("deleteOldWeb") {
 	delete(files("src/main/resources/web/css"))
 	delete(files("src/main/resources/web/js"))
+	delete(files("src/main/resources/web/assets"))
 }
 
 val yarnInstall = task<Exec>("yarnInstall") {

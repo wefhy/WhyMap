@@ -6,14 +6,17 @@ import dev.wefhy.whymap.utils.unixTime
 import kotlinx.serialization.Serializable
 import java.util.*
 
+/**
+ * Heavily optimized for this only purpose
+ */
 abstract class UpdateQueue<T : Any> {
 
     @Serializable
     class QueueResponse<T : Any>(val time: Long, val updates: ArrayList<T>)
 
     private var lastCleanup = 0L
-    protected open val capacity = 60L //seconds
-    private val queue = LinkedList<EventQueueEntry<T>>() //TODO replace with regular linkedlist and add good synchronization
+    protected abstract val capacity: Long //seconds
+    private val queue = LinkedList<EventQueueEntry<T>>()
     //Holy crap, kotlin library are so f***ed when dealing with linked lists... They use indexes... EVERYWHERE, even in iterators
 
     @Serializable
@@ -21,21 +24,12 @@ abstract class UpdateQueue<T : Any> {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
-
             other as EventQueueEntry<*>
-
-            if (entry != other.entry) return false
-
-            return true
+            return entry == other.entry
         }
 
-        override fun hashCode(): Int {
-            return entry.hashCode()
-        }
-
-        override fun toString(): String {
-            return "EQE(e=$entry, t=$time)"
-        }
+        override fun hashCode(): Int = entry.hashCode()
+        override fun toString(): String = "EQE(e=$entry, t=$time)"
     }
 
     internal fun addUpdate(item: T) = synchronized(this) {

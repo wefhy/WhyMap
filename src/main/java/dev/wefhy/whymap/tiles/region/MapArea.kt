@@ -23,7 +23,9 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.fastIgnoreLoo
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
-import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.events.ChunkUpdateQueue
+import dev.wefhy.whymap.events.RegionUpdateQueue
+import dev.wefhy.whymap.events.ThumbnailUpdateQueue
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import kotlinx.coroutines.Dispatchers
@@ -362,7 +364,10 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         GlobalScope.launch {
             reRenderAndSaveThumbnail()
-            TileUpdateQueue.addUpdate(location.x, location.z)
+            RegionUpdateQueue.addUpdate(location.x, location.z)
+            ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
+            val thumbnail = location.parent(TileZoom.ThumbnailZoom)
+            ThumbnailUpdateQueue.addUpdate(thumbnail.x, thumbnail.z)
         }
     }
 

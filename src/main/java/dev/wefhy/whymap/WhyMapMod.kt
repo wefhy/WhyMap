@@ -5,7 +5,7 @@ package dev.wefhy.whymap
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.utils.LocalTile
-import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.utils.plus
 import io.ktor.http.*
@@ -61,7 +61,7 @@ class WhyMapMod : ModInitializer {
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register { player, oldWorld, newWorld ->
             println("CHANGED WORLD! old: ${oldWorld.dimension.coordinateScale}, new: ${newWorld.dimension.coordinateScale}")
             activeWorld!!.close()
-            TileUpdateQueue.reset()
+            RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
@@ -70,7 +70,7 @@ class WhyMapMod : ModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()
-            TileUpdateQueue.reset()
+            RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = null
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.LeaveWorld)

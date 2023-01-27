@@ -14,7 +14,8 @@ object RenderConfig {
         "cobweb",
         "spawner",
         "cactus",
-        "bamboo"
+        "bamboo",
+        "glass",
     )
 
     private val forceSolid = arrayOf<String>(

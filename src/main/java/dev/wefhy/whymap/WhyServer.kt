@@ -6,7 +6,9 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.events.ChunkUpdateQueue
+import dev.wefhy.whymap.events.RegionUpdateQueue
+import dev.wefhy.whymap.events.ThumbnailUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
@@ -117,9 +119,17 @@ object WhyServer {
         get("/exportBlockMappings") {
             call.respondText(exportBlockMappings())
         }
-        get("/lastUpdates/{threshold}") {
+        get("/lastRegionUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
-            call.respond(TileUpdateQueue.getLatestUpdates(threshold))
+            call.respond(RegionUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/lastChunkUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(ChunkUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/lastThumbnailUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(ThumbnailUpdateQueue.getLatestUpdates(threshold))
         }
         get("/worldEvents/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
