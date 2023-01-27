@@ -35,7 +35,7 @@ jobs:
       - name: "Build Changelog"
         id: changelog
         if: startsWith(github.ref, 'refs/tags/')
-        uses: wefhy/release-changelog-builder-action@{latest-release}
+        uses: wefhy/release-changelog-builder-action@develop
         with:
           commitMode: true
           configuration: "changelog-configuration.json"
@@ -55,7 +55,7 @@ jobs:
 #          body: ${{steps.github_release.outputs.changelog}}
           body: ${{steps.changelog.outputs.changelog}}
       - name: "Upload to CurseForge"
-        uses: wefhy/curseforge-upload@v3.1.1
+        uses: wefhy/curseforge-upload@master
         if: startsWith(github.ref, 'refs/tags/')
         with:
           file_path: "build/libs/whymap-${{ steps.build.outputs.version }}.jar"
