@@ -46,15 +46,11 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
     //    val alternativeName: String = mc.server!!.saveProperties.levelName
     val dimensionCoordinateScale = world.dimension.coordinateScale
 
-    override val dimensionName = when {
-        dimension.bedWorks -> "Overworld"
-        dimension.respawnAnchorWorks -> "Nether"
-        else -> customDimensionName(dimension)
-    }
+    override val dimensionName = dimension.serialize()
 
     val waypoints = with(provider) { Waypoints() }
 
-    val periodicCleanupJob = GlobalScope.launch {
+    val periodicCleanupJob = GlobalScope.launch {//TODO this definitely shouldn't be launched from GlobalScope...
         while (true) {
             delay(cleanupInterval * 1000L)
             mapRegionManager.periodicCleanup()
@@ -68,21 +64,6 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
     fun saveAll() {
         waypoints.save()
         mapRegionManager.saveAllAndClear()
-    }
-
-    companion object {
-        val instance: CurrentWorld? = null
-
-        fun customDimensionName(dimension: DimensionType): String {
-            val values = booleanArrayOf(
-                dimension.bedWorks,
-                dimension.ultrawarm,
-                dimension.natural,
-                dimension.piglinSafe(),
-                dimension.respawnAnchorWorks,
-            )
-            return "CustomDimension-${values.joinToString("") { if (it) "1" else "0" }}-${dimension.coordinateScale}-${dimension.height}-${dimension.logicalHeight}"
-        }
     }
 
     override fun close() {

@@ -49,37 +49,13 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
 	modImplementation("net.fabricmc:fabric-language-kotlin:1.9.0+kotlin.1.8.0")
 
-	implementation("io.ktor:ktor-server-core-jvm:2.2.2")
-	implementation("io.ktor:ktor-server-cio-jvm:2.2.2")
-	implementation("io.ktor:ktor-server-content-negotiation:2.2.2")
-	implementation("io.ktor:ktor-serialization-kotlinx-json:2.2.2")
-	implementation("io.ktor:ktor-server-html-builder:2.2.2")
-	implementation("io.ktor:ktor-server-cors:2.2.2")
-	implementation(group = "org.tukaani", name = "xz", version = "1.9")
-
-//	include(implementation(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
-//	include(implementation(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
-//	include(implementation(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
-//	include(implementation(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
-//	include(implementation(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
-//	include(implementation(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
-//	include(implementation(group = "org.tukaani", name = "xz", version = "1.9"))
-
-//	implementation(include(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
-//	implementation(include(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
-//	implementation(include(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
-//	implementation(include(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
-//	implementation(include(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
-//	implementation(include(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
-//	implementation(include(group = "org.tukaani", name = "xz", version = "1.9"))
-
-//	extraLibs("io.ktor:ktor-server-core-jvm:2.2.2")
-//	extraLibs("io.ktor:ktor-server-cio-jvm:2.2.2")
-//	extraLibs("io.ktor:ktor-server-content-negotiation:2.2.2")
-//	extraLibs("io.ktor:ktor-serialization-kotlinx-json:2.2.2")
-//	extraLibs("io.ktor:ktor-server-html-builder:2.2.2")
-//	extraLibs("io.ktor:ktor-server-cors:2.2.2")
-//	extraLibs(group = "org.tukaani", name = "xz", version = "1.9")
+	extraLibs(implementation(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
+	extraLibs(implementation(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
+	extraLibs(implementation(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
+	extraLibs(implementation(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
+	extraLibs(implementation(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
+	extraLibs(implementation(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
+	extraLibs(implementation(group = "org.tukaani", name = "xz", version = "1.9"))
 }
 
 tasks.getByName<ProcessResources>("processResources") {
@@ -100,12 +76,6 @@ tasks.withType<Jar> {
 		rename { "${it}_${mod_id}"}
 	}
 	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-//	from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
-//	from(configurations.runtime.map({ if (it.isDirectory) it else zipTree(it) }))
-//	from(configurations.implementation.map({ if (it.isDirectory()) it else zipTree(it) }))
-//	from {
-//		configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
-//	}
 }
 
 val yarnBuild = task<Exec>("yarnBuild") {

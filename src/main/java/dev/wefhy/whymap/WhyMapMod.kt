@@ -8,6 +8,7 @@ import dev.wefhy.whymap.utils.LocalTile
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.utils.plus
+import dev.wefhy.whymap.utils.serialize
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -16,10 +17,16 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents
+import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.network.ClientPlayNetworkHandler
+import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.server.world.ServerWorld
 import net.minecraft.text.ClickEvent
 import net.minecraft.text.Text
+import net.minecraft.world.dimension.DimensionType
 import org.slf4j.LoggerFactory
+import java.awt.Dimension
 
 
 class WhyMapMod : ModInitializer {
@@ -58,16 +65,31 @@ class WhyMapMod : ModInitializer {
             }
 
         }
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register { player, oldWorld, newWorld ->
-            println("CHANGED WORLD! old: ${oldWorld.dimension.coordinateScale}, new: ${newWorld.dimension.coordinateScale}")
-            activeWorld!!.close()
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register{_, _, newWorld -> dimensionChangeListener(newWorld.dimension)}
+        ClientPlayConnectionEvents.DISCONNECT.register(worldLeaveListener)
+        ClientPlayConnectionEvents.JOIN.register(worldJoinListener)
+        GlobalScope.launch {
+            WhyServer.host()
+        }
+    }
+    companion object {
+
+        private var oldDimensionName: String = ""
+
+        @JvmStatic
+        fun dimensionChangeListener(newDimension: DimensionType) {
+            val newDimensionName = newDimension.serialize()
+            if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD") }
+            println("CHANGED WORLD! old: $oldDimensionName, new: $newDimensionName")
+            oldDimensionName = newDimensionName
+            activeWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
             activeWorld = CurrentWorld(MinecraftClient.getInstance())
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
         }
 
-        ClientPlayConnectionEvents.DISCONNECT.register { handler, client ->
+        val worldLeaveListener = { handler: ClientPlayNetworkHandler, client: MinecraftClient ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()
             RegionUpdateQueue.reset()
@@ -76,7 +98,7 @@ class WhyMapMod : ModInitializer {
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.LeaveWorld)
         }
 
-        ClientPlayConnectionEvents.JOIN.register { handler, sender, client ->
+        val worldJoinListener = { handler: ClientPlayNetworkHandler, sender: PacketSender, client: MinecraftClient ->
             println("JOINED WORLD! ${client.world?.dimension?.coordinateScale}")
             activeWorld = CurrentWorld(client)
 
@@ -87,13 +109,6 @@ class WhyMapMod : ModInitializer {
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.EnterWorld)
         }
 
-        GlobalScope.launch {
-            WhyServer.host()
-        }
-    }
-
-
-    companion object {
         var activeWorld: CurrentWorld? = null
         const val MOD_ID = "whymap"
 

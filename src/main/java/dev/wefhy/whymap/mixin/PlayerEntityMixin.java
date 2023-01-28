@@ -2,7 +2,10 @@
 
 package dev.wefhy.whymap.mixin;
 
+import dev.wefhy.whymap.WhyMapMod;
 import dev.wefhy.whymap.events.WorldEventQueue;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
@@ -19,6 +22,15 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         super(entityType, world);
     }
 
+//    @Inject(
+//            at = {@At("HEAD")},
+//            method = {"tick"}
+//    )
+//    public void onTickStart(CallbackInfo info) {
+//        double a = MinecraftClient.getInstance().world.getDimension().coordinateScale();
+////        System.out.println("COORDINATE SCALE: " + a);
+//    }
+
     @Inject(method="onDeath", at=@At("TAIL"))
     void onPlayerDeath(CallbackInfo ci) {
 //        ((PlayerEntity)(Object)this).getPos();
@@ -28,6 +40,10 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
     @Inject(method="setLastDeathPos", at=@At("TAIL"))
     void playerDeathLocation(CallbackInfo ci) {
+        ClientWorld clientWorld = MinecraftClient.getInstance().world;
+        if (clientWorld != null) {
+            WhyMapMod.dimensionChangeListener(clientWorld.getDimension());
+        }
         System.out.println("PLAYER DEAAAATH position");
     }
 }
