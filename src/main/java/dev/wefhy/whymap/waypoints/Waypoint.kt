@@ -30,4 +30,8 @@ data class CoordXYZ(val x: Int, val y: Int, val z: Int) {
         val deg = CoordinateConversion.coord2deg(x.toDouble() + 0.5, z.toDouble() + 0.5)
         return LatLng(deg.first, deg.second)
     }
+
+    override fun toString(): String {
+        return "(x=$x, y=$y, z=$z)"
+    }
 }

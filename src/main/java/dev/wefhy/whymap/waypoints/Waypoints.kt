@@ -66,6 +66,9 @@ class Waypoints {
         waypoints += waypoint.asLocalWaypoint()
     }
 
+    fun add(waypoint: LocalWaypoint) {
+        waypoints += waypoint
+    }
 
     companion object {
         val xaeroColors = arrayOf(

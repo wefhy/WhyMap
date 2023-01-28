@@ -6,10 +6,8 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.events.ChunkUpdateQueue
-import dev.wefhy.whymap.events.RegionUpdateQueue
-import dev.wefhy.whymap.events.ThumbnailUpdateQueue
-import dev.wefhy.whymap.events.WorldEventQueue
+import dev.wefhy.whymap.events.*
+import dev.wefhy.whymap.gui.WhyConfirmScreen
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
@@ -134,6 +132,10 @@ object WhyServer {
         get("/worldEvents/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
+        }
+        get("/featureUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L //TODO this is not error handling for NumberFormatException!
+            call.respond(FeatureUpdateQueue.getLatestUpdates(threshold))
         }
         //TODO all tile requests should be cancellable
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension

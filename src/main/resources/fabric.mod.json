@@ -26,6 +26,12 @@
         "adapter": "kotlin",
         "value": "dev.wefhy.whymap.WhyMapMod"
       }
+    ],
+    "client" : [
+      {
+        "adapter": "kotlin",
+        "value": "dev.wefhy.whymap.WhyMapClient"
+      }
     ]
   },
   "mixins": [
@@ -37,7 +43,8 @@
     "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0",
     "fabric": "*",
     "minecraft": "1.19.3",
-    "java": ">=17"
+    "java": ">=17",
+    "fabric-key-binding-api-v1": "*"
   },
   "suggests": {
   },

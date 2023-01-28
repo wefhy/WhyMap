@@ -11,7 +11,7 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.0.17"
+	id ("fabric-loom") version "1.1.7"
 	id ("maven-publish")
 	id ("org.jetbrains.kotlin.jvm") version "1.8.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
@@ -57,13 +57,29 @@ dependencies {
 	implementation("io.ktor:ktor-server-cors:2.2.2")
 	implementation(group = "org.tukaani", name = "xz", version = "1.9")
 
-	extraLibs("io.ktor:ktor-server-core-jvm:2.2.2")
-	extraLibs("io.ktor:ktor-server-cio-jvm:2.2.2")
-	extraLibs("io.ktor:ktor-server-content-negotiation:2.2.2")
-	extraLibs("io.ktor:ktor-serialization-kotlinx-json:2.2.2")
-	extraLibs("io.ktor:ktor-server-html-builder:2.2.2")
-	extraLibs("io.ktor:ktor-server-cors:2.2.2")
-	extraLibs(group = "org.tukaani", name = "xz", version = "1.9")
+//	include(implementation(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
+//	include(implementation(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
+//	include(implementation(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
+//	include(implementation(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
+//	include(implementation(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
+//	include(implementation(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
+//	include(implementation(group = "org.tukaani", name = "xz", version = "1.9"))
+
+//	implementation(include(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
+//	implementation(include(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
+//	implementation(include(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
+//	implementation(include(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
+//	implementation(include(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
+//	implementation(include(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
+//	implementation(include(group = "org.tukaani", name = "xz", version = "1.9"))
+
+//	extraLibs("io.ktor:ktor-server-core-jvm:2.2.2")
+//	extraLibs("io.ktor:ktor-server-cio-jvm:2.2.2")
+//	extraLibs("io.ktor:ktor-server-content-negotiation:2.2.2")
+//	extraLibs("io.ktor:ktor-serialization-kotlinx-json:2.2.2")
+//	extraLibs("io.ktor:ktor-server-html-builder:2.2.2")
+//	extraLibs("io.ktor:ktor-server-cors:2.2.2")
+//	extraLibs(group = "org.tukaani", name = "xz", version = "1.9")
 }
 
 tasks.getByName<ProcessResources>("processResources") {
