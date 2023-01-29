@@ -5,6 +5,7 @@ package dev.wefhy.whymap.tiles.details
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterLoggedBlocks
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider.waterTexture
@@ -58,7 +59,7 @@ class ExperimentalTileGenerator {
                             val block = chunk[y][x]
                             val (foliageColor, oceanColor) = biomeFoliage[y][x]
                             val blockOverlay = chunkOverlay[y][x]
-                            val depth = depthmap[y][x]
+                            val depth = depthmap[y][x].toUByte().toInt()
                             val normalShade = normalmap[y][x].shade
 
                             //TODO handle lava separately
@@ -81,7 +82,7 @@ class ExperimentalTileGenerator {
                                 g2d.color = java.awt.Color(block.material.color.color)
                                 g2d.fillRect(x * 16, y * 16, 16, 16)
                             }
-                            if (depth == 0.toByte()) continue
+                            if (depth == 0) continue
                             val sourceOverlay = ExperimentalTextureProvider.getBitmap(blockOverlay.block)
                             val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
                             val alpha = (3 - tmp1 * tmp1) / 3
@@ -91,12 +92,16 @@ class ExperimentalTileGenerator {
                             else if(foliageBlocksSet.contains(blockOverlay)) foliageColor.toColor()
                             else Color.white
 
+                            val darkenArray = if (!ignoreDepthTint.contains(blockOverlay)) {
+                                floatArrayOf(darken, darken, darken, 0f)
+                            } else FloatArray(4)
+
                             val newRop = if(waterLoggedBlocks.contains(blockOverlay)) {
-                                val waterRop = RescaleOp(oceanColor.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, floatArrayOf(darken, darken, darken, 0f), null)
+                                val waterRop = RescaleOp(oceanColor.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
                                 g2d.drawImage(waterTexture, waterRop, x*16, y*16)
                                 RescaleOp(c.toFloatColor().floatArray, FloatArray(4), null)
                             } else {
-                                RescaleOp(c.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, floatArrayOf(darken, darken, darken, 0f), null) //TODO don't change alpha for non-water!
+                                RescaleOp(c.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
                             }
 
                             if (sourceOverlay != null) {
@@ -116,7 +121,10 @@ class ExperimentalTileGenerator {
                 }
 
             } catch (e: IndexOutOfBoundsException) {
-                println("Failed to render chunk (${position.x}, ${position.z})")
+                println("Failed to render chunk (${position.x}, ${position.z}) due to out of bounds")
+                null
+            } catch (e: IllegalArgumentException) {
+                println("Failed to render chunk (${position.x}, ${position.z}) due do indexed image (probably)")
                 null
             }
         }

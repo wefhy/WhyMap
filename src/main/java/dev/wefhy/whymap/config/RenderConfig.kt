@@ -21,7 +21,18 @@ object RenderConfig {
         "fence",
         "wall",
         "bell",
+        "honey_block",
+        "chest",
+        "trapdoor",
+        "cake",
+        "lightning_rod",
+        "door",
+        "lantern", //todo don't match sea lantern!
 //        "ice", TODO can be enabled if I take into account how transparent is every texture. Otherwise it's too transparent on zoom-out. On detail view it's perfect.
+    )
+
+    private val ignoreDepthTint = arrayOf(
+        "glass"
     )
 
     private val forceSolid = arrayOf(
@@ -35,7 +46,7 @@ object RenderConfig {
         "grass",
         "sugar",
         "fern",
-        "lily",
+        "lily_pad",
         "bedrock",
         "melon_stem",
         "pumpkin_stem",
@@ -56,6 +67,8 @@ object RenderConfig {
     internal inline fun isWaterlogged(name: String) = waterloggedBlocks.any { name.contains(it) }
 
     internal inline fun shouldIgnoreAlpha(name: String) = blockColorIgnoreAlpha.any { name.contains(it) }
+
+    internal inline fun shouldIgnoreDepthTint(name: String) = ignoreDepthTint.any { name.contains(it) }
 
     internal inline fun isWaterBlock(name: String) = name.contains("water")
 

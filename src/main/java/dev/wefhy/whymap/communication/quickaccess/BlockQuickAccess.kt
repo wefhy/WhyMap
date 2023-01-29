@@ -9,6 +9,7 @@ import dev.wefhy.whymap.config.RenderConfig.isFoliageBlock
 import dev.wefhy.whymap.config.RenderConfig.isWaterBlock
 import dev.wefhy.whymap.config.RenderConfig.isWaterlogged
 import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreAlpha
+import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreDepthTint
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.utils.getAverageColor
 import dev.wefhy.whymap.utils.getAverageLeavesColor
@@ -25,6 +26,7 @@ object BlockQuickAccess {
     internal val waterBlocks = minecraftBlocks.filter { isWaterBlock(it) }.map { blockNameMap[it] }.toSet()
     internal val waterLoggedBlocks = minecraftBlocks.filter { isWaterlogged(it) }.map { blockNameMap[it] }.toSet()
     private val ignoreAlphaBlocks = minecraftBlocks.filter { shouldIgnoreAlpha(it) }.map { blockNameMap[it] }.toSet()
+    internal val ignoreDepthTint = minecraftBlocks.filter { shouldIgnoreDepthTint(it) }.map { blockNameMap[it] }.toSet()
     private val fastLookupBlocks = minecraftBlocks.map { blockNameMap[it]!! }.toTypedArray()
     private val fastLookupBlockColor = fastLookupBlocks.map {
         ExperimentalTextureProvider.getBitmap(it.block)?.run {

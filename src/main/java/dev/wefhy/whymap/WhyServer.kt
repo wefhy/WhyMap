@@ -272,6 +272,12 @@ object WhyServer {
             activeWorld?.waypoints?.add(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)
             call.respond(HttpStatusCode.OK)
         }
+        delete("/waypoint") {
+            val waypoint = call.receive<OnlineWaypoint>()
+            WhyMapMod.LOGGER.debug("Deleting waypoint: ${waypoint.name}, ${waypoint.pos}")
+            activeWorld?.waypoints?.remove(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)
+            call.respond(HttpStatusCode.OK)
+        }
         post("/importWaypoints") {
             val waypointsFile = call.receiveText()
             if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.debug(waypointsFile)

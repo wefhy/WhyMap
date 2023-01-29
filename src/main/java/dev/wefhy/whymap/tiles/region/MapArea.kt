@@ -21,6 +21,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlockCo
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.encodeBlock
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.fastIgnoreLookup
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.events.ChunkUpdateQueue
@@ -430,17 +431,22 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
                         biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
                     else
-                        Color(decodeBlockColor(blockOverlayIdMap[z][x]))
+                        Color(decodeBlockColor(blockOverlayIdMap[z][x])) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
                     val normal = getNormalSharp(x, z)
-                    val depth = depthMap[z][x]
+                    val depth = depthMap[z][x].toUByte()
 
                     var color = (if (foliageBlocksSet.contains(block)) {
                         baseBlockColor * foliageColor
                     } else baseBlockColor) * normal.shade
 
-                    if (depth > 0 && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-                        var waterColor = overlayBlockColor + -depth.toInt() * 4
+                    if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+
+                        val depthTint = if(!ignoreDepthTint.contains(overlayBlock)) {
+                            -depth.toInt() * 4
+                        } else 0
+
+                        var waterColor = overlayBlockColor + depthTint
                         waterColor = if (foliageBlocksSet.contains(overlayBlock))
                             waterColor * foliageColor
                         else
@@ -463,6 +469,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         bitmap
     }
+
 
     private fun currentTime() = Clock.System.now().epochSeconds
 

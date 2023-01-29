@@ -72,6 +72,10 @@ class Waypoints {
         waypoints += waypoint
     }
 
+    fun remove(waypoint: OnlineWaypoint) {
+        waypoints.removeIf { it.name == waypoint.name && it.location == waypoint.pos }
+    }
+
     companion object {
         val xaeroColors = arrayOf(
             0x000000,
