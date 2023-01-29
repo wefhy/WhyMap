@@ -85,35 +85,19 @@ class ExperimentalTileGenerator {
                             val sourceOverlay = ExperimentalTextureProvider.getBitmap(blockOverlay.block)
                             val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
                             val alpha = (3 - tmp1 * tmp1) / 3
-                            val darken = -depth / 64f
-                            val blockOverlayColorFilter = if (foliageBlocksSet.contains(blockOverlay)) {
-                                (foliageColor * normalShade).floatArray
-                            } else if (waterBlocks.contains(blockOverlay)) {
-                                (oceanColor.toFloatColor() * normalShade).floatArray
-                            } else {
-                                normalShade.floatArray
-                            }
-
-                            if(waterLoggedBlocks.contains(blockOverlay)) {
-
-                                val co = (oceanColor + (-depth * 4)).toFloatColor()
-//                                val waterRop = RescaleOp((oceanColor.toFloatColor() * normalShade).floatArray, floatArrayOf(darken, darken, darken, 0f), null)
-                                val waterRop = RescaleOp(co.floatArray.apply { this[3] = alpha * 1.5f }, floatArrayOf(1f, 1f, 1f, 0f), null)
-                                g2d.drawImage(waterTexture, waterRop, x*16, y*16)
-//                                val newRop = RescaleOp(blockOverlayColorFilter, floatArrayOf(darken, darken, darken, 0f), null)
-//                                g2d.drawImage(waterTexture, waterRop, x*16, y*16)
-//                                continue
-                            }
-
+                            val darken = -depth * 1.6f
 
                             val c = if (waterBlocks.contains(blockOverlay)) oceanColor
                             else if(foliageBlocksSet.contains(blockOverlay)) foliageColor.toColor()
                             else Color.white
 
-                            val co = (c + (-depth * 4)).toFloatColor()
-                            val newRop = RescaleOp(co.floatArray.apply { this[3] = alpha * 1.5f }, floatArrayOf(1f, 1f, 1f, 0f), null)
-//                            val newRop = RescaleOp(co.floatArray.apply { this[3] = alpha * 2 }, floatArrayOf(darken, darken, darken, 0f), null)
-
+                            val newRop = if(waterLoggedBlocks.contains(blockOverlay)) {
+                                val waterRop = RescaleOp(oceanColor.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, floatArrayOf(darken, darken, darken, 0f), null)
+                                g2d.drawImage(waterTexture, waterRop, x*16, y*16)
+                                RescaleOp(c.toFloatColor().floatArray, FloatArray(4), null)
+                            } else {
+                                RescaleOp(c.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, floatArrayOf(darken, darken, darken, 0f), null) //TODO don't change alpha for non-water!
+                            }
 
                             if (sourceOverlay != null) {
                                 g2d.drawImage(sourceOverlay, newRop, x * 16, y * 16)

@@ -7,7 +7,7 @@ object RenderConfig {
     private val ignoredOverlayBlocks = arrayOf(
         "string",
         "tripwire",
-        "vine"
+        "vine",
     )
 
     private val forceOverlay = arrayOf(
@@ -18,10 +18,15 @@ object RenderConfig {
         "cactus",
         "bamboo",
         "glass",
+        "fence",
+        "wall",
+        "bell",
+//        "ice", TODO can be enabled if I take into account how transparent is every texture. Otherwise it's too transparent on zoom-out. On detail view it's perfect.
     )
 
-    private val forceSolid = arrayOf<String>(
-
+    private val forceSolid = arrayOf(
+        "lava",
+        "snow",
     )
 
     private val foliageBlocks = listOf(
@@ -32,10 +37,12 @@ object RenderConfig {
         "fern",
         "lily",
         "bedrock",
+        "melon_stem",
+        "pumpkin_stem",
     )
 
     private val blockColorIgnoreAlpha = listOf(
-        "leaves"
+        "leaves",
     )
 
     private val waterloggedBlocks = listOf(

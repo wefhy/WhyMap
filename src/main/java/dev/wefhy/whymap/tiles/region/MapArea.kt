@@ -295,7 +295,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //        val surface = chunkGetSurface(chunk, Heightmap.Type.OCEAN_FLOOR)
 //        val heightmapFloor = chunk.getHeightmap(Heightmap.Type.OCEAN_FLOOR)
         val heightmapFloorTmp = chunk.getOceanFloorHeightMapHotFix() // TODO this should be replaced by heightmapFloor when it works
-        val heightmapSurface = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE)
+        val heightmapSurface = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE) //TODO I should generate heightmap myself so I can ignore certain blocks completely (like vines, string etc) and not have them as overlays
         val absoluteBlockPos = BlockPos.Mutable()
         val chunkBlockPos = BlockPos.Mutable()
         val chunkOverlayBlockPos = BlockPos.Mutable()

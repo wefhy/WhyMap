@@ -64,6 +64,6 @@ jobs:
           game_endpoint: "minecraft"
           release_type: "beta"
           relations: "fabric-api:requiredDependency,fabric-language-kotlin:requiredDependency"
-          game_versions: "Minecraft 1.19:1.19.3"
+          game_versions: "Minecraft 1.19:1.19.3:fabric"
           project_id: "815690"
           token: "${{ secrets.CF_API_TOKEN }}"
