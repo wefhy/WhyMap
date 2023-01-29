@@ -8,6 +8,8 @@ import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.LOAD_AND_PEEK
 import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.PEEK_IF_LOADED
+import dev.wefhy.whymap.tiles.thumbnails.EmptyThumbnailProvider
+import dev.wefhy.whymap.tiles.thumbnails.RenderedThumbnailProvider
 import dev.wefhy.whymap.utils.LocalTileRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -81,8 +83,9 @@ class MapRegionManager {
         }
     }
 
-    fun getRegionLoaderForThumbnailRendering(position: LocalTileRegion): MapAreaAccess {
-        return regionLoaders.getOrPut(position) { MapAreaAccess.GetForWrite(position) }
+    fun getRegionLoaderForThumbnailRendering(position: LocalTileRegion): RenderedThumbnailProvider {
+        return regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return EmptyThumbnailProvider }
+        //TODO use optionals?
     }
 
 }

@@ -1,11 +1,13 @@
 // Copyright (c) 2022 wefhy
 
+@file:Suppress("NOTHING_TO_INLINE")
 package dev.wefhy.whymap.config
 
 object RenderConfig {
     private val ignoredOverlayBlocks = arrayOf(
         "string",
-        "tripwire"
+        "tripwire",
+        "vine"
     )
 
     private val forceOverlay = arrayOf(
@@ -38,20 +40,23 @@ object RenderConfig {
 
     private val waterloggedBlocks = listOf(
         "lily",
-        "seagrass"
+        "seagrass",
+        "kelp",
+        "coral", //tbh coral blocks shouldn't be waterlogged but... who cares
+        "sea_pickle", //TODO fix sea pickle texture
     )
 
-    fun isWaterlogged(name: String) = waterloggedBlocks.any { name.contains(it) }
+    internal inline fun isWaterlogged(name: String) = waterloggedBlocks.any { name.contains(it) }
 
-    fun shouldIgnoreAlpha(name: String) = blockColorIgnoreAlpha.any { name.contains(it) }
+    internal inline fun shouldIgnoreAlpha(name: String) = blockColorIgnoreAlpha.any { name.contains(it) }
 
-    fun isWaterBlock(name: String) = name.contains("water")
+    internal inline fun isWaterBlock(name: String) = name.contains("water")
 
-    fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) }
+    internal inline fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) }
 
-    fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
+    internal inline fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
 
-    fun isOverlayForced(name: String) = forceOverlay.any { name.contains(it) }
+    internal inline fun isOverlayForced(name: String) = forceOverlay.any { name.contains(it) }
 
-    fun isSolidForced(name: String) = forceSolid.any { name.contains(it) }
+    internal inline fun isSolidForced(name: String) = forceSolid.any { name.contains(it) }
 }

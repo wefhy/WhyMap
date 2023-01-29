@@ -11,6 +11,7 @@ import kotlin.jvm.optionals.getOrNull
 
 
 object ExperimentalTextureProvider {
+    val waterTexture by lazy { getBitmap("water")} //TODO move to separate file
 
     private val loadedTextures = mutableMapOf<String, Optional<BufferedImage>?>()
     private val classLoader = javaClass.classLoader

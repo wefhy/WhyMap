@@ -1,10 +1,11 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.currentBuildId
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
+import java.io.ByteArrayOutputStream
 
 // Copyright (c) 2022 wefhy
 
 val mod_id: String by project
 val maven_group: String by project
-val mod_version: String by project
 val minecraft_version: String by project
 val yarn_mappings: String by project
 val loader_version: String by project
@@ -25,7 +26,7 @@ java {
 base {
 	archivesBaseName = mod_id.toLowerCaseAsciiOnly()
 }
-version = mod_version
+version = getCurrentVersion()
 group = maven_group
 
 repositories {
@@ -100,6 +101,15 @@ val yarnInstall = task<Exec>("yarnInstall") {
 	outputs.dir("src-vue/node_modules")
 	workingDir = file("src-vue")
 	commandLine("yarn", "install")
+}
+
+fun getCurrentVersion(): String {
+	val stdout = ByteArrayOutputStream()
+	exec {
+		commandLine("git", "describe", "--tags")
+		standardOutput = stdout
+	}
+	return stdout.toString().trim()
 }
 
 //abstract class YarnServeTask : DefaultTask() {

@@ -14,7 +14,9 @@ context(CurrentWorldProvider<WhyWorld>)
 class Waypoints {
     private val file = currentWorld.worldPath.resolve("waypoints.txt")
     private val waypoints: MutableList<LocalWaypoint> = try {
-        Json.decodeFromString(file.readText())
+        if (file.exists())
+            Json.decodeFromString(file.readText())
+        else mutableListOf()
     } catch (e: Throwable) {
         e.printStackTrace()
         mutableListOf()

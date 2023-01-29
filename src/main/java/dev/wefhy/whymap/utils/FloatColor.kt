@@ -8,4 +8,6 @@ class FloatColor(val r: Float, val g: Float, val b: Float) {
         g * o.g,
         b * o.b
     )
+
+    fun toColor() = Color((r*255).toInt(), (g*255).toInt(), (b*255).toInt())
 }
