@@ -106,7 +106,9 @@ val yarnInstall = task<Exec>("yarnInstall") {
 fun getCurrentVersion(): String {
 	val stdout = ByteArrayOutputStream()
 	exec {
-		commandLine("git", "describe", "--tags")
+		executable("/bin/sh")
+		args("-c", "echo -n `git describe --tags`")
+//		commandLine("git", "describe", "--tags")
 		standardOutput = stdout
 	}
 	return stdout.toString().trim()

@@ -89,6 +89,19 @@ class WhyMapMod : ModInitializer {
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
         }
 
+        fun forceWipeCache(): Boolean {
+            return false
+            TODO("First make closing world synchronized")
+            MinecraftClient.getInstance().world ?: return false
+            println("FORCE RELOAD WORLD: $oldDimensionName")
+            activeWorld?.close()
+            RegionUpdateQueue.reset()
+            LOGGER.info("Saved all data")
+            activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
+            return true
+        }
+
         val worldLeaveListener = { handler: ClientPlayNetworkHandler, client: MinecraftClient ->
             LOGGER.info("SAVING ALL DATA!!!")
             activeWorld!!.close()

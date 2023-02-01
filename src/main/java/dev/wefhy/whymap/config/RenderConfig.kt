@@ -27,6 +27,9 @@ object RenderConfig {
         "cake",
         "lightning_rod",
         "door",
+        "anvil",
+        "iron_bars",
+        "brewing_stand",
         "lantern", //todo don't match sea lantern!
 //        "ice", TODO can be enabled if I take into account how transparent is every texture. Otherwise it's too transparent on zoom-out. On detail view it's perfect.
     )

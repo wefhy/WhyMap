@@ -68,5 +68,9 @@ object WhyMapConfig {
 
     val webExportDirectory = modPath.resolve("WebExport")
     val currentWorldName = "CurrentWorldName"
-    val mapLink = "http://localhost:7542"
+    val defaultPort = 7542
+    val maxPort = 7551
+    var port = defaultPort
+    val mapLink
+        get() = "http://localhost:$port"
 }

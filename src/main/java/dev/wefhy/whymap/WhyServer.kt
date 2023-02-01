@@ -3,9 +3,12 @@
 package dev.wefhy.whymap
 
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
+import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
+import dev.wefhy.whymap.config.WhyMapConfig.maxPort
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.gui.WhyConfirmScreen
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
@@ -31,6 +34,8 @@ import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
+import java.lang.Exception
+import java.net.BindException
 
 fun Application.myApplicationModule() {
     install(ContentNegotiation) {
@@ -43,6 +48,7 @@ fun Application.myApplicationModule() {
     install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Delete)
         allowHeader(HttpHeaders.AccessControlAllowHeaders)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
@@ -50,6 +56,7 @@ fun Application.myApplicationModule() {
         exposeHeader(HttpHeaders.ContentType)
         exposeHeader(HttpHeaders.AccessControlAllowOrigin)
         allowCredentials = true
+//        allowHost("localhost:7542")
         anyHost()
     }
     routing {
@@ -61,10 +68,20 @@ object WhyServer {
     private const val parsingError: String = "Can't parse request"
 
     fun host() {
-        embeddedServer(CIO, port = 7542, module = Application::myApplicationModule).start(wait = true)
+        for (p in defaultPort..maxPort) {
+            try {
+                WhyMapConfig.port = p
+                println("Trynig to run WhyMap server on port $p...")
+                embeddedServer(CIO, port = p, module = Application::myApplicationModule).start(wait = true)
+                break
+            } catch (e: Throwable) {
+                println("Failed to run server on port $p. Trying on next one.")
+            }
+        }
     }
 
-    fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
+    @Suppress("SameParameterValue")
+    private fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
         return paramName.map { call.parameters[it]?.toInt() ?: return null }.toIntArray()
     }
 
@@ -183,12 +200,11 @@ object WhyServer {
 //                                withContext(Dispatchers.IO) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
                     val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile)
                         ?: return@get call.respondText("Thumbnail unavailable")
-                    call.respondOutputStream(contentType = ContentType.Image.JPEG) {
+                    return@get call.respondOutputStream(contentType = ContentType.Image.JPEG) {
                         withContext(Dispatchers.IO) {
                             write(byteOutputStream.toByteArray())
                         }
                     }
-                    return@get
                 }
 
                 else -> return@get call.respondText("Unsupported scale!")
@@ -266,6 +282,9 @@ object WhyServer {
         get("/hello") {
             call.respondText("hello world")
         }
+        get("/forceWipeCache") {
+            forceWipeCache()
+        }
         post("/waypoint") {
             val waypoint = call.receive<OnlineWaypoint>()
             WhyMapMod.LOGGER.debug("Received waypoint: ${waypoint.name}, ${waypoint.pos}")
@@ -273,6 +292,8 @@ object WhyServer {
             call.respond(HttpStatusCode.OK)
         }
         delete("/waypoint") {
+            println("deleting waypoint")
+//            println(call.receive<String>())
             val waypoint = call.receive<OnlineWaypoint>()
             WhyMapMod.LOGGER.debug("Deleting waypoint: ${waypoint.name}, ${waypoint.pos}")
             activeWorld?.waypoints?.remove(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)

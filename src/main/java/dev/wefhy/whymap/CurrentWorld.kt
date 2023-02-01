@@ -28,12 +28,12 @@ import java.io.Closeable
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
-class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
+class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     //    val mc: MinecraftClient = MinecraftClient.getInstance()
-    val session = mc.game.currentSession!!
+    private val session = mc.game.currentSession!!
     val world = mc.world!!
     val player = mc.player!!
-    val dimension = world.dimension
+    private val dimension = world.dimension!!
     override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
@@ -50,7 +50,7 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
 
     val waypoints = with(provider) { Waypoints() }
 
-    val periodicCleanupJob = GlobalScope.launch {//TODO this definitely shouldn't be launched from GlobalScope...
+    private val periodicCleanupJob = GlobalScope.launch {//TODO this definitely shouldn't be launched from GlobalScope...
         while (true) {
             delay(cleanupInterval * 1000L)
             mapRegionManager.periodicCleanup()
@@ -61,7 +61,7 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
         waypoints.load()
     }
 
-    fun saveAll() {
+    private fun saveAll() {
         waypoints.save()
         mapRegionManager.saveAllAndClear()
     }
