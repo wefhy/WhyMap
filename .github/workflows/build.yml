@@ -17,10 +17,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: checkout repository and submodules
-        fetch-depth: 50
         uses: actions/checkout@v3
         with:
           submodules: recursive
+          fetch-depth: 50
       - name: Extract version number
         id: version_number
         shell: bash

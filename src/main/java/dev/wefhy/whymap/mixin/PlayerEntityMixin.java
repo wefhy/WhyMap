@@ -52,7 +52,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         try {
             WhyMapMod.getActiveWorld().getWaypoints().addDeathPoint(globalPos);
         } catch (NullPointerException n) {
-            System.out.println("FAILED TO SET DEATH POS!");
+//            System.out.println("FAILED TO SET DEATH POS!");
+            WhyMapMod.javaAddDeathPoint(globalPos);
         } finally {
             System.out.println("PLAYER DEAAAATH position: " + globalPos.getPos().toString() + ", dim: " + globalPos.getDimension());
         }

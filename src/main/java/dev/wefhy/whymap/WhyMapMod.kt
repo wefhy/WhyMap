@@ -12,6 +12,7 @@ import dev.wefhy.whymap.utils.serialize
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
@@ -125,7 +126,10 @@ class WhyMapMod : ModInitializer {
 
         @JvmStatic
         fun javaAddDeathPoint(globalPos: GlobalPos) {
-
+            GlobalScope.launch {
+                delay(8000)
+                activeWorld?.waypoints?.addDeathPoint(globalPos) ?: println("Failed to add deathpoint: ${globalPos.pos}")
+            }
         }
 
         @JvmStatic
