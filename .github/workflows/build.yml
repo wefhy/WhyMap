@@ -17,13 +17,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: checkout repository and submodules
+        fetch-depth: 50
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Extract version number
         id: version_number
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/heads/})"
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: setup jdk ${{ matrix.java }}

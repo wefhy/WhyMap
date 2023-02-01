@@ -10,11 +10,14 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.Optional;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity {
@@ -39,11 +42,19 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     @Inject(method="setLastDeathPos", at=@At("TAIL"))
-    void playerDeathLocation(CallbackInfo ci) {
+    void playerDeathLocation(Optional<GlobalPos> lastDeathPos, CallbackInfo ci) {
         ClientWorld clientWorld = MinecraftClient.getInstance().world;
         if (clientWorld != null) {
             WhyMapMod.dimensionChangeListener(clientWorld.getDimension());
         }
-        System.out.println("PLAYER DEAAAATH position");
+        GlobalPos globalPos = lastDeathPos.orElse(null);
+        if (globalPos == null) return;
+        try {
+            WhyMapMod.getActiveWorld().getWaypoints().addDeathPoint(globalPos);
+        } catch (NullPointerException n) {
+            System.out.println("FAILED TO SET DEATH POS!");
+        } finally {
+            System.out.println("PLAYER DEAAAATH position: " + globalPos.getPos().toString() + ", dim: " + globalPos.getDimension());
+        }
     }
 }

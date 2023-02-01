@@ -107,7 +107,7 @@ fun getCurrentVersion(): String {
 	val stdout = ByteArrayOutputStream()
 	exec {
 		executable("/bin/sh")
-		args("-c", "echo -n `git describe --tags`")
+		args("-c", "echo `git describe --tags`")
 //		commandLine("git", "describe", "--tags")
 		standardOutput = stdout
 	}

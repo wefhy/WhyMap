@@ -24,6 +24,7 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.text.ClickEvent
 import net.minecraft.text.Text
+import net.minecraft.util.math.GlobalPos
 import net.minecraft.world.dimension.DimensionType
 import org.slf4j.LoggerFactory
 import java.awt.Dimension
@@ -122,6 +123,12 @@ class WhyMapMod : ModInitializer {
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.EnterWorld)
         }
 
+        @JvmStatic
+        fun javaAddDeathPoint(globalPos: GlobalPos) {
+
+        }
+
+        @JvmStatic
         var activeWorld: CurrentWorld? = null
         const val MOD_ID = "whymap"
 

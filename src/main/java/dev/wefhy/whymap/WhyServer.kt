@@ -248,8 +248,12 @@ object WhyServer {
             resources(".")
         }
         get("/waypoints") {
+
+            val deaths = call.request.queryParameters["deaths"].toBoolean()
             call.respond(
-                activeWorld?.waypoints?.onlineWaypoints ?: listOf()
+                activeWorld?.waypoints?.let {
+                    if (deaths) it.onlineWaypoints else it.onlineWaypointsWithoutDeaths
+                } ?: listOf()
             )
         }
         get("/player") {
