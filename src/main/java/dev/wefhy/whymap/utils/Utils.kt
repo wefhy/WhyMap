@@ -120,7 +120,7 @@ inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
 inline fun unixTime() = System.currentTimeMillis() / 1000
 
 val String.sanitizedPath
-    get() = filter { it !in pathForbiddenCharacters }.filter { Character.getNumericValue(it) <= 31 }.trim()
+    get() = filter { it !in pathForbiddenCharacters }.trim()
 //
 //@JvmInline
 //value class OverflowArray<T>(val array: ArrayList<T>) {
