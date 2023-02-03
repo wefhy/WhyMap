@@ -152,9 +152,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-
-    val random = Random(0)
-
     suspend fun save() = withContext(Dispatchers.IO) {
         currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
@@ -180,13 +177,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
                 shortShortBuffer.flip()
                 byteBuffer.flip()
-                val xzOutupt = ByteArrayOutputStream()
-                XZOutputStream(xzOutupt, LZMA2Options(3)).use { xz ->
+                val xzOutput = ByteArrayOutputStream()
+                XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
                     xz.write(latestFileVersion.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
-                xzOutupt.toByteArray() // TODO compression and saving can be multithreaded
+                xzOutput.toByteArray() // TODO compression and saving can be multithreaded
             }
             it.write(compressed)
         }
@@ -231,8 +228,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     val remapLookup = getRemapLookup(version, latestFileVersion)
                     blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
+                    modifiedSinceSave = true
                 }
-
             }
         } catch (e: EOFException) {
             currentWorld.writeToLog("ERROR Loading ${obfuscateObjectWithCommand(location, "error")}")

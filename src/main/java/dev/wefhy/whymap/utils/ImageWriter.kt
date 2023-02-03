@@ -44,7 +44,9 @@ object ImageWriter {
         writer.reset()
         val param: ImageWriteParam = writer.defaultWriteParam.apply {
             compressionMode = ImageWriteParam.MODE_EXPLICIT
-            compressionQuality = 0.0f
+            compressionQuality = 0.2f
+//            tilingMode = ImageWriteParam.MODE_EXPLICIT this would be epic for TIFF
+//            setTiling(16, 16, 0, 0)
         }
         writer.output = ImageIO.createImageOutputStream(this)
         writer.write(null, IIOImage(bitmap, null, null), param)

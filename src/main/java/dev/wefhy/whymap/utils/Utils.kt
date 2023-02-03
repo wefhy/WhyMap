@@ -6,6 +6,7 @@ package dev.wefhy.whymap.utils
 
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
+import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.i
 import net.minecraft.text.Text
 import java.awt.image.BufferedImage
@@ -117,6 +118,9 @@ inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
 }
 
 inline fun unixTime() = System.currentTimeMillis() / 1000
+
+val String.sanitizedPath
+    get() = filter { it !in pathForbiddenCharacters }.filter { Character.getNumericValue(it) <= 31 }.trim()
 //
 //@JvmInline
 //value class OverflowArray<T>(val array: ArrayList<T>) {

@@ -41,22 +41,29 @@ repositories {
 
 val extraLibs: Configuration by configurations.creating
 
-
+val isReleaseBuild = false
+val experimentalOptimizations = false
 
 dependencies {
-	minecraft("com.mojang:minecraft:${minecraft_version}")
-	mappings("net.fabricmc:yarn:${yarn_mappings}:v2")
-	modImplementation("net.fabricmc:fabric-loader:${loader_version}")
-	modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
-	modImplementation("net.fabricmc:fabric-language-kotlin:1.9.0+kotlin.1.8.0")
+	minecraft("com.mojang", "minecraft", minecraft_version)
+	mappings("net.fabricmc", "yarn", "$yarn_mappings:v2")
+	modImplementation("net.fabricmc", "fabric-loader", loader_version)
+	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.9.0+kotlin.1.8.0")
 
-	extraLibs(implementation(group = "io.ktor", name = "ktor-server-core-jvm", version="2.2.2"))
-	extraLibs(implementation(group = "io.ktor", name = "ktor-server-cio-jvm", version="2.2.2"))
-	extraLibs(implementation(group = "io.ktor", name = "ktor-server-content-negotiation", version="2.2.2"))
-	extraLibs(implementation(group = "io.ktor", name = "ktor-serialization-kotlinx-json", version="2.2.2"))
-	extraLibs(implementation(group = "io.ktor", name = "ktor-server-html-builder", version="2.2.2"))
-	extraLibs(implementation(group = "io.ktor", name = "ktor-server-cors", version="2.2.2"))
-	extraLibs(implementation(group = "org.tukaani", name = "xz", version = "1.9"))
+
+	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-serialization-kotlinx-json", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-server-html-builder", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-server-cors", "2.2.2"))
+
+	extraLibs(implementation("org.tukaani", "xz", "1.9"))
+//	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
+
+	testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.8.1")
+	testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.8.1")
 }
 
 tasks.getByName<ProcessResources>("processResources") {
@@ -69,6 +76,24 @@ tasks.getByName<ProcessResources>("processResources") {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
 	kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
+	if (isReleaseBuild) {
+		kotlinOptions.freeCompilerArgs += "-Xno-call-assertions"
+		kotlinOptions.freeCompilerArgs += "-Xno-receiver-assertions"
+		kotlinOptions.freeCompilerArgs += "-Xno-param-assertions"
+	}
+	if (experimentalOptimizations) {
+		kotlinOptions.freeCompilerArgs += "-Xlambdas=indy"
+		kotlinOptions.freeCompilerArgs += "-Xsam-conversions=indy"
+	}
+//	kotlinOptions.freeCompilerArgs += "-Xtype-enhancement-improvements-strict-mode"
+//	kotlinOptions.freeCompilerArgs += "-Xenhance-type-parameter-types-to-def-not-null"
+
+//	kotlinOptions.freeCompilerArgs += "-no-jdk"
+//	kotlinOptions.freeCompilerArgs += "-no-stdlib"
+}
+
+tasks.test {
+	useJUnitPlatform()
 }
 
 tasks.withType<Jar> {

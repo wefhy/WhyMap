@@ -18,7 +18,7 @@ object BlockMappingsManager {
         return data
     }
 
-    private fun blockMappingsForVersion(version: WhyMapFileVersion): List<String> {
+    fun blockMappingsForVersion(version: WhyMapFileVersion): List<String> {
         val classloader = javaClass.classLoader
         val resource = classloader.getResource("blockmappings/${version.fileName}")!!
         val mappings = resource.openStream().use {

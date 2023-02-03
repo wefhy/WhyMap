@@ -39,7 +39,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
 
     override val name: String =
-        if (session.isRemoteServer) "Multiplayer_" + mc.currentServerEntry!!.address else mc.server!!.getSavePath(
+        if (session.isRemoteServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
             WorldSavePath.ROOT
         ).parent.fileName.toString()
 

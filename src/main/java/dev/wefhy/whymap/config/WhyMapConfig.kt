@@ -59,6 +59,8 @@ object WhyMapConfig {
     val cleanupInterval = 60 // seconds
     val unloadDistance = 1024 //blocks
 
+    val pathForbiddenCharacters = "|?*<>:/\\\""
+
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
     val mappingsExportDir = modPath.resolve("mappings-export")
