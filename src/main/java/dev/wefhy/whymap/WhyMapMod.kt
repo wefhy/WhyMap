@@ -92,8 +92,6 @@ class WhyMapMod : ModInitializer {
         }
 
         fun forceWipeCache(): Boolean {
-            return false
-            TODO("First make closing world synchronized")
             MinecraftClient.getInstance().world ?: return false
             println("FORCE RELOAD WORLD: $oldDimensionName")
             activeWorld?.close()
