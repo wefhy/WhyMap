@@ -2,6 +2,8 @@
 
 package dev.wefhy.whymap.tiles.details
 
+import dev.wefhy.whymap.whygraphics.WhyTile
+import dev.wefhy.whymap.whygraphics.WhyTile.Companion.asWhyTile
 import net.minecraft.block.Block
 import java.awt.image.BufferedImage
 import java.net.URL
@@ -15,9 +17,20 @@ object ExperimentalTextureProvider {
 
     private val loadedTextures = mutableMapOf<String, Optional<BufferedImage>?>()
     private val classLoader = javaClass.classLoader
+    private val loadedWhyTiles = mutableMapOf<String, Optional<WhyTile>>()
 
     fun getBitmap(block: Block): BufferedImage? {
         return getBitmap(block.translationKey.split('.').last())
+    }
+
+    fun getWhyTile(block: Block): WhyTile? {
+        return getWhyTile(block.translationKey.split('.').last())
+    }
+
+    fun getWhyTile(name: String): WhyTile? {
+        return loadedWhyTiles.getOrPut(name) {
+            Optional.of(getBitmap(name)?.asWhyTile() ?: return@getOrPut Optional.empty())
+        }.getOrNull()
     }
 
     val missingTextures = mutableListOf<String>()

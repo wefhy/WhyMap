@@ -4,9 +4,9 @@ package dev.wefhy.whymap
 
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
-import dev.wefhy.whymap.utils.LocalTile
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
+import dev.wefhy.whymap.utils.LocalTile
 import dev.wefhy.whymap.utils.plus
 import dev.wefhy.whymap.utils.serialize
 import io.ktor.http.*
@@ -21,25 +21,24 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.server.world.ServerWorld
 import net.minecraft.text.ClickEvent
 import net.minecraft.text.Text
 import net.minecraft.util.math.GlobalPos
 import net.minecraft.world.dimension.DimensionType
 import org.slf4j.LoggerFactory
-import java.awt.Dimension
 
 
 class WhyMapMod : ModInitializer {
     override fun onInitialize() {
+
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
             if (cw == null || wc == null || wc.isEmpty) return@register
             if (DEV_VERSION) LOGGER.info("Loaded(${wc.pos.x}:${wc.pos.z})")
 //            val filename = ChunkSaver.chunkToBmp(wc)
 //            MinecraftClient.getInstance()!!.player!!.sendChatMessage("Saved: $filename")
             GlobalScope.launch(Dispatchers.Default) {
-                activeWorld!!.mapRegionManager.getRegionForWriteAndLoad(
+                //TODO("Enqueue chunk if there's no activeworld. Or use channel or something like that")
+                activeWorld?.mapRegionManager?.getRegionForWriteAndLoad(
                     LocalTile.Region(
                         wc.pos.regionX,
                         wc.pos.regionZ
@@ -84,30 +83,33 @@ class WhyMapMod : ModInitializer {
             if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD") }
             println("CHANGED WORLD! old: $oldDimensionName, new: $newDimensionName")
             oldDimensionName = newDimensionName
-            activeWorld?.close()
+            val tmpWorld = activeWorld
+            activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            tmpWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
-            activeWorld = CurrentWorld(MinecraftClient.getInstance())
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
         }
 
         fun forceWipeCache(): Boolean {
             MinecraftClient.getInstance().world ?: return false
             println("FORCE RELOAD WORLD: $oldDimensionName")
-            activeWorld?.close()
+            val tmpWorld = activeWorld
+            activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            tmpWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
-            activeWorld = CurrentWorld(MinecraftClient.getInstance())
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.DimensionChange)
             return true
         }
 
         val worldLeaveListener = { handler: ClientPlayNetworkHandler, client: MinecraftClient ->
             LOGGER.info("SAVING ALL DATA!!!")
-            activeWorld!!.close()
+            val tmpWorld = activeWorld
+            activeWorld = null
+            tmpWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
-            activeWorld = null
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.LeaveWorld)
         }
 

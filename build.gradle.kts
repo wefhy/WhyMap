@@ -1,4 +1,5 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.currentBuildId
+
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
 
@@ -14,7 +15,7 @@ val fabric_version: String by project
 plugins {
 	id ("fabric-loom") version "1.1.7"
 	id ("maven-publish")
-	id ("org.jetbrains.kotlin.jvm") version "1.8.0"
+	kotlin("jvm") version "1.8.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
 }
 
@@ -65,6 +66,9 @@ dependencies {
 
 	testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.8.1")
 	testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.8.1")
+	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.7.0")
+	testImplementation("ar.com.hjg", "pngj", "2.1.0")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.getByName<ProcessResources>("processResources") {
@@ -106,6 +110,10 @@ tasks.withType<Jar> {
 }
 
 val yarnBuild = task<Exec>("yarnBuild") {
+	inputs.dir("src-vue/src")
+	inputs.dir("src-vue/public")
+	inputs.files("src-vue/index.html", "src-vue/vite.config.js", "src-vue/vue.config.js", "src-vue/jsconfig.json")
+	outputs.dir("src-vue/dist")
 	workingDir = file("src-vue")
 	commandLine("yarn", "build")
 }
@@ -173,4 +181,12 @@ tasks {
 	"yarnBuild" {
 		dependsOn(yarnInstall)
 	}
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

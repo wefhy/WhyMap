@@ -7,17 +7,22 @@ package dev.wefhy.whymap.utils
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
-import dev.wefhy.whymap.utils.ObfuscatedLogHelper.i
 import net.minecraft.text.Text
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
+import java.io.Closeable
 import java.io.File
 import java.time.LocalDateTime
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
+import kotlin.internal.*
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
 const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
+const val _1_2 = 1f / 2
 
 inline fun Double.roundTo(places: Int) = (this * 10.0.pow(places)).roundToInt() * 0.1.pow(places)
 
@@ -69,10 +74,10 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
     )
 }
 
-val currentDateString
+inline val currentDateString
     get() = LocalDateTime.now().format(logsDateFormatter)
 
-val currentLogEntryTimeString
+inline val currentLogEntryTimeString
     get() = LocalDateTime.now().format(logsEntryTimeFormatter)
 
 inline fun bytesToInt(r: UInt, g: UInt, b: UInt, a: UInt): Int {
@@ -93,7 +98,6 @@ inline fun File.mkDirsIfNecessary() {
         parentFile.mkdirs()
 }
 
-
 inline fun getDepthShade(depth: UByte): Float { //TODO use lookup table
     val tmp1 = (1 - depth.toInt() * 0.02f).coerceAtLeast(0f)
     return 1 - tmp1 * tmp1 * _1_3
@@ -106,7 +110,7 @@ inline fun UInt.coerceIn0255() = coerceIn(0u, 255u)
 inline operator fun Text.plus(other: Text): Text = copy().append(other)
 
 inline fun ShortArray.mapInPlace(transform: (Short) -> Short) {
-    for (i in this.indices) {
+    for (i in indices) {
         this[i] = transform(this[i])
     }
 }
@@ -130,3 +134,10 @@ val String.sanitizedPath
 //    }
 //}
 
+@Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@OptIn(ExperimentalContracts::class)
+@InlineOnly
+inline fun <T : Closeable?, R> T.useWith(block: T.() -> R): R {
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    return use { it.block() }
+}
