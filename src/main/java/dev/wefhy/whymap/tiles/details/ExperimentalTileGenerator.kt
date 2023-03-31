@@ -12,7 +12,7 @@ import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider.waterTexture
 import dev.wefhy.whymap.utils.Color
 import dev.wefhy.whymap.utils.FloatColor
 import dev.wefhy.whymap.utils.LocalTile
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
 import java.awt.AlphaComposite
 import java.awt.image.BufferedImage
@@ -26,7 +26,8 @@ class ExperimentalTileGenerator {
     val renderedTiles = mutableMapOf<ChunkPos, Optional<BufferedImage>>()
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun getTile(position: ChunkPos): BufferedImage? = renderedTiles.getOrPut(position) {
+    suspend fun getTile(position: ChunkPos): BufferedImage? = renderedTiles.getOrPut(position) {
+        //TODO getOrPut basically makes this whole stuff synchronous
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
 
@@ -34,21 +35,20 @@ class ExperimentalTileGenerator {
         get() = floatArrayOf(r, g, b, 1f)
 
 
-    private fun renderTile(position: ChunkPos): BufferedImage? {
-        //TODO switch context
-        return runBlocking {
-            try {
-                currentWorld.mapRegionManager.getRegionForTilesRendering(
-                    LocalTile.Region(
-                        position.regionX,
-                        position.regionZ
-                    )
-                ) {
-                    val chunk = getChunk(position) ?: return@runBlocking null
-                    val chunkOverlay = getChunkOverlay(position) ?: return@runBlocking null
-                    val biomeFoliage = getChunkBiomeFoliageAndWater(position) ?: return@runBlocking null
-                    val depthmap = getChunkDepthmap(position) ?: return@runBlocking null
-                    val normalmap = getChunkNormals(position) ?: return@runBlocking null
+    private suspend fun renderTile(position: ChunkPos): BufferedImage? {
+        return try {
+            currentWorld.mapRegionManager.getRegionForTilesRendering(
+                LocalTile.Region(
+                    position.regionX,
+                    position.regionZ
+                )
+            ) {
+                withContext(areaCoroutineContext) {
+                    val chunk = getChunk(position) ?: return@withContext null
+                    val chunkOverlay = getChunkOverlay(position) ?: return@withContext null
+                    val biomeFoliage = getChunkBiomeFoliageAndWater(position) ?: return@withContext null
+                    val depthmap = getChunkDepthmap(position) ?: return@withContext null
+                    val normalmap = getChunkNormals(position) ?: return@withContext null
                     val bufferedImage = BufferedImage(16 * 16, 16 * 16, BufferedImage.TYPE_INT_RGB)
                     val g2d = bufferedImage.createGraphics()
                     val originalComposite = g2d.composite
@@ -89,16 +89,16 @@ class ExperimentalTileGenerator {
                             val darken = -depth * 1.6f
 
                             val c = if (waterBlocks.contains(blockOverlay)) oceanColor
-                            else if(foliageBlocksSet.contains(blockOverlay)) foliageColor.toColor()
+                            else if (foliageBlocksSet.contains(blockOverlay)) foliageColor.toColor()
                             else Color.white
 
                             val darkenArray = if (!ignoreDepthTint.contains(blockOverlay)) {
                                 floatArrayOf(darken, darken, darken, 0f)
                             } else FloatArray(4)
 
-                            val newRop = if(waterLoggedBlocks.contains(blockOverlay)) {
+                            val newRop = if (waterLoggedBlocks.contains(blockOverlay)) {
                                 val waterRop = RescaleOp(oceanColor.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
-                                g2d.drawImage(waterTexture, waterRop, x*16, y*16)
+                                g2d.drawImage(waterTexture, waterRop, x * 16, y * 16)
                                 RescaleOp(c.toFloatColor().floatArray, FloatArray(4), null)
                             } else {
                                 RescaleOp(c.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
@@ -119,14 +119,13 @@ class ExperimentalTileGenerator {
                     }
                     bufferedImage
                 }
-
-            } catch (e: IndexOutOfBoundsException) {
-                println("Failed to render chunk (${position.x}, ${position.z}) due to out of bounds")
-                null
-            } catch (e: IllegalArgumentException) {
-                println("Failed to render chunk (${position.x}, ${position.z}) due do indexed image (probably)")
-                null
             }
+        } catch (e: IndexOutOfBoundsException) {
+            println("Failed to render chunk (${position.x}, ${position.z}) due to out of bounds")
+            null
+        } catch (e: IllegalArgumentException) {
+            println("Failed to render chunk (${position.x}, ${position.z}) due do indexed image (probably)")
+            null
         }
     }
 }

@@ -8,7 +8,6 @@ import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.config.WhyMapConfig.currentWorldName
 import dev.wefhy.whymap.config.WhyMapConfig.webExportDirectory
 import dev.wefhy.whymap.utils.TileZoom.ChunkZoom
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.file.Files
@@ -68,7 +67,7 @@ class InteractiveMapExporter {
             val tile = position.toMapTile()
             val file = resolve("tiles").resolve(tile)
             file.parentFile.mkdirs()
-            withContext(Dispatchers.IO) {
+            withContext(WhyDispatchers.Encoding) {
                 ImageIO.write(
                     getRendered(),
                     "png",
@@ -88,7 +87,7 @@ class InteractiveMapExporter {
             .resolve(tile.x.toString())
             .resolve(tile.z.toString())
         file.parentFile.mkdirs()
-        return withContext(Dispatchers.IO) {
+        return withContext(WhyDispatchers.Encoding) {
             ImageIO.write(
                 renderedChunk,
                 "png",

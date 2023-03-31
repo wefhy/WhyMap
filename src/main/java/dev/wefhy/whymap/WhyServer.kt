@@ -10,7 +10,6 @@ import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
 import dev.wefhy.whymap.config.WhyMapConfig.maxPort
 import dev.wefhy.whymap.events.*
-import dev.wefhy.whymap.gui.WhyConfirmScreen
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
@@ -28,14 +27,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.pipeline.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
-import java.lang.Exception
-import java.net.BindException
 
 fun Application.myApplicationModule() {
     install(ContentNegotiation) {
@@ -56,7 +52,7 @@ fun Application.myApplicationModule() {
         exposeHeader(HttpHeaders.ContentType)
         exposeHeader(HttpHeaders.AccessControlAllowOrigin)
         allowCredentials = true
-//        allowHost("localhost:7542")
+//        allowHost("localhost:*")
         anyHost()
     }
     routing {
@@ -119,9 +115,9 @@ object WhyServer {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) {
-                val bitmap = withContext(Dispatchers.IO) { getCustomRender(s) }
+                val bitmap = getCustomRender(s)
                 call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                    withContext(Dispatchers.IO) {
+                    withContext(WhyDispatchers.Encoding) {
                         encodePNG(bitmap) //TODO test other formats performance and quality
                     }
                 }
@@ -170,7 +166,7 @@ object WhyServer {
                         "Requested tile: ${Pair(x, z)}, scale: $s, region: $regionTile"
                     )
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                        withContext(Dispatchers.IO) { getRendered() }
+                        getRendered()
                     } ?: return@get call.respondText("Region unavailable")
 
                 }
@@ -184,7 +180,7 @@ object WhyServer {
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
                         "Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile"
                     )
-                    withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
+                    activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos)
                         ?: return@get call.respondText("Chunk unavailable")
                 }
 
@@ -197,11 +193,11 @@ object WhyServer {
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
                         "Requested tile: ${Pair(x, z)}, scale: $s, thumbnail: $thumbnailTile"
                     )
-//                                withContext(Dispatchers.IO) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
+//                                withContext(WhyDispatchers.Render) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
                     val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile)
                         ?: return@get call.respondText("Thumbnail unavailable")
                     return@get call.respondOutputStream(contentType = ContentType.Image.JPEG) {
-                        withContext(Dispatchers.IO) {
+                        withContext(WhyDispatchers.IO) {
                             write(byteOutputStream.toByteArray())
                         }
                     }
@@ -210,7 +206,7 @@ object WhyServer {
                 else -> return@get call.respondText("Unsupported scale!")
             }
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                withContext(Dispatchers.IO) {
+                withContext(WhyDispatchers.Encoding) {
                     encodePNG(bitmap) //TODO test other formats performance and quality
                     /**
                      * Weird error can happen very rarely. Is it like out of memory?

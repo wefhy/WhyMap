@@ -6,16 +6,6 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
-import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
-import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
-import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
-import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlock
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlockColor
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.encodeBlock
@@ -24,15 +14,22 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
+import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
+import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
+import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
+import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
@@ -50,7 +47,6 @@ import java.io.EOFException
 import java.nio.ByteBuffer
 import javax.imageio.ImageIO
 import kotlin.math.atan
-import kotlin.random.Random
 
 context(CurrentWorldProvider<WhyWorld>)
 class MapArea private constructor(val location: LocalTileRegion) {
@@ -76,6 +72,10 @@ class MapArea private constructor(val location: LocalTileRegion) {
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
     var lastThumbnailUpdate = 0L
+
+    val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
+    val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
+//    val mapAreaScope = CoroutineScope(Job()) //TODO create scope from parent
 
     init {
         currentWorld.writeToLog("Initialized ${obfuscateObjectWithCommand(location, "init")}, file exists: ${file.exists()}")
@@ -152,7 +152,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    suspend fun save() = withContext(Dispatchers.IO) {
+    suspend fun save() = withContext(WhyDispatchers.IO) {
         currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
             return@withContext
@@ -162,7 +162,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             file.createNewFile()
         }
         file.outputStream().use {
-            val compressed = withContext(Dispatchers.Default) {
+            val compressed = withContext(WhyDispatchers.LowPriority) {
                 val data = ByteArray(storageTileBlocksSquared * 9)
                 val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6)
                 val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
@@ -360,10 +360,11 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //
 //        }
 
+        @OptIn(DelicateCoroutinesApi::class) //We want the thumbnail to be saved anyway
         GlobalScope.launch {
-            reRenderAndSaveThumbnail()
             RegionUpdateQueue.addUpdate(location.x, location.z)
             ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
+            reRenderAndSaveThumbnail() //TODO also uncache it somehow
             val thumbnail = location.parent(TileZoom.ThumbnailZoom)
             ThumbnailUpdateQueue.addUpdate(thumbnail.x, thumbnail.z)
         }
@@ -395,7 +396,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private suspend fun reRenderAndSaveThumbnail(): BufferedImage {
         return _render(regionThumbnailScaleLog).also {
-            withContext(Dispatchers.IO) {
+            withContext(WhyDispatchers.LowPriority) {
                 if (!thumbnailFile.parentFile.exists())
                     thumbnailFile.parentFile.mkdirs()
                 ImageIO.write(it, "png", thumbnailFile) //TODO only save if not saved!!!!
@@ -412,12 +413,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-    private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(Dispatchers.Default) {
-        val bitmap =
-            BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
+    private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(areaCoroutineContext) {
+        val bitmap = BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
         val scale = 1 shl scaleLog
 
         for (z in 0 until storageTileBlocks step scale) {
+            ensureActive()
             for (x in 0 until storageTileBlocks step scale) {
                 try {
 

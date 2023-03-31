@@ -7,13 +7,11 @@ import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.WorldEventQueue
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.utils.WhyDispatchers
 import dev.wefhy.whymap.utils.plus
 import dev.wefhy.whymap.utils.serialize
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
@@ -29,6 +27,9 @@ import org.slf4j.LoggerFactory
 
 
 class WhyMapMod : ModInitializer {
+
+    val chunkLoadScope = CoroutineScope(WhyDispatchers.ChunkLoad)
+
     override fun onInitialize() {
 
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
@@ -36,7 +37,7 @@ class WhyMapMod : ModInitializer {
             if (DEV_VERSION) LOGGER.info("Loaded(${wc.pos.x}:${wc.pos.z})")
 //            val filename = ChunkSaver.chunkToBmp(wc)
 //            MinecraftClient.getInstance()!!.player!!.sendChatMessage("Saved: $filename")
-            GlobalScope.launch(Dispatchers.Default) {
+            chunkLoadScope.launch {
                 //TODO("Enqueue chunk if there's no activeworld. Or use channel or something like that")
                 activeWorld?.mapRegionManager?.getRegionForWriteAndLoad(
                     LocalTile.Region(
@@ -49,30 +50,33 @@ class WhyMapMod : ModInitializer {
                     TODO Actually these coroutines NEED to be cancelled?
                     TODO Or I need to properly support browsing background dimensions? But no way to keep chunk loaded until it's saved
 
-[19:52:53] [DefaultDispatcher-worker-57/ERROR] (FabricLoader) Uncaught exception in thread "DefaultDispatcher-worker-57"
- java.lang.NullPointerException: getBlockState(mutablePosition) must not be null
-	at dev.wefhy.whymap.tiles.region.MapArea.getOceanFloorHeightMapHotFix(MapArea.kt:256) ~[main/:?]
-	at dev.wefhy.whymap.tiles.region.MapArea.updateChunk(MapArea.kt:295) ~[main/:?]
-	at dev.wefhy.whymap.WhyMapMod$onInitialize$1$1.invokeSuspend(WhyMapMod.kt:39) ~[main/:?]
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33) ~[kotlin-stdlib-1.8.0.jar:?]
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
-	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:570) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:750) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:677) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:664) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
-	Suppressed: kotlinx.coroutines.DiagnosticCoroutineContextException
+                    [19:52:53] [DefaultDispatcher-worker-57/ERROR] (FabricLoader) Uncaught exception in thread "DefaultDispatcher-worker-57"
+                    java.lang.NullPointerException: getBlockState(mutablePosition) must not be null
+                    at dev.wefhy.whymap.tiles.region.MapArea.getOceanFloorHeightMapHotFix(MapArea.kt:256) ~[main/:?]
+                    at dev.wefhy.whymap.tiles.region.MapArea.updateChunk(MapArea.kt:295) ~[main/:?]
+                    at dev.wefhy.whymap.WhyMapMod$onInitialize$1$1.invokeSuspend(WhyMapMod.kt:39) ~[main/:?]
+                    at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33) ~[kotlin-stdlib-1.8.0.jar:?]
+                    at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+                    at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:570) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+                    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:750) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+                    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:677) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+                    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:664) ~[kotlinx-coroutines-core-jvm-1.6.4.jar:?]
+                    Suppressed: kotlinx.coroutines.DiagnosticCoroutineContextException
                      */
                 }
             }
 
         }
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register{_, _, newWorld -> dimensionChangeListener(newWorld.dimension)}
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register { _, _, newWorld -> dimensionChangeListener(newWorld.dimension) }
         ClientPlayConnectionEvents.DISCONNECT.register(worldLeaveListener)
         ClientPlayConnectionEvents.JOIN.register(worldJoinListener)
+
+        @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch {
             WhyServer.host()
         }
     }
+
     companion object {
 
         private var oldDimensionName: String = ""

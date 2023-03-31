@@ -9,7 +9,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailResolution
 import dev.wefhy.whymap.config.WhyMapConfig.tileResolution
 import dev.wefhy.whymap.utils.LocalTileThumbnail
 import dev.wefhy.whymap.utils.TileZoom
-import kotlinx.coroutines.Dispatchers
+import dev.wefhy.whymap.utils.WhyDispatchers
 import kotlinx.coroutines.withContext
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -31,9 +31,8 @@ class ThumbnailMerger(val position: LocalTileThumbnail) {
             return encoded
         }
 
-        LOGGER.debug("Composing thumbnail out of: ${children.joinToString(" | ") { it.joinToString(", ") { "{x: ${it.x}, z: ${it.z}}" } }}")
         val bufferedImage = BufferedImage(tileResolution, tileResolution, BufferedImage.TYPE_INT_RGB)
-        withContext(Dispatchers.Default) {
+        withContext(WhyDispatchers.Render) {
             val g2d = bufferedImage.createGraphics()
             for ((z, row) in children.withIndex()) {
                 for ((x, regionPosition) in row.withIndex()) {
@@ -47,16 +46,9 @@ class ThumbnailMerger(val position: LocalTileThumbnail) {
 //                    LOGGER.debug("drawn!")
                 }
             }
-        }
-        LOGGER.debug("finished composing!")
-
-        encoded = ByteArrayOutputStream()
-        withContext(Dispatchers.IO) {
+            encoded = ByteArrayOutputStream()
             ImageIO.write(bufferedImage, "jpg", encoded)
         }
-        LOGGER.debug("rendered!")
         return encoded
     }
-
-
 }
