@@ -20,6 +20,7 @@ import java.awt.image.RescaleOp
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
+
 context(CurrentWorldProvider<WhyWorld>)
 class ExperimentalTileGenerator {
 
@@ -33,6 +34,35 @@ class ExperimentalTileGenerator {
 
     val FloatColor.floatArray
         get() = floatArrayOf(r, g, b, 1f)
+
+
+//
+//    fun listAllBlocks() {
+//        // Iterate over the block registry
+//        for (block in Registries.BLOCK) {
+//            // Get the identifier of the block
+//            val id: Identifier = Registries.BLOCK.getId(block)
+//            // Print the identifier
+//            println(id)
+//            val textureManager: TextureManager = MinecraftClient.getInstance().textureManager
+//            val t = textureManager.getTexture(id)
+//            //there is nothing that say that the ID of the blockstate file of a block is the same as the texture used by a model in that blockstate
+//            NativeImage(16, 16, true).loadFromTextureImage(0, false)
+//            //maybe check NativeImage + NativeImageBackedTexture
+//
+//            val a = Identifier("minecraft", "textures/environment/sun.png")
+//            // Mixin TextureManager
+//            val b = MinecraftClient.getInstance().textureManager.getTexture( Identifier("physicsmod:capes/test.png")).glId;
+//
+//            // NativeImageBackedTexture
+//            // DynamicTexture
+//            // https://stackoverflow.com/questions/31417914/opengl-reading-pixels-from-texture
+//            GlStateManager._getTexImage(
+//                target = 3
+//            )
+//
+//        }
+//    }
 
 
     private suspend fun renderTile(position: ChunkPos): BufferedImage? {
