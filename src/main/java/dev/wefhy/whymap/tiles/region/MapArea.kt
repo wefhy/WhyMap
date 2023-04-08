@@ -54,6 +54,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     val biomeManager = currentWorld.biomeManager
     var modifiedSinceRender = true
+    var modifiedSinceNativeRender = true
     var modifiedSinceSave = false
 
     val blockIdMap: Array<ShortArray> = Array(storageTileBlocks) { ShortArray(storageTileBlocks) { 0 } } // at least 12 bits, possibly 16
@@ -70,6 +71,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
     val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
     lateinit var rendered: BufferedImage
+    lateinit var renderedNative: NativeImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
     var lastThumbnailUpdate = 0L
@@ -348,6 +350,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
+        modifiedSinceNativeRender = true
 
 //        CoroutineScope(Job()).launch {
 //
@@ -415,6 +418,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
     fun renderNativeImage(): NativeImage {
+        return if (::renderedNative.isInitialized.also { print(it) } && !modifiedSinceNativeRender.also { print(it) })
+            renderedNative
+        else _renderNativeImage()
+    }
+
+    private fun _renderNativeImage(): NativeImage {
         val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
         for (z in 0 until storageTileBlocks) {
             for (x in 0 until storageTileBlocks) {
@@ -454,6 +463,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
             }
         }
+        modifiedSinceNativeRender = false
+        renderedNative = image
         return image
     }
 

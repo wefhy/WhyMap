@@ -7,6 +7,7 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
+import dev.wefhy.whymap.utils.LocalTile.Companion.Region
 import dev.wefhy.whymap.utils.TileZoom
 import dev.wefhy.whymap.waypoints.CoordXYZ
 import dev.wefhy.whymap.waypoints.LocalWaypoint
@@ -28,37 +29,100 @@ import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
+import net.minecraft.util.math.RotationAxis
 import org.lwjgl.glfw.GLFW
 import java.awt.image.BufferedImage
+import kotlin.math.sign
 import kotlin.random.Random
 
 class WhyMapClient : ClientModInitializer {
 
     private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColor(x, y) }
 
+    fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
+        val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
+
+        return { matrixStack ->
+            val texture = NativeImageBackedTexture(image)
+//            val identifier = Identifier("whymap", "icon")
+            val identifier = MinecraftClient.getInstance().textureManager.registerDynamicTexture("playericon", texture)
+            drawCenter(matrixStack, identifier, image.width.toFloat(), image.height.toFloat())
+        }
+    }
+
     override fun onInitializeClient() {
+        val playerIcon = loadPngIntoNativeImage()
         val mapScale = 0.1f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             if (!isMinimapVisible) return@register
-            val playerPos = mc.player?.pos ?: return@register println("No player!")
+            val player = mc.player ?: return@register println("No player!")
+            val playerPos = player.pos ?: return@register println("No player pos!")
             val mrm = activeWorld?.mapRegionManager ?: return@register println("No map region manager!")
             val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
             val region = block.parent(TileZoom.RegionZoom)
             val center = region.getCenter()
+//            val diffX = center.x - block.x
+//            val diffZ = center.z - block.z
+            val diffX = block.x - center.x
+            val diffZ = block.z - center.z
+//            println("X: ${center.x}, ${block.x}, ${diffX}, ${diffX.sign}, Z: ${center.z}, ${block.z}, ${diffZ}, ${diffZ.sign}")
+
+            val regions = listOf(
+                region,
+                Region(region.x, region.z + diffZ.sign),
+                Region(region.x + diffX.sign, region.z),
+                Region(region.x + diffX.sign, region.z + diffZ.sign)
+            )
+
+
             val rendered = runBlocking {
-                mrm.getRegionForTilesRendering(region) {
-//                    getRendered()
-                    renderNativeImage()
+                regions.associateWith {
+                    mrm.getRegionForMinimapRendering(it) {
+                        renderNativeImage()
+                    }
                 }
-            } ?: return@register println("Nothing to render!")
-            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
+            }
+//            matrixStack.push()
             matrixStack.push()
-            matrixStack.translate((center.x - block.x).toFloat() * mapScale + 100, (center.z - block.z).toFloat() * mapScale + 100, 0f)
-            val texture = rendered
-//            val texture = createRandomTexture(512, 256)
-            draw(mc, matrixStack, texture, mapScale)
+            matrixStack.translate(100f, 100f, 0f)
+            matrixStack.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(player.yaw + 180))
+            matrixStack.translate(-100f, -100f, 0f)
+
+            for ((region, rendered) in rendered) {
+                if (rendered == null) continue
+                val center = region.getCenter()
+                val diffX = center.x - block.x - 256
+                val diffZ = center.z - block.z - 256
+                matrixStack.push()
+                matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
+                val texture = rendered
+
+                draw(mc, matrixStack, texture, mapScale)
+                matrixStack.pop()
+            }
             matrixStack.pop()
+            matrixStack.push()
+            matrixStack.translate(100f, 100f, 0f)
+            matrixStack.scale(0.1f, 0.1f, 0.1f)
+            playerIcon(matrixStack)
+            matrixStack.pop()
+
+
+//
+//            val rendered = runBlocking {
+//                mrm.getRegionForTilesRendering(region) {
+////                    getRendered()
+//                    renderNativeImage()
+//                }
+//            } ?: return@register println("Nothing to render!")
+//            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
+//            matrixStack.push()
+//            matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
+//            val texture = rendered
+////            val texture = createRandomTexture(512, 256)
+//            draw(mc, matrixStack, texture, mapScale)
+//            matrixStack.pop()
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { mc ->
@@ -156,6 +220,21 @@ class WhyMapClient : ClientModInitializer {
         draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
     }
 
+    fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
+        val positionMatrix = matrixStack.peek().positionMatrix
+        val tessellator = Tessellator.getInstance()
+        val buffer = tessellator.buffer
+        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
+        buffer.vertex(positionMatrix, -width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
+        buffer.vertex(positionMatrix, -width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
+        buffer.vertex(positionMatrix, width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
+        buffer.vertex(positionMatrix, width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
+        RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
+        RenderSystem.setShaderTexture(0, textureId)
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+        tessellator.draw()
+    }
+
     fun draw(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
         val positionMatrix = matrixStack.peek().positionMatrix
         val tessellator = Tessellator.getInstance()
@@ -172,7 +251,7 @@ class WhyMapClient : ClientModInitializer {
     }
 
     companion object {
-        var isMinimapVisible = true
+        var isMinimapVisible = false
         val kbNewWaypoint = KeyBindingHelper.registerKeyBinding(
             KeyBinding(
                 "key.whymap.newwaypoint",

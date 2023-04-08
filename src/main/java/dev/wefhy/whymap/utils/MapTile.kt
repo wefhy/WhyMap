@@ -86,8 +86,8 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
         val diff = BlockZoom.zoom - zoom.zoom
         val half = 1 shl diff shr 1 // can't be 1 shl (diff-1) because 1 shl -1
         return Block(
-            x shl diff - half,
-            z shl diff - half
+            (x shl diff) + half,
+            (z shl diff) + half
         )
     }
 

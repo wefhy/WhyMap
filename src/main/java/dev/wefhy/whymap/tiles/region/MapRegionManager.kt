@@ -6,8 +6,7 @@ import dev.wefhy.whymap.CurrentWorld
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
-import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.LOAD_AND_PEEK
-import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.PEEK_IF_LOADED
+import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.*
 import dev.wefhy.whymap.tiles.thumbnails.EmptyThumbnailProvider
 import dev.wefhy.whymap.tiles.thumbnails.RenderedThumbnailProvider
 import dev.wefhy.whymap.utils.LocalTileRegion
@@ -72,6 +71,13 @@ class MapRegionManager {
         //ComputeIfAbsent would be better but then there's no way to cancel the computation if file does not exist
         val regionLoader = regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return null }
         return regionLoader.withLoaded(LOAD_AND_PEEK) {
+            block()
+        }
+    }
+
+    internal suspend inline fun <T> getRegionForMinimapRendering(position: LocalTileRegion, block: MapArea.() -> T): T? {
+        val regionLoader = regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return null }
+        return regionLoader.withLoaded(LOAD_AND_KEEP) {
             block()
         }
     }
