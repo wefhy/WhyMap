@@ -19,6 +19,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.gui.DrawableHelper
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.render.Tessellator
@@ -31,6 +32,7 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.RotationAxis
 import org.lwjgl.glfw.GLFW
+import org.lwjgl.opengl.GL11
 import java.awt.image.BufferedImage
 import kotlin.random.Random
 
@@ -65,9 +67,9 @@ class WhyMapClient : ClientModInitializer {
 
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
-        val mapScale = 0.15f
-        val mapPosX = 75f
-        val mapPosY = 75f
+        val mapScale = 1/3f
+        val mapPosX = 70f
+        val mapPosY = 70f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             if (!mapMode.visible) return@register
@@ -98,7 +100,29 @@ class WhyMapClient : ClientModInitializer {
                     }
                 }
             }
-//            matrixStack.push()
+
+            run {
+                val mapSize = 130f
+                val mapRadius = mapSize / 2f
+                val cropXstart = mapPosX - mapRadius
+                val cropYstart = mapPosY - mapRadius
+                val cropXend = mapPosX + mapRadius
+                val cropYend = mapPosY + mapRadius
+                val cropXsize = cropXend - cropXstart
+                val cropYsize = cropYend - cropYstart
+                GL11.glEnable(GL11.GL_SCISSOR_TEST)
+                println("WinSizes: ${mc.window.scaledWidth}, ${mc.window.scaledHeight}, ${mc.window.width}, ${mc.window.height}")
+                val scaleX = mc.window.width.toFloat() / mc.window.scaledWidth.toFloat()
+                val scaleY = mc.window.height.toFloat() / mc.window.scaledHeight.toFloat()
+                GL11.glScissor(
+                    (cropXstart * scaleX).toInt(),
+                    mc.window.height - (cropYend * scaleY).toInt(),
+                    (cropXsize * scaleX).toInt(),
+                    (cropYsize * scaleY).toInt()
+                )
+                DrawableHelper.fill(matrixStack, 0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
+            }
+
             matrixStack.push()
             if (mapMode == MapMode.Rotated) {
                 matrixStack.translate(mapPosX, mapPosY, 0f)
@@ -108,9 +132,9 @@ class WhyMapClient : ClientModInitializer {
 
             for ((region, rendered) in rendered) {
                 if (rendered == null) continue
-                val center = region.getCenter()
-                val diffX = center.x - block.x - 256
-                val diffZ = center.z - block.z - 256
+                val start = region.getStart()
+                val diffX = start.x - block.x
+                val diffZ = start.z - block.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
                 val texture = rendered
@@ -127,6 +151,8 @@ class WhyMapClient : ClientModInitializer {
             }
             playerIcon(matrixStack)
             matrixStack.pop()
+
+            GL11.glDisable(GL11.GL_SCISSOR_TEST)
 
 
 //
