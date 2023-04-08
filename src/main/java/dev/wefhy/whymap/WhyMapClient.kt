@@ -32,7 +32,6 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.RotationAxis
 import org.lwjgl.glfw.GLFW
 import java.awt.image.BufferedImage
-import kotlin.math.sign
 import kotlin.random.Random
 
 class WhyMapClient : ClientModInitializer {
@@ -50,12 +49,28 @@ class WhyMapClient : ClientModInitializer {
         }
     }
 
+    enum class MapMode(val visible: Boolean) {
+        Disabled(false),
+        Normal(true),
+        Rotated(true);
+
+        fun next() = values()[(ordinal + 1) % values().size]
+    }
+
+    private val Int.optimisticSign
+        get() = when {
+            this < 0 -> -1
+            else -> 1
+        }
+
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
-        val mapScale = 0.1f
+        val mapScale = 0.15f
+        val mapPosX = 75f
+        val mapPosY = 75f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
-            if (!isMinimapVisible) return@register
+            if (!mapMode.visible) return@register
             val player = mc.player ?: return@register println("No player!")
             val playerPos = player.pos ?: return@register println("No player pos!")
             val mrm = activeWorld?.mapRegionManager ?: return@register println("No map region manager!")
@@ -70,9 +85,9 @@ class WhyMapClient : ClientModInitializer {
 
             val regions = listOf(
                 region,
-                Region(region.x, region.z + diffZ.sign),
-                Region(region.x + diffX.sign, region.z),
-                Region(region.x + diffX.sign, region.z + diffZ.sign)
+                Region(region.x, region.z + diffZ.optimisticSign),
+                Region(region.x + diffX.optimisticSign, region.z),
+                Region(region.x + diffX.optimisticSign, region.z + diffZ.optimisticSign)
             )
 
 
@@ -85,9 +100,11 @@ class WhyMapClient : ClientModInitializer {
             }
 //            matrixStack.push()
             matrixStack.push()
-            matrixStack.translate(100f, 100f, 0f)
-            matrixStack.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(player.yaw + 180))
-            matrixStack.translate(-100f, -100f, 0f)
+            if (mapMode == MapMode.Rotated) {
+                matrixStack.translate(mapPosX, mapPosY, 0f)
+                matrixStack.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(player.yaw + 180))
+                matrixStack.translate(-mapPosX, -mapPosY, 0f)
+            }
 
             for ((region, rendered) in rendered) {
                 if (rendered == null) continue
@@ -95,7 +112,7 @@ class WhyMapClient : ClientModInitializer {
                 val diffX = center.x - block.x - 256
                 val diffZ = center.z - block.z - 256
                 matrixStack.push()
-                matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
+                matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
                 val texture = rendered
 
                 draw(mc, matrixStack, texture, mapScale)
@@ -103,8 +120,11 @@ class WhyMapClient : ClientModInitializer {
             }
             matrixStack.pop()
             matrixStack.push()
-            matrixStack.translate(100f, 100f, 0f)
+            matrixStack.translate(mapPosX, mapPosY, 0f)
             matrixStack.scale(0.1f, 0.1f, 0.1f)
+            if (mapMode == MapMode.Normal) {
+                matrixStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(player.yaw + 180))
+            }
             playerIcon(matrixStack)
             matrixStack.pop()
 
@@ -141,7 +161,7 @@ class WhyMapClient : ClientModInitializer {
                 }
             }
             if (kbShowMinimap.wasPressed()) {
-                isMinimapVisible = !isMinimapVisible
+                mapMode = mapMode.next()
             }
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
@@ -251,7 +271,7 @@ class WhyMapClient : ClientModInitializer {
     }
 
     companion object {
-        var isMinimapVisible = false
+        var mapMode = MapMode.Disabled
         val kbNewWaypoint = KeyBindingHelper.registerKeyBinding(
             KeyBinding(
                 "key.whymap.newwaypoint",
