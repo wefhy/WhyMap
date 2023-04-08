@@ -55,6 +55,7 @@ object WhyMapConfig {
     val tileMetadataSize = 16 // bytes
     val latestFileVersion = FileVersionManager.WhyMapFileVersion.latest
 
+    val nativeReRenderInterval = 250 // ms
     val reRenderInterval = 1 // seconds
     val cleanupInterval = 60 // seconds
     val unloadDistance = 1024 //blocks

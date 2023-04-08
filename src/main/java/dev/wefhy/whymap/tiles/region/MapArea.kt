@@ -15,6 +15,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTi
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
+import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
@@ -74,6 +75,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     lateinit var renderedNative: NativeImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
+    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
 
     val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
@@ -374,6 +376,11 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
+    private fun nativeShouldBeReRendered(): Boolean {
+        val elapsed = currentMillis() - lastNativeUpdate
+        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
+    }
+
     private fun shouldBeReRendered(scaleLog: Int): Boolean {
         return when (scaleLog) {
             0 -> {
@@ -418,7 +425,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
     fun renderNativeImage(): NativeImage {
-        return if (::renderedNative.isInitialized.also { print(it) } && !modifiedSinceNativeRender.also { print(it) })
+        return if (::renderedNative.isInitialized && !nativeShouldBeReRendered())
             renderedNative
         else _renderNativeImage()
     }
@@ -463,6 +470,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
             }
         }
+        lastNativeUpdate = currentMillis()
         modifiedSinceNativeRender = false
         renderedNative = image
         return image
@@ -525,6 +533,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
 
     private fun currentTime() = Clock.System.now().epochSeconds
+    private fun currentMillis() = Clock.System.now().toEpochMilliseconds()
 
     fun getNormalSmooth(x: Int, z: Int) = Normal(
         when (z) {

@@ -111,7 +111,6 @@ class WhyMapClient : ClientModInitializer {
                 val cropXsize = cropXend - cropXstart
                 val cropYsize = cropYend - cropYstart
                 GL11.glEnable(GL11.GL_SCISSOR_TEST)
-                println("WinSizes: ${mc.window.scaledWidth}, ${mc.window.scaledHeight}, ${mc.window.width}, ${mc.window.height}")
                 val scaleX = mc.window.width.toFloat() / mc.window.scaledWidth.toFloat()
                 val scaleY = mc.window.height.toFloat() / mc.window.scaledHeight.toFloat()
                 GL11.glScissor(
