@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import net.minecraft.client.texture.NativeImage
 import java.awt.image.BufferedImage
 import java.awt.image.WritableRaster
 
@@ -89,6 +90,16 @@ class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparen
                 raster.setSample(x, y, 1, color.intG)
                 raster.setSample(x, y, 2, color.intB)
 //                raster.setSample(x, y, 3, color.intA)
+            }
+        }
+    }
+
+    fun writeInto(nativeImage: NativeImage, xOffset: Int, yOffset: Int) {
+        var i = 0
+        for (y in yOffset until yOffset + chunkSize) {
+            for (x in xOffset until xOffset + chunkSize) {
+                val color = data[i++]
+                nativeImage.setColor(x, y, color.intARGB)
             }
         }
     }

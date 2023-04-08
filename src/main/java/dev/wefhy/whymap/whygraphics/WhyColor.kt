@@ -34,6 +34,12 @@ val WhyColor.intB
     inline get() = (b * 255).toInt()
 val WhyColor.intA
     inline get() = (a * 255).toInt()
+val WhyColor.intRGB
+    inline get() = (intR shl 16) or (intG shl 8) or intB
+val WhyColor.intRGBA
+    inline get() = (intR shl 24) or (intG shl 16) or (intB shl 8) or intA
+val WhyColor.intARGB
+    inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
 
 inline operator fun WhyColor.plus(other: WhyColor) = WhyColor(r + other.r, g + other.g, b + other.b, (a + other.a) * _1_2) //TODO coercein
 inline operator fun WhyColor.times(other: WhyColor) = WhyColor(r * other.r, g * other.g, b * other.b, a * other.a)

@@ -4,6 +4,7 @@ package dev.wefhy.whymap.whygraphics
 
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
+import net.minecraft.client.texture.NativeImage
 import java.awt.image.BufferedImage
 import java.io.OutputStream
 
@@ -37,6 +38,20 @@ class WhyTiledImage(
 //                raster.setSample()
 //                raster.setPixel()
 //                raster.setSamples()
+            }
+        }
+        return image
+    }
+
+    fun toNativeImage(): NativeImage {
+        val width = xTiles * WhyTile.chunkSize
+        val height = yTiles * WhyTile.chunkSize
+        val image = NativeImage(width, height, false)
+        for (y in 0 until yTiles) {
+            val line = data[y]
+            for (x in 0 until xTiles) {
+                val tile = line[x] ?: continue
+                tile.writeInto(image, x shl WhyTile.lineShl, y shl WhyTile.lineShl)
             }
         }
         return image
