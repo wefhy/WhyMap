@@ -33,6 +33,7 @@ import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.texture.NativeImage
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.Heightmap
@@ -412,6 +413,49 @@ class MapArea private constructor(val location: LocalTileRegion) {
     }
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
+
+    fun renderNativeImage(): NativeImage {
+        val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
+        for (z in 0 until storageTileBlocks) {
+            for (x in 0 until storageTileBlocks) {
+                try {
+                    val block = decodeBlock(blockIdMap[z][x])
+                    val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
+                    val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
+                    val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
+                    val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
+                        biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+                    else
+                        Color(decodeBlockColor(blockOverlayIdMap[z][x])) //TODO overlays should use correct alpha - it's not handled at all for now :(
+
+                    val normal = getNormalSharp(x, z)
+                    val depth = depthMap[z][x].toUByte()
+
+                    var color = (if (foliageBlocksSet.contains(block)) {
+                        baseBlockColor * foliageColor
+                    } else baseBlockColor) * normal.shade
+
+                    if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+
+                        val depthTint = if(!ignoreDepthTint.contains(overlayBlock)) {
+                            -depth.toInt() * 4
+                        } else 0
+
+                        var waterColor = overlayBlockColor + depthTint
+                        waterColor = if (foliageBlocksSet.contains(overlayBlock))
+                            waterColor * foliageColor
+                        else
+                            waterColor
+                        color = waterColor.mixWeight(color, getDepthShade(depth))
+                    }
+                    image.setColor(x , z , 255 shl 24 or color.toBGR())
+                } catch (_: IndexOutOfBoundsException) {
+                    print("Failed to render map area (${location.x}, ${location.z})")
+                }
+            }
+        }
+        return image
+    }
 
     private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(areaCoroutineContext) {
         val bitmap = BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)

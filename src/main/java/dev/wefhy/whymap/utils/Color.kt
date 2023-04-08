@@ -78,6 +78,8 @@ class Color(_r: Int, _g: Int, _b: Int) {
 
     fun toInt(): Int = (r.coerceIn0255() shl 16) + (g.coerceIn0255() shl 8) + b.coerceIn0255()
 
+    fun toBGR(): Int = (b.coerceIn0255() shl 16) + (g.coerceIn0255() shl 8) + r.coerceIn0255()
+
     companion object {
         val white = Color(255, 255, 255)
     }

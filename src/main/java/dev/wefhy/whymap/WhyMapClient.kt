@@ -3,12 +3,16 @@
 package dev.wefhy.whymap
 
 import com.mojang.blaze3d.systems.RenderSystem
+import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
+import dev.wefhy.whymap.utils.LocalTile.Companion.Block
+import dev.wefhy.whymap.utils.TileZoom
 import dev.wefhy.whymap.waypoints.CoordXYZ
 import dev.wefhy.whymap.waypoints.LocalWaypoint
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
@@ -25,18 +29,35 @@ import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
 import org.lwjgl.glfw.GLFW
+import java.awt.image.BufferedImage
 import kotlin.random.Random
 
 class WhyMapClient : ClientModInitializer {
-    override fun onInitializeClient() {
 
+    private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColor(x, y) }
+
+    override fun onInitializeClient() {
+        val mapScale = 0.1f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             if (!isMinimapVisible) return@register
+            val playerPos = mc.player?.pos ?: return@register println("No player!")
+            val mrm = activeWorld?.mapRegionManager ?: return@register println("No map region manager!")
+            val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
+            val region = block.parent(TileZoom.RegionZoom)
+            val center = region.getCenter()
+            val rendered = runBlocking {
+                mrm.getRegionForTilesRendering(region) {
+//                    getRendered()
+                    renderNativeImage()
+                }
+            } ?: return@register println("Nothing to render!")
+            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
             matrixStack.push()
-            matrixStack.translate(50f, 50f, 0f)
-            val texture = createRandomTexture(512, 256)
-            draw(mc, matrixStack, texture, 1f)
+            matrixStack.translate((center.x - block.x).toFloat() * mapScale + 100, (center.z - block.z).toFloat() * mapScale + 100, 0f)
+            val texture = rendered
+//            val texture = createRandomTexture(512, 256)
+            draw(mc, matrixStack, texture, mapScale)
             matrixStack.pop()
         }
 
