@@ -11,21 +11,19 @@ import java.io.OutputStream
 class WhyTiledImage(
     private val xTiles: Int,
     private val yTiles: Int,
-    val data: Array<Array<WhyTile?>> = Array(yTiles) { Array(xTiles) { null } }
 ) : WhyImage(xTiles * WhyTile.chunkSize, yTiles * WhyTile.chunkSize) {
+    val data: Array<Array<WhyTile?>> = Array(yTiles) { Array(xTiles) { null } }
 
     @ExpensiveCall
     override fun get(y: Int, x: Int): WhyColor? {
-        val yTile = y / WhyTile.chunkSize //TODO use shr y shr WhyTile.lineShl
-        val yPixel = y % WhyTile.chunkSize //TODO use and y and WhyTile.lineMask
-        val xTile = x / WhyTile.chunkSize //TODO use shr x shr WhyTile.lineShl
-        val xPixel = x % WhyTile.chunkSize //TODO use and x and WhyTile.lineMask
+        val yTile = y shr WhyTile.lineShl
+        val yPixel = y and WhyTile.lineMask
+        val xTile = x shr WhyTile.lineShl
+        val xPixel = x and WhyTile.lineMask
         return data[yTile][xTile]?.get(yPixel, xPixel)
     }
 
     fun toBufferedImage(): BufferedImage {
-        val width = xTiles * WhyTile.chunkSize
-        val height = yTiles * WhyTile.chunkSize
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
 //        val g2d = image.createGraphics()
         val raster = image.raster
@@ -44,8 +42,6 @@ class WhyTiledImage(
     }
 
     fun toNativeImage(): NativeImage {
-        val width = xTiles * WhyTile.chunkSize
-        val height = yTiles * WhyTile.chunkSize
         val image = NativeImage(width, height, false)
         for (y in 0 until yTiles) {
             val line = data[y]

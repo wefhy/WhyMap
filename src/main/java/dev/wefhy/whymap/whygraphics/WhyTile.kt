@@ -32,10 +32,10 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
         }
 
         return WhyColor(
-            r / arraySize, //TODO use shr
-            g / arraySize,
-            b / arraySize,
-            a / arraySize
+            r * arraySizeDiv,
+            g * arraySizeDiv,
+            b * arraySizeDiv,
+            a * arraySizeDiv
         )
     }
 
@@ -59,7 +59,7 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
             r / a,
             g / a,
             b / a,
-            a / arraySize //TODO use shr
+            a * arraySizeDiv
         )
     }
 
@@ -116,6 +116,7 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
         const val arraySize = chunkSize * chunkSize
         const val lineMask = chunkSize - 1
         const val arrayMask = arraySize - 1
+        const val arraySizeDiv = 1f / arraySize
 
         fun BufferedImage.asWhyTile(): WhyTile {
             assert(width == chunkSize)
