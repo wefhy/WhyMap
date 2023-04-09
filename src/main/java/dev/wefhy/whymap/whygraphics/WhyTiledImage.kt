@@ -16,10 +16,10 @@ class WhyTiledImage(
 
     @ExpensiveCall
     override fun get(y: Int, x: Int): WhyColor? {
-        val yTile = y / WhyTile.chunkSize
-        val yPixel = y % WhyTile.chunkSize
-        val xTile = x / WhyTile.chunkSize
-        val xPixel = x / WhyTile.chunkSize
+        val yTile = y / WhyTile.chunkSize //TODO use shr y shr WhyTile.lineShl
+        val yPixel = y % WhyTile.chunkSize //TODO use and y and WhyTile.lineMask
+        val xTile = x / WhyTile.chunkSize //TODO use shr x shr WhyTile.lineShl
+        val xPixel = x % WhyTile.chunkSize //TODO use and x and WhyTile.lineMask
         return data[yTile][xTile]?.get(yPixel, xPixel)
     }
 

@@ -119,6 +119,8 @@ class WhyMapClient : ClientModInitializer {
                     (cropXsize * scaleX).toInt(),
                     (cropYsize * scaleY).toInt()
                 )
+//                RenderSystem.enableScissor() TODO maybe this is better? Is it gonna use minecraft screen space?
+//                RenderSystem.disableScissor()
                 DrawableHelper.fill(matrixStack, 0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
             }
 

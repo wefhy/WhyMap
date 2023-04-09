@@ -8,7 +8,9 @@ import dev.wefhy.whymap.utils._1_2
 import dev.wefhy.whymap.utils._1_255
 
 class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
-
+    override fun toString(): String {
+        return "WhyColor(r=$r, g=$g, b=$b, a=$a)"
+    }
     companion object {
 
         val Transparent = WhyColor(0f, 0f, 0f, 0f)
@@ -23,6 +25,15 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
         }
 
         fun fromInts(r: Int, g: Int, b: Int) = WhyColor(r * _1_255, g * _1_255, b * _1_255)
+
+        fun fromInt(rgba: Int): WhyColor {
+            return WhyColor(
+                ((rgba shr 24) and 0xFF) * _1_255,
+                ((rgba shr 16) and 0xFF) * _1_255,
+                ((rgba shr 8) and 0xFF) * _1_255,
+                (rgba and 0xFF) * _1_255
+            )
+        }
     }
 }
 
@@ -41,17 +52,21 @@ val WhyColor.intRGBA
 val WhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
 
+/** Note: alpha is averaged */
 inline operator fun WhyColor.plus(other: WhyColor) = WhyColor(r + other.r, g + other.g, b + other.b, (a + other.a) * _1_2) //TODO coercein
+/** Note: alpha is multiplied */
 inline operator fun WhyColor.times(other: WhyColor) = WhyColor(r * other.r, g * other.g, b * other.b, a * other.a)
+/** Note: alpha is untouched */
 inline operator fun WhyColor.times(multiplier: Float) = WhyColor(r * multiplier, g * multiplier, b * multiplier, a)
-inline infix fun WhyColor.mix(other: WhyColor) = WhyColor((r * other.r) * _1_2, (g * other.g) * _1_2, (b * other.b) * _1_2, (a * other.a) * _1_2)
+/** Note: alpha is averaged */
+inline infix fun WhyColor.mix(other: WhyColor) = WhyColor((r + other.r) * _1_2, (g + other.g) * _1_2, (b + other.b) * _1_2, (a + other.a) * _1_2)
 inline fun WhyColor.mixWeight(o: WhyColor, w: Float): WhyColor {
     val x = 1f - w
     return WhyColor(
         (r * w + o.r * x),
         (g * w + o.g * x),
         (b * w + o.b * x),
-        (a * w + o.b * x)
+        (a * w + o.a * x)
     )
 }
 

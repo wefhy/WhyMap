@@ -64,8 +64,8 @@ dependencies {
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
-	testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.8.1")
-	testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.8.1")
+	testImplementation(platform("org.junit:junit-bom:5.9.2"))
+	testImplementation("org.junit.jupiter:junit-jupiter")
 	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.7.0")
 	testImplementation("ar.com.hjg", "pngj", "2.1.0")
     implementation(kotlin("stdlib-jdk8"))
@@ -184,9 +184,9 @@ tasks {
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 }
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 }

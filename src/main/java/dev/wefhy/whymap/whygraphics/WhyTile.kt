@@ -6,19 +6,15 @@ import net.minecraft.client.texture.NativeImage
 import java.awt.image.BufferedImage
 import java.awt.image.WritableRaster
 
-class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparent }) : WhyImage(chunkSize, chunkSize) {
+open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparent }) : WhyImage(chunkSize, chunkSize) {
 
     @OptIn(ExpensiveCall::class)
     override fun get(y: Int, x: Int): WhyColor {
-        return data[y shl lineShl + x]
+        return data[(y shl lineShl) + x]
     }
 
     fun getLine(y: Int): Array<WhyColor> {
         return data.sliceArray((y shl lineShl) until (y shl lineShl) + y)
-    }
-
-    fun getLineView(y: Int): List<WhyColor> {
-        return data.asList().subList(y shl lineShl, y shl lineShl - 1)
     }
 
 
@@ -36,7 +32,7 @@ class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparen
         }
 
         return WhyColor(
-            r / arraySize,
+            r / arraySize, //TODO use shr
             g / arraySize,
             b / arraySize,
             a / arraySize
@@ -63,14 +59,8 @@ class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparen
             r / a,
             g / a,
             b / a,
-            a / arraySize
+            a / arraySize //TODO use shr
         )
-    }
-
-    fun draw(o: WhyTile) {
-        for (i in 0 until arraySize) {
-            data[i] = o.data[i] alphaOver data[i]
-        }
     }
 
     infix fun alphaOver(o: WhyTile): WhyTile {
@@ -99,15 +89,33 @@ class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparen
         for (y in yOffset until yOffset + chunkSize) {
             for (x in xOffset until xOffset + chunkSize) {
                 val color = data[i++]
-                nativeImage.setColor(x, y, color.intARGB)
+                nativeImage.setColor(x, y, color.intRGBA)
             }
         }
     }
 
+//    fun writeIntoUnsafe(nativeImage: NativeImage, xOffset: Int, yOffset: Int) {
+//        var i = 0
+//        @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+//        val p = nativeImage.pointer
+//        val w = nativeImage.width
+//        for (y in yOffset until yOffset + chunkSize) {
+//            var l = p + y * w * 4L
+//            for (x in xOffset until xOffset + chunkSize) {
+//                val color = data[i++]
+//                MemoryUtil.memPutInt(l, color.intARGB)
+//                l += 4L
+//            }
+//        }
+//    }
+
     companion object {
         const val lineShl = 4
         const val chunkSize = 1 shl lineShl
+        const val arrayShl = lineShl shl 1
         const val arraySize = chunkSize * chunkSize
+        const val lineMask = chunkSize - 1
+        const val arrayMask = arraySize - 1
 
         fun BufferedImage.asWhyTile(): WhyTile {
             assert(width == chunkSize)
@@ -130,16 +138,6 @@ class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparen
                 }
             })
         }
-
     }
-
-
-//    infix fun alphaOver(o: WhyTile) {
-//        return WhyTile(
-//
-//        )
-//    }
-
-
 }
 
