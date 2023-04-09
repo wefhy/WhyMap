@@ -6,6 +6,7 @@ package dev.wefhy.whymap.whygraphics
 
 import dev.wefhy.whymap.utils._1_2
 import dev.wefhy.whymap.utils._1_255
+import dev.wefhy.whymap.utils.coerceIn0255
 
 class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
     override fun toString(): String {
@@ -60,13 +61,13 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
 }
 
 val WhyColor.intR
-    inline get() = (r * 255).toInt().coerceAtMost(255)
+    inline get() = (r * 255).toInt().coerceIn0255()
 val WhyColor.intG
-    inline get() = (g * 255).toInt().coerceAtMost(255)
+    inline get() = (g * 255).toInt().coerceIn0255()
 val WhyColor.intB
-    inline get() = (b * 255).toInt().coerceAtMost(255)
+    inline get() = (b * 255).toInt().coerceIn0255()
 val WhyColor.intA
-    inline get() = (a * 255).toInt().coerceAtMost(255)
+    inline get() = (a * 255).toInt().coerceIn0255()
 val WhyColor.intRGB
     inline get() = (intR shl 16) or (intG shl 8) or intB
 val WhyColor.intBGR
@@ -75,6 +76,38 @@ val WhyColor.intRGBA
     inline get() = (intR shl 24) or (intG shl 16) or (intB shl 8) or intA
 val WhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
+
+val WhyColor.floatArray
+    get() = floatArrayOf(r, g, b, a)
+val WhyColor.floatArrayRGB
+    get() = floatArrayOf(r, g, b)
+val WhyColor.intArrayRGBA
+    get() = intArrayOf(intR, intG, intB, intA)
+val WhyColor.intArrayRGB
+    get() = intArrayOf(intR, intG, intB)
+
+fun intoFloatArrayRGBA(color: WhyColor, array: FloatArray) {
+    array[0] = color.r
+    array[1] = color.g
+    array[2] = color.b
+    array[3] = color.a
+}
+fun intoFloatArrayRGB(color: WhyColor, array: FloatArray) {
+    array[0] = color.r
+    array[1] = color.g
+    array[2] = color.b
+}
+fun intoIntArrayRGBA(color: WhyColor, array: IntArray) {
+    array[0] = color.intR
+    array[1] = color.intG
+    array[2] = color.intB
+    array[3] = color.intA
+}
+fun intoIntArrayRGB(color: WhyColor, array: IntArray) {
+    array[0] = color.intR
+    array[1] = color.intG
+    array[2] = color.intB
+}
 
 /** Note: alpha is averaged */
 inline operator fun WhyColor.plus(other: WhyColor) = WhyColor(r + other.r, g + other.g, b + other.b, (a + other.a) * _1_2)

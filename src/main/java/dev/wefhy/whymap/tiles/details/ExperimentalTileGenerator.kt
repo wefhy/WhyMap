@@ -10,10 +10,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterLoggedBlocks
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider.waterTexture
 import dev.wefhy.whymap.utils.LocalTile
-import dev.wefhy.whymap.whygraphics.WhyColor
-import dev.wefhy.whymap.whygraphics.intRGB
-import dev.wefhy.whymap.whygraphics.plus
-import dev.wefhy.whymap.whygraphics.times
+import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
 import java.awt.AlphaComposite
@@ -32,9 +29,6 @@ class ExperimentalTileGenerator {
         //TODO getOrPut basically makes this whole stuff synchronous
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
-
-    val WhyColor.floatArray
-        get() = floatArrayOf(r, g, b, a) //TODO make sure alpha should be used
 
 
     private suspend fun renderTile(position: ChunkPos): BufferedImage? {

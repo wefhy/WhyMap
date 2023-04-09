@@ -371,7 +371,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         GlobalScope.launch {
             RegionUpdateQueue.addUpdate(location.x, location.z)
             ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
-            reRenderAndSaveThumbnail() //TODO also uncache it somehow
+            reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
             val thumbnail = location.parent(TileZoom.ThumbnailZoom)
             ThumbnailUpdateQueue.addUpdate(thumbnail.x, thumbnail.z)
         }
@@ -420,7 +420,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         return if (::rendered.isInitialized && !shouldBeReRendered(0))
             rendered
         else _render(0)
-        //TODO if it's rendered but long time ago then maybe return previous result instantly and then update it? Return though callback twice?
+        //TODO if it's rendered but long time ago then maybe return previous result instantly and then update it? Return though callback twice? Maybe stateflow?
     }
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
@@ -436,35 +436,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         for (z in 0 until storageTileBlocks) {
             for (x in 0 until storageTileBlocks) {
                 try {
-                    val block = decodeBlock(blockIdMap[z][x])
-                    val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                    val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
-                    val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-                    val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-                        biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
-                    else
-                        decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
-
-                    val normal = getNormalSharp(x, z)
-                    val depth = depthMap[z][x].toUByte()
-
-                    var color = (if (foliageBlocksSet.contains(block)) {
-                        baseBlockColor * foliageColor
-                    } else baseBlockColor) * normal.shade
-
-                    if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-
-                        val depthTint = if(!ignoreDepthTint.contains(overlayBlock)) {
-                            -depth.toInt() * 4
-                        } else 0
-
-                        var waterColor = overlayBlockColor + depthTint
-                        waterColor = if (foliageBlocksSet.contains(overlayBlock))
-                            waterColor * foliageColor
-                        else
-                            waterColor
-                        color = waterColor.mixWeight(color, getDepthShade(depth))
-                    }
+                    val color = calculateColor(z, x)
                     image.setColor(x , z , 255 shl 24 or color.intBGR)
                 } catch (_: IndexOutOfBoundsException) {
                     print("Failed to render map area (${location.x}, ${location.z})")
@@ -479,45 +451,24 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(areaCoroutineContext) {
         val bitmap = BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
+        val raster = bitmap.raster!!
         val scale = 1 shl scaleLog
 
         for (z in 0 until storageTileBlocks step scale) {
             ensureActive()
             for (x in 0 until storageTileBlocks step scale) {
                 try {
-
-                    val block = decodeBlock(blockIdMap[z][x])
-                    val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                    val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
-                    val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-                    val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-                        biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
-                    else
-                        decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
-
-                    val normal = getNormalSharp(x, z)
-                    val depth = depthMap[z][x].toUByte()
-
-                    var color = (if (foliageBlocksSet.contains(block)) {
-                        baseBlockColor * foliageColor
-                    } else baseBlockColor) * normal.shade
-
-                    if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-
-                        val depthTint = if(!ignoreDepthTint.contains(overlayBlock)) {
-                            -depth.toInt() * 4
-                        } else 0
-
-                        var waterColor = overlayBlockColor + depthTint
-                        waterColor = if (foliageBlocksSet.contains(overlayBlock))
-                            waterColor * foliageColor
-                        else
-                            waterColor
-                        color = waterColor.mixWeight(color, getDepthShade(depth))
-                    }
-                    bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.intRGB)
+                    val color = calculateColor(z, x)
+                    val bitmapX = x shr scaleLog
+                    val bitmapY = z shr scaleLog
+//                    bitmap.setRGB(bitmapX, bitmapY, color.intRGB)
+                    raster.setPixel(bitmapX, bitmapY, color.intArrayRGB)
+//                    raster.setSample(bitmapX, bitmapY, 0, color.intR)
+//                    raster.setSample(bitmapX, bitmapY, 1, color.intG)
+//                    raster.setSample(bitmapX, bitmapY, 2, color.intB)
+//                    raster.setSample(bitmapX, bitmapY, 3, color.intA)
                 } catch (_: IndexOutOfBoundsException) {
-                        print("Failed to render map area (${location.x}, ${location.z})")
+                    print("Failed to render map area (${location.x}, ${location.z})")
                 }
             }
         }
@@ -530,6 +481,38 @@ class MapArea private constructor(val location: LocalTileRegion) {
             lastThumbnailUpdate = currentTime()
         }
         bitmap
+    }
+
+    private fun calculateColor(z: Int, x: Int): WhyColor {
+        val block = decodeBlock(blockIdMap[z][x])
+        val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
+        val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
+        val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
+        val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
+            biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+        else
+            decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
+
+        val normal = getNormalSharp(x, z)
+        val depth = depthMap[z][x].toUByte()
+
+        var color = (if (foliageBlocksSet.contains(block)) {
+            baseBlockColor * foliageColor
+        } else baseBlockColor) * normal.shade
+
+        if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+            val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
+                -depth.toInt() * 4
+            } else 0
+
+            var waterColor = overlayBlockColor + depthTint
+            waterColor = if (foliageBlocksSet.contains(overlayBlock))
+                waterColor * foliageColor
+            else
+                waterColor
+            color = waterColor.mixWeight(color, getDepthShade(depth))
+        }
+        return color
     }
 
 
