@@ -41,25 +41,25 @@ class WhyColorTest {
 
     @Test
     fun floatTest() {
-        val color = WhyColor.fromInt(0x7f7f7f7f)
+        val color = WhyColor.fromRGBA(0x7f7f7f7f)
         assertEquals(0.49803925f, color.r)
         assertEquals(0.49803925f, color.g)
         assertEquals(0.49803925f, color.b)
         assertEquals(0.49803925f, color.a)
 
-        val color2 = WhyColor.fromInt(0xffffffff.toInt())
+        val color2 = WhyColor.fromRGBA(0xffffffff.toInt())
         assertEquals(1f, color2.r)
         assertEquals(1f, color2.g)
         assertEquals(1f, color2.b)
         assertEquals(1f, color2.a)
 
-        val color3 = WhyColor.fromInt(0x00000000)
+        val color3 = WhyColor.fromRGBA(0x00000000)
         assertEquals(0f, color3.r)
         assertEquals(0f, color3.g)
         assertEquals(0f, color3.b)
         assertEquals(0f, color3.a)
 
-        val color4 = WhyColor.fromInt(0x3f7fff00)
+        val color4 = WhyColor.fromRGBA(0x3f7fff00)
         assertEquals(0.24705884f, color4.r)
         assertEquals(0.49803925f, color4.g)
         assertEquals(1f, color4.b)

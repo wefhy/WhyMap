@@ -118,26 +118,53 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
         const val arrayMask = arraySize - 1
         const val arraySizeDiv = 1f / arraySize
 
-        fun BufferedImage.asWhyTile(): WhyTile {
-            assert(width == chunkSize)
-            assert(height == chunkSize)
+        fun BufferedImage.asWhyTile(): WhyTile? {
+            if (width != chunkSize) return null
+            if (height != chunkSize) return null
+//            if (raster.numBands != 3) return null
             var x = 0
             var y = 0
-            return WhyTile(Array(arraySize) { i ->
-
-                WhyColor.fromInts(
-                    raster.getSample(x, y, 0),
-                    raster.getSample(x, y, 1),
-                    raster.getSample(x, y, 2),
-//                    raster.getSample(x, y, 3)
-                ).also {
-                    x++
-                    if (x == chunkSize) {
-                        x = 0
-                        y++
+            return when(raster.numBands) {
+                4 -> WhyTile(Array(arraySize) { i ->
+                    WhyColor.fromInts(
+                        raster.getSample(x, y, 0),
+                        raster.getSample(x, y, 1),
+                        raster.getSample(x, y, 2),
+                        raster.getSample(x, y, 3)
+                    ).also {
+                        x++
+                        if (x == chunkSize) {
+                            x = 0
+                            y++
+                        }
                     }
-                }
-            })
+                })
+                3 -> WhyTile(Array(arraySize) { i ->
+                    WhyColor.fromInts(
+                        raster.getSample(x, y, 0),
+                        raster.getSample(x, y, 1),
+                        raster.getSample(x, y, 2),
+                    ).also {
+                        x++
+                        if (x == chunkSize) {
+                            x = 0
+                            y++
+                        }
+                    }
+                })
+                1 -> WhyTile(Array(arraySize) { i ->
+                    WhyColor.fromGray(
+                        raster.getSample(x, y, 0),
+                    ).also {
+                        x++
+                        if (x == chunkSize) {
+                            x = 0
+                            y++
+                        }
+                    }
+                })
+                else -> null
+            }
         }
     }
 }

@@ -24,9 +24,22 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
             return WhyColor(r * _1_255, g * _1_255, b * _1_255, a * _1_255)
         }
 
+        fun fromGray(gray: Int): WhyColor {
+            val fl = gray * _1_255
+            return WhyColor(fl, fl, fl)
+        }
+
         fun fromInts(r: Int, g: Int, b: Int) = WhyColor(r * _1_255, g * _1_255, b * _1_255)
 
-        fun fromInt(rgba: Int): WhyColor {
+        fun fromRGB(rgb: Int): WhyColor {
+            return WhyColor(
+                ((rgb shr 16) and 0xFF) * _1_255,
+                ((rgb shr 8) and 0xFF) * _1_255,
+                (rgb and 0xFF) * _1_255
+            )
+        }
+
+        fun fromRGBA(rgba: Int): WhyColor {
             return WhyColor(
                 ((rgba shr 24) and 0xFF) * _1_255,
                 ((rgba shr 16) and 0xFF) * _1_255,
@@ -34,6 +47,15 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
                 (rgba and 0xFF) * _1_255
             )
         }
+
+//        fun fromARGB(argb: Int): WhyColor {
+//            return WhyColor(
+//                ((argb shr 16) and 0xFF) * _1_255,
+//                ((argb shr 8) and 0xFF) * _1_255,
+//                (argb and 0xFF) * _1_255,
+//                ((argb shr 24) and 0xFF) * _1_255
+//            )
+//        }
     }
 }
 
