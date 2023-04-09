@@ -30,6 +30,7 @@ import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Compan
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
+import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.block.BlockState
@@ -114,7 +115,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<FloatColor, Color>>>? {
+    fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<WhyColor, WhyColor>>>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
@@ -437,12 +438,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 try {
                     val block = decodeBlock(blockIdMap[z][x])
                     val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                    val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
+                    val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
                     val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
                     val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
                         biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
                     else
-                        Color(decodeBlockColor(blockOverlayIdMap[z][x])) //TODO overlays should use correct alpha - it's not handled at all for now :(
+                        decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
                     val normal = getNormalSharp(x, z)
                     val depth = depthMap[z][x].toUByte()
@@ -464,7 +465,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                             waterColor
                         color = waterColor.mixWeight(color, getDepthShade(depth))
                     }
-                    image.setColor(x , z , 255 shl 24 or color.toBGR())
+                    image.setColor(x , z , 255 shl 24 or color.intBGR)
                 } catch (_: IndexOutOfBoundsException) {
                     print("Failed to render map area (${location.x}, ${location.z})")
                 }
@@ -487,12 +488,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
                     val block = decodeBlock(blockIdMap[z][x])
                     val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                    val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
+                    val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
                     val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
                     val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
                         biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
                     else
-                        Color(decodeBlockColor(blockOverlayIdMap[z][x])) //TODO overlays should use correct alpha - it's not handled at all for now :(
+                        decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
                     val normal = getNormalSharp(x, z)
                     val depth = depthMap[z][x].toUByte()
@@ -514,7 +515,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                             waterColor
                         color = waterColor.mixWeight(color, getDepthShade(depth))
                     }
-                    bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
+                    bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.intRGB)
                 } catch (_: IndexOutOfBoundsException) {
                         print("Failed to render map area (${location.x}, ${location.z})")
                 }
@@ -574,13 +575,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
 
     class Normal(val i: Int, val j: Int) {
-        val shade: FloatColor
+        val shade: WhyColor
             get() {
                 val iShade = atanLookupTable[i + maxHeight]
                 val jShade = atanLookupTable[j + maxHeight]
 //                val iShade = atanLookupTable.getOrElse(i + maxHeight) { atanLookupTable[maxHeight] }
 //                val jShade = atanLookupTable.getOrElse(j + maxHeight) { atanLookupTable[maxHeight] }
-                return FloatColor(
+                return WhyColor(
                     r = 1 + iShade * ri + jShade * rj,
                     g = 1 + iShade * gi + jShade * gj,
                     b = 1 + iShade * bi + jShade * bj

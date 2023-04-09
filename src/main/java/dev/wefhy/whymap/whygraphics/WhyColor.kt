@@ -60,26 +60,34 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
 }
 
 val WhyColor.intR
-    inline get() = (r * 255).toInt()
+    inline get() = (r * 255).toInt().coerceAtMost(255)
 val WhyColor.intG
-    inline get() = (g * 255).toInt()
+    inline get() = (g * 255).toInt().coerceAtMost(255)
 val WhyColor.intB
-    inline get() = (b * 255).toInt()
+    inline get() = (b * 255).toInt().coerceAtMost(255)
 val WhyColor.intA
-    inline get() = (a * 255).toInt()
+    inline get() = (a * 255).toInt().coerceAtMost(255)
 val WhyColor.intRGB
     inline get() = (intR shl 16) or (intG shl 8) or intB
+val WhyColor.intBGR
+    inline get() = (intB shl 16) or (intG shl 8) or intR
 val WhyColor.intRGBA
     inline get() = (intR shl 24) or (intG shl 16) or (intB shl 8) or intA
 val WhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
 
 /** Note: alpha is averaged */
-inline operator fun WhyColor.plus(other: WhyColor) = WhyColor(r + other.r, g + other.g, b + other.b, (a + other.a) * _1_2) //TODO coercein
+inline operator fun WhyColor.plus(other: WhyColor) = WhyColor(r + other.r, g + other.g, b + other.b, (a + other.a) * _1_2)
+inline operator fun WhyColor.plus(other: Float) = WhyColor(r + other, g + other, b + other, a)
+inline operator fun WhyColor.plus(other: Int) = this + (other * _1_255)
+//inline operator fun WhyColor.plus(other: WhyColor) = WhyColor((r + other.r).coerceAtMost(1f), (g + other.g).coerceAtMost(1f), (b + other.b).coerceAtMost(1f), (a + other.a) * _1_2)
+//inline operator fun WhyColor.plus(other: Float) = WhyColor((r + other).coerceAtMost(1f), (g + other).coerceAtMost(1f), (b + other).coerceAtMost(1f), a)
+//inline operator fun WhyColor.plus(other: Int) = WhyColor((r + other * _1_255).coerceAtMost(1f), (g + other * _1_255).coerceAtMost(1f), (b + other * _1_255).coerceAtMost(1f), a)
 /** Note: alpha is multiplied */
 inline operator fun WhyColor.times(other: WhyColor) = WhyColor(r * other.r, g * other.g, b * other.b, a * other.a)
 /** Note: alpha is untouched */
 inline operator fun WhyColor.times(multiplier: Float) = WhyColor(r * multiplier, g * multiplier, b * multiplier, a)
+//inline operator fun WhyColor.times(multiplier: Float) = WhyColor((r * multiplier).coerceAtMost(1f), (g * multiplier).coerceAtMost(1f), (b * multiplier).coerceAtMost(1f), a)
 /** Note: alpha is averaged */
 inline infix fun WhyColor.mix(other: WhyColor) = WhyColor((r + other.r) * _1_2, (g + other.g) * _1_2, (b + other.b) * _1_2, (a + other.a) * _1_2)
 inline fun WhyColor.mixWeight(o: WhyColor, w: Float): WhyColor {

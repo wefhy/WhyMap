@@ -9,9 +9,11 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTi
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterLoggedBlocks
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider.waterTexture
-import dev.wefhy.whymap.utils.Color
-import dev.wefhy.whymap.utils.FloatColor
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.whygraphics.WhyColor
+import dev.wefhy.whymap.whygraphics.intRGB
+import dev.wefhy.whymap.whygraphics.plus
+import dev.wefhy.whymap.whygraphics.times
 import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
 import java.awt.AlphaComposite
@@ -31,8 +33,8 @@ class ExperimentalTileGenerator {
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
 
-    val FloatColor.floatArray
-        get() = floatArrayOf(r, g, b, 1f)
+    val WhyColor.floatArray
+        get() = floatArrayOf(r, g, b, a) //TODO make sure alpha should be used
 
 
     private suspend fun renderTile(position: ChunkPos): BufferedImage? {
@@ -89,26 +91,26 @@ class ExperimentalTileGenerator {
                             val darken = -depth * 1.6f
 
                             val c = if (waterBlocks.contains(blockOverlay)) oceanColor
-                            else if (foliageBlocksSet.contains(blockOverlay)) foliageColor.toColor()
-                            else Color.white
+                            else if (foliageBlocksSet.contains(blockOverlay)) foliageColor
+                            else WhyColor.White
 
                             val darkenArray = if (!ignoreDepthTint.contains(blockOverlay)) {
                                 floatArrayOf(darken, darken, darken, 0f)
                             } else FloatArray(4)
 
                             val newRop = if (waterLoggedBlocks.contains(blockOverlay)) {
-                                val waterRop = RescaleOp(oceanColor.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
+                                val waterRop = RescaleOp(oceanColor.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
                                 g2d.drawImage(waterTexture, waterRop, x * 16, y * 16)
-                                RescaleOp(c.toFloatColor().floatArray, FloatArray(4), null)
+                                RescaleOp(c.floatArray, FloatArray(4), null)
                             } else {
-                                RescaleOp(c.toFloatColor().floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
+                                RescaleOp(c.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
                             }
 
                             if (sourceOverlay != null) {
                                 g2d.drawImage(sourceOverlay, newRop, x * 16, y * 16)
                             } else {
                                 g2d.color = java.awt.Color(
-                                    (c + (-depth * 4)).toInt() or ((alpha * 255).toInt() shl 24),
+                                    (c + (-depth * 4)).intRGB or ((alpha * 255).toInt() shl 24), //TODO use proper alpha!
                                     true
                                 )
                                 g2d.fillRect(x * 16, y * 16, 16, 16)

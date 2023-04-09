@@ -12,7 +12,6 @@ import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreAlpha
 import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreDepthTint
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.whygraphics.WhyColor
-import dev.wefhy.whymap.whygraphics.intARGB
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 
@@ -35,7 +34,7 @@ object BlockQuickAccess {
             else
                 average()//for regular blocks
         } ?: WhyColor.fromRGB(it.material.color.color)
-    }.map { it.intARGB }.toIntArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
+    }.toTypedArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
 
     internal inline fun encodeBlock(blockState: BlockState): Short {
         val defaultState = blockState.block.translationKey

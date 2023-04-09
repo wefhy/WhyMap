@@ -4,8 +4,7 @@ package dev.wefhy.whymap.communication.quickaccess
 
 import dev.wefhy.whymap.CurrentWorld
 import dev.wefhy.whymap.CurrentWorldProvider
-import dev.wefhy.whymap.utils.Color
-import dev.wefhy.whymap.utils.FloatColor
+import dev.wefhy.whymap.whygraphics.WhyColor
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.world.biome.Biome
 
@@ -16,8 +15,8 @@ class BiomeCurrentWorldManager : BiomeManager() {
     private val biomeNameMapRev = biomeRegistry.entrySet.associate { it.value to it.key.value.path }
     private val biomeIdMap = biomeNameMap.entries.sortedBy { it.key }.map { it.value }.toTypedArray()
     private val biomeIdMapRev = biomeNameMap.entries.sortedBy { it.key }.withIndex().associate { it.value.value to it.index.toByte() }
-    private val fastLookupBiomeFoliage = biomeIdMap.map { Color(it.foliageColor).toFloatColor() }
-    private val fastLookupBiomeWaterColor = biomeIdMap.map { Color(it.waterColor) }
+    private val fastLookupBiomeFoliage = biomeIdMap.map { WhyColor.fromRGB(it.foliageColor) }
+    private val fastLookupBiomeWaterColor = biomeIdMap.map { WhyColor.fromRGB(it.waterColor) } //TODO maybe add some alpha here already?
     private val plains = biomeNameMap["plains"]!!
 
     private val netherBiomeMap = mapOf(
@@ -28,21 +27,21 @@ class BiomeCurrentWorldManager : BiomeManager() {
         "basalt" to 0x787878
     )
 
-    private val fastLookupBiomeFoliageExtras = biomeIdMap.map<Biome, FloatColor> { biome ->
+    private val fastLookupBiomeFoliageExtras = biomeIdMap.map<Biome, WhyColor> { biome ->
         val name = biomeGetName(biome)
         val nether = netherBiomeMap.keys.find { name.contains(it) }
         if (nether == null)
-            Color(biome.foliageColor).toFloatColor()
+            WhyColor.fromRGB(biome.foliageColor)
         else
-            Color(netherBiomeMap[nether]!!).toFloatColor()
-    }
+            WhyColor.fromRGB(netherBiomeMap[nether]!!)
+    } //TODO maybe add some alpha here already?
 
     override fun biomeGetName(biome: Biome): String = biomeNameMapRev[biome]!!
     override fun encodeBiome(biome: Biome): Byte = biomeIdMapRev[biome]!!
     override fun decodeBiome(id: Byte): Biome = biomeIdMap[id.toInt()]
     //    override fun decodeBiomeFoliage(id: Byte): MapArea.FloatColor = fastLookupBiomeFoliage[id.toInt()]
-    override fun decodeBiomeFoliage(id: Byte): FloatColor = fastLookupBiomeFoliageExtras[id.toInt()]
-    override fun decodeBiomeWaterColor(id: Byte): Color = fastLookupBiomeWaterColor[id.toInt()]
+    override fun decodeBiomeFoliage(id: Byte): WhyColor = fastLookupBiomeFoliageExtras[id.toInt()]
+    override fun decodeBiomeWaterColor(id: Byte): WhyColor = fastLookupBiomeWaterColor[id.toInt()]
     override fun isPlains(biome: Biome) = biome == plains
 }
 
@@ -59,11 +58,11 @@ class BiomeOfflineManager : BiomeManager() {
         TODO("Not yet implemented")
     }
 
-    override fun decodeBiomeFoliage(id: Byte): FloatColor {
+    override fun decodeBiomeFoliage(id: Byte): WhyColor {
         TODO("Not yet implemented")
     }
 
-    override fun decodeBiomeWaterColor(id: Byte): Color {
+    override fun decodeBiomeWaterColor(id: Byte): WhyColor {
         TODO("Not yet implemented")
     }
 
@@ -77,7 +76,7 @@ abstract class BiomeManager { //Can't be interface for performance reasons (call
     abstract fun biomeGetName(biome: Biome): String
     abstract fun encodeBiome(biome: Biome): Byte
     abstract fun decodeBiome(id: Byte): Biome
-    abstract fun decodeBiomeFoliage(id: Byte): FloatColor
-    abstract fun decodeBiomeWaterColor(id: Byte): Color
+    abstract fun decodeBiomeFoliage(id: Byte): WhyColor
+    abstract fun decodeBiomeWaterColor(id: Byte): WhyColor
     abstract fun isPlains(biome: Biome): Boolean
 }
