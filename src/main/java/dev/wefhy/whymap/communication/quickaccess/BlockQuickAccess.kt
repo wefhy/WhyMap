@@ -11,8 +11,7 @@ import dev.wefhy.whymap.config.RenderConfig.isWaterlogged
 import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreAlpha
 import dev.wefhy.whymap.config.RenderConfig.shouldIgnoreDepthTint
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
-import dev.wefhy.whymap.utils.getAverageColor
-import dev.wefhy.whymap.utils.getAverageLeavesColor
+import dev.wefhy.whymap.whygraphics.WhyColor
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 
@@ -29,13 +28,13 @@ object BlockQuickAccess {
     internal val ignoreDepthTint = minecraftBlocks.filter { shouldIgnoreDepthTint(it) }.map { blockNameMap[it] }.toSet()
     private val fastLookupBlocks = minecraftBlocks.map { blockNameMap[it]!! }.toTypedArray()
     private val fastLookupBlockColor = fastLookupBlocks.map {
-        ExperimentalTextureProvider.getBitmap(it.block)?.run {
+        ExperimentalTextureProvider.getWhyTile(it.block)?.run {
             if (it in ignoreAlphaBlocks)
-                getAverageLeavesColor()
+                alphaInvariantAverage()//for leaves
             else
-                getAverageColor()
-        } ?: it.material.color.color
-    }.toIntArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
+                average()//for regular blocks
+        } ?: WhyColor.fromRGB(it.material.color.color)
+    }.toTypedArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
 
     internal inline fun encodeBlock(blockState: BlockState): Short {
         val defaultState = blockState.block.translationKey
