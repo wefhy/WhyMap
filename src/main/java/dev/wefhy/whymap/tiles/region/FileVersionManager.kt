@@ -1,8 +1,7 @@
 package dev.wefhy.whymap.tiles.region
 
-import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.forVersionNumber
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.currentVersion
 import java.nio.ByteBuffer
 import kotlin.experimental.inv
 import kotlin.random.Random
@@ -21,7 +20,7 @@ object FileVersionManager {
         class Custom(i: Short): WhyMapFileVersion(i)
 
         val isCurrent: Boolean
-            get() = this == latestFileVersion
+            get() = this == currentVersion
 
         val isUnknown: Boolean
             get() = this == Unknown
@@ -49,7 +48,7 @@ object FileVersionManager {
         }
 
         companion object {
-
+            object UserDefined: WhyMapFileVersion(-1)
             object Unknown: WhyMapFileVersion(0)
             object Version1: WhyMapFileVersion(1)
             object Version2: WhyMapFileVersion(2)

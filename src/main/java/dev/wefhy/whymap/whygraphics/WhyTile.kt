@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import dev.wefhy.whymap.utils.ExpensiveCall
 import net.minecraft.client.texture.NativeImage
 import java.awt.image.BufferedImage
 import java.awt.image.WritableRaster

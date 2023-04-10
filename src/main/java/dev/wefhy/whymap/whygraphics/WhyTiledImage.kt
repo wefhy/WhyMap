@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import dev.wefhy.whymap.utils.ExpensiveCall
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import net.minecraft.client.texture.NativeImage

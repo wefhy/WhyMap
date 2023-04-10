@@ -11,7 +11,6 @@ import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
 import dev.wefhy.whymap.config.WhyMapConfig.maxPort
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
@@ -125,7 +124,7 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            call.respondText(getMappings())
+//            call.respondText(getMappings()) TODO
         }
         get("/exportBlockMappings") {
             call.respondText(exportBlockMappings())

@@ -65,6 +65,7 @@ object WhyMapConfig {
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
     val mappingsExportDir = modPath.resolve("mappings-export")
+    val customMappingsDir = modPath.resolve("mappings-custom")
     val logsPath = modPath.resolve("logs")
     val logsDateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     val logsEntryTimeFormatter = DateTimeFormatter.ofPattern("HHmmss.SSS")

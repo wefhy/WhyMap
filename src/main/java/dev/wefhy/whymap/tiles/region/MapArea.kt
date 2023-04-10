@@ -14,7 +14,6 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
-import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
@@ -25,6 +24,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.currentVersion
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
@@ -185,7 +185,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutput = ByteArrayOutputStream()
                 XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(latestFileVersion.getMetadataArray())
+                    xz.write(currentVersion.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
@@ -231,7 +231,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
 
                 if (!version.isCurrent) {
-                    val remapLookup = getRemapLookup(version, latestFileVersion)
+                    val remapLookup = getRemapLookup(version, currentVersion)
                     blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     modifiedSinceSave = true
