@@ -60,17 +60,13 @@ class ExperimentalTileGenerator {
 
                             //TODO handle lava separately
 
-                            val blockColorFilter =
-                                if (foliageBlocksSet.contains(block)) {
-                                    (foliageColor * normalShade).floatArray
-                                } else {
-                                    normalShade.floatArray
-                                }
+                            val blockColorFilter = if (foliageBlocksSet.contains(block)) foliageColor * normalShade else normalShade
+
                             val source = ExperimentalTextureProvider.getBitmap(block.block)
                             if (source != null) {
                                 g2d.drawImage( //TODO java.lang.IllegalArgumentException: Rescaling cannot be performed on an indexed image
                                     source,
-                                    RescaleOp(blockColorFilter, FloatArray(4), null),
+                                    RescaleOp(blockColorFilter.floatArray, FloatArray(4), null),
                                     x * 16,
                                     y * 16
                                 )
@@ -104,7 +100,7 @@ class ExperimentalTileGenerator {
                                 g2d.drawImage(sourceOverlay, newRop, x * 16, y * 16)
                             } else {
                                 g2d.color = java.awt.Color(
-                                    (c + (-depth * 4)).intRGB or ((alpha * 255).toInt() shl 24), //TODO use proper alpha!
+                                    (c + (-depth * 4)).intRGB or ((alpha * 127).toInt() shl 24), //TODO use proper alpha!
                                     true
                                 )
                                 g2d.fillRect(x * 16, y * 16, 16, 16)

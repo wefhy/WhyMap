@@ -89,6 +89,12 @@ class WhyColorTest {
         assertEquals(0.5f, colorD2.g)
         assertEquals(0.12400001f, colorD2.b)
         assertEquals(0.94f, colorD2.a)
+
+        val colorC3 = WhyColor.Red alphaOver WhyColor.Green
+        assertEquals(1f, colorC3.r)
+        assertEquals(0f, colorC3.g)
+        assertEquals(0f, colorC3.b)
+        assertEquals(1f, colorC3.a)
     }
 
     @Test

@@ -6,10 +6,10 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlock
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlockColor
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.encodeBlock
-import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.fastIgnoreLookup
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
@@ -25,12 +25,14 @@ import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
+import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
+import dev.wefhy.whymap.whygraphics.WhyTile.Companion.asWhyTile
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.block.BlockState
@@ -483,36 +485,81 @@ class MapArea private constructor(val location: LocalTileRegion) {
         bitmap
     }
 
+    val waterGray by lazy { ExperimentalTextureProvider.waterTexture?.asWhyTile()?.average() }
+
     private fun calculateColor(z: Int, x: Int): WhyColor {
         val block = decodeBlock(blockIdMap[z][x])
         val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
         val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
         val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-        val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-            biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
-        else
-            decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
+        val overlayBlockColor = decodeBlockColor(blockOverlayIdMap[z][x])
+        val depth = depthMap[z][x].toUByte().toInt()
+        val normalShade = getNormalSharp(x, z).shade
 
-        val normal = getNormalSharp(x, z)
-        val depth = depthMap[z][x].toUByte()
+        val blockColorFilter = if (foliageBlocksSet.contains(block)) foliageColor * normalShade else normalShade
+        var color = baseBlockColor * blockColorFilter
 
-        var color = (if (foliageBlocksSet.contains(block)) {
-            baseBlockColor * foliageColor
-        } else baseBlockColor) * normal.shade
+        if (depth <= 0) return color
 
-        if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-            val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
-                -depth.toInt() * 4
-            } else 0
+        val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
+        val alpha = (3 - tmp1 * tmp1) / 3
+        val darken = -depth * 1.6f * _1_255
 
-            var waterColor = overlayBlockColor + depthTint
-            waterColor = if (foliageBlocksSet.contains(overlayBlock))
-                waterColor * foliageColor
-            else
-                waterColor
-            color = waterColor.mixWeight(color, getDepthShade(depth))
+        val oceanColor = biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+        val c = if (waterBlocks.contains(overlayBlock)) oceanColor
+        else if (foliageBlocksSet.contains(overlayBlock)) foliageColor
+        else WhyColor.White
+
+        val darkenArray = if (!ignoreDepthTint.contains(overlayBlock)) {
+            WhyColor.fromGray(darken)
+        } else WhyColor.Black
+
+        if (BlockQuickAccess.waterLoggedBlocks.contains(overlayBlock)) {
+            color = color.rop(waterGray?: WhyColor.Gray, oceanColor.withAlpha(alpha * 1.6f), darkenArray)
+            color = color.rop(overlayBlockColor, c, WhyColor.Black)
+        } else {
+            color = color.rop(overlayBlockColor, c.withAlpha(alpha * 1.6f), darkenArray)
         }
+//        printlnChance(10000, "Result: $color, colors: $c, $oceanColor, $foliageColor, $baseBlockColor, $overlayBlockColor, rop: ${color.rop(overlayBlockColor, c.withAlpha(alpha * 1.6f), darkenArray)}, cwa: ${c.withAlpha(alpha * 1.6f)}, ropc: ${ropComponent(overlayBlockColor, c.withAlpha(alpha * 1.6f), darkenArray)}")
+//        printlnChance(10000) {
+//            """
+//            Result: $color
+//            colors: $c $baseBlockColor
+//            rop: ${color.rop(overlayBlockColor, c.withAlpha(alpha * 1.6f), darkenArray)}
+//            ropc: ${ropComponent(overlayBlockColor, c.withAlpha(alpha * 1.6f), darkenArray)} = $overlayBlockColor * ${c.withAlpha(alpha * 1.6f)} + $darkenArray
+//            """.trimIndent()
+//        }
         return color
+
+//        val newRop = if (BlockQuickAccess.waterLoggedBlocks.contains(overlayBlock)) {
+//            val waterRop = RescaleOp(oceanColor.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
+//            g2d.drawImage(ExperimentalTextureProvider.waterTexture, waterRop, x * 16, y * 16)
+//            RescaleOp(c.floatArray, FloatArray(4), null)
+//        } else {
+//            RescaleOp(c.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
+//        }
+//
+
+//        val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
+//            biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+//        else
+//            decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
+//
+//
+//
+//        if ( !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+//            val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
+//                -depth.toInt() * 4
+//            } else 0
+//
+//            var waterColor = overlayBlockColor + depthTint
+//            waterColor = if (foliageBlocksSet.contains(overlayBlock))
+//                waterColor * foliageColor
+//            else
+//                waterColor
+//            color = waterColor.mixWeight(color, getDepthShade(depth))
+//        }
+//        return color
     }
 
 

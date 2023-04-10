@@ -16,6 +16,7 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
 
         val Transparent = WhyColor(0f, 0f, 0f, 0f)
         val White = WhyColor(1f, 1f, 1f, 1f)
+        val Gray = WhyColor(.5f, .5f, .5f, .5f)
         val Black = WhyColor(0f, 0f, 0f, 1f)
         val Red = WhyColor(1f, 0f, 0f, 1f)
         val Green = WhyColor(0f, 1f, 0f, 1f)
@@ -25,9 +26,10 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
             return WhyColor(r * _1_255, g * _1_255, b * _1_255, a * _1_255)
         }
 
-        fun fromGray(gray: Int): WhyColor {
-            val fl = gray * _1_255
-            return WhyColor(fl, fl, fl)
+        fun fromGray(gray: Int) = fromGray(gray * _1_255)
+
+        fun fromGray(gray: Float): WhyColor {
+            return WhyColor(gray, gray, gray)
         }
 
         fun fromInts(r: Int, g: Int, b: Int) = WhyColor(r * _1_255, g * _1_255, b * _1_255)
@@ -37,6 +39,15 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
                 ((rgb shr 16) and 0xFF) * _1_255,
                 ((rgb shr 8) and 0xFF) * _1_255,
                 (rgb and 0xFF) * _1_255
+            )
+        }
+
+        fun fromRGBWithAlpha(rgb: Int, alpha: Float): WhyColor {
+            return WhyColor(
+                ((rgb shr 16) and 0xFF) * _1_255,
+                ((rgb shr 8) and 0xFF) * _1_255,
+                (rgb and 0xFF) * _1_255,
+                alpha
             )
         }
 
@@ -86,27 +97,36 @@ val WhyColor.intArrayRGBA
 val WhyColor.intArrayRGB
     get() = intArrayOf(intR, intG, intB)
 
-fun intoFloatArrayRGBA(color: WhyColor, array: FloatArray) {
-    array[0] = color.r
-    array[1] = color.g
-    array[2] = color.b
-    array[3] = color.a
+fun WhyColor.withAlpha(alpha: Float) = WhyColor(r, g, b, alpha)
+
+fun WhyColor.rop(scale: WhyColor, offset: WhyColor) = alphaOverlaidWith(scale) + offset
+fun WhyColor.rop2(scale: WhyColor, offset: WhyColor) = alphaOverlaidWith(scale + offset)
+
+fun WhyColor.rop(overlay: WhyColor, scale: WhyColor, offset: WhyColor) = alphaOverlaidWith(overlay * scale + offset)
+fun ropComponent(overlay: WhyColor, scale: WhyColor, offset: WhyColor) = overlay * scale + offset
+fun WhyColor.rop2(overlay: WhyColor, scale: WhyColor, offset: WhyColor) = alphaOverlaidWith((overlay + offset) * scale)
+
+fun WhyColor.intoFloatArrayRGBA(array: FloatArray) {
+    array[0] = r
+    array[1] = g
+    array[2] = b
+    array[3] = a
 }
-fun intoFloatArrayRGB(color: WhyColor, array: FloatArray) {
-    array[0] = color.r
-    array[1] = color.g
-    array[2] = color.b
+fun WhyColor.intoFloatArrayRGB(array: FloatArray) {
+    array[0] = r
+    array[1] = g
+    array[2] = b
 }
-fun intoIntArrayRGBA(color: WhyColor, array: IntArray) {
-    array[0] = color.intR
-    array[1] = color.intG
-    array[2] = color.intB
-    array[3] = color.intA
+fun WhyColor.intoIntArrayRGBA(array: IntArray) {
+    array[0] = intR
+    array[1] = intG
+    array[2] = intB
+    array[3] = intA
 }
-fun intoIntArrayRGB(color: WhyColor, array: IntArray) {
-    array[0] = color.intR
-    array[1] = color.intG
-    array[2] = color.intB
+fun WhyColor.intoIntArrayRGB(array: IntArray) {
+    array[0] = intR
+    array[1] = intG
+    array[2] = intB
 }
 
 /** Note: alpha is averaged */
@@ -132,6 +152,8 @@ inline fun WhyColor.mixWeight(o: WhyColor, w: Float): WhyColor {
         (a * w + o.a * x)
     )
 }
+
+inline infix fun WhyColor.alphaOverlaidWith(o: WhyColor) = o alphaOver this
 
 inline infix fun WhyColor.alphaOver(o: WhyColor): WhyColor {
     val w1 = a + (1 - a) * (1 - o.a)

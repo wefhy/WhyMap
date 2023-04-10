@@ -19,6 +19,7 @@ import kotlin.contracts.contract
 import kotlin.internal.*
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
@@ -118,6 +119,12 @@ inline fun ShortArray.mapInPlace(transform: (Short) -> Short) {
 inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
     for (subArray in this) {
         subArray.mapInPlace(transform)
+    }
+}
+
+inline fun printlnChance(chance: Int, text: () -> String) {
+    if (Random.nextInt(chance) == 0) {
+        println(text())
     }
 }
 
