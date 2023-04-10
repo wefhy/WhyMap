@@ -2,13 +2,13 @@
 
 package dev.wefhy.whymap
 
+import dev.wefhy.whymap.communication.quickaccess.BiomeCurrentWorldManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeOfflineManager
 import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
-import dev.wefhy.whymap.communication.quickaccess.BiomeCurrentWorldManager
-import dev.wefhy.whymap.communication.quickaccess.BiomeManager
-import dev.wefhy.whymap.communication.quickaccess.BiomeOfflineManager
 import dev.wefhy.whymap.tiles.details.ExperimentalTileGenerator
 import dev.wefhy.whymap.tiles.region.MapRegionManager
 import dev.wefhy.whymap.tiles.thumbnails.RegionThumbnailer
@@ -20,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WorldSavePath
-import net.minecraft.world.dimension.DimensionType
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.BufferedWriter
@@ -29,8 +28,6 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
 class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
-    //    val mc: MinecraftClient = MinecraftClient.getInstance()
-    private val session = mc.game.currentSession!!
     val world = mc.world!!
     val player = mc.player!!
     private val dimension = world.dimension!!
@@ -39,7 +36,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
 
     override val name: String =
-        if (session.isRemoteServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
+        if (!mc.isConnectedToLocalServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
             WorldSavePath.ROOT
         ).parent.fileName.toString()
 
