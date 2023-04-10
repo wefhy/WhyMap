@@ -13,7 +13,6 @@ import dev.wefhy.whymap.utils.LocalTile
 import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
-import java.awt.AlphaComposite
 import java.awt.image.BufferedImage
 import java.awt.image.RescaleOp
 import java.util.*
@@ -47,8 +46,8 @@ class ExperimentalTileGenerator {
                     val normalmap = getChunkNormals(position) ?: return@withContext null
                     val bufferedImage = BufferedImage(16 * 16, 16 * 16, BufferedImage.TYPE_INT_RGB)
                     val g2d = bufferedImage.createGraphics()
-                    val originalComposite = g2d.composite
-                    val alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f)
+//                    val originalComposite = g2d.composite
+//                    val alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f)
 
                     for (y in 0 until 16) {
                         for (x in 0 until 16) {

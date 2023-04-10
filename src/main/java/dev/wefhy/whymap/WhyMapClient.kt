@@ -32,7 +32,6 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.RotationAxis
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.opengl.GL11
 import java.awt.image.BufferedImage
 import kotlin.random.Random
 
@@ -110,17 +109,14 @@ class WhyMapClient : ClientModInitializer {
                 val cropYend = mapPosY + mapRadius
                 val cropXsize = cropXend - cropXstart
                 val cropYsize = cropYend - cropYstart
-                GL11.glEnable(GL11.GL_SCISSOR_TEST)
-                val scaleX = mc.window.width.toFloat() / mc.window.scaledWidth.toFloat()
-                val scaleY = mc.window.height.toFloat() / mc.window.scaledHeight.toFloat()
-                GL11.glScissor(
+                val scaleX = mc.window.framebufferWidth.toFloat() / mc.window.scaledWidth.toFloat()
+                val scaleY = mc.window.framebufferHeight.toFloat() / mc.window.scaledHeight.toFloat()
+                RenderSystem.enableScissor(
                     (cropXstart * scaleX).toInt(),
-                    mc.window.height - (cropYend * scaleY).toInt(),
+                    mc.window.framebufferHeight - (cropYend * scaleY).toInt(),
                     (cropXsize * scaleX).toInt(),
                     (cropYsize * scaleY).toInt()
                 )
-//                RenderSystem.enableScissor() TODO maybe this is better? Is it gonna use minecraft screen space?
-//                RenderSystem.disableScissor()
                 DrawableHelper.fill(matrixStack, 0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
             }
 
@@ -152,9 +148,7 @@ class WhyMapClient : ClientModInitializer {
             }
             playerIcon(matrixStack)
             matrixStack.pop()
-
-            GL11.glDisable(GL11.GL_SCISSOR_TEST)
-
+            RenderSystem.disableScissor()
 
 //
 //            val rendered = runBlocking {
