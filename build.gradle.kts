@@ -172,7 +172,7 @@ val blockMappingsList = task("blockMappingsList") {
 //}
 
 val newBlockMappings = task("newBlockMappings") {
-	val inPath = "run/WhyMap/mapping-custom"
+	val inPath = "run/WhyMap/mappings-custom"
 	val outPath = "src/main/resources/blockmappings"
 	inputs.dir(inPath)
 	outputs.file(outPath)

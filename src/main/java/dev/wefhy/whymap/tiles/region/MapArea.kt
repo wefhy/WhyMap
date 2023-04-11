@@ -242,7 +242,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             LOGGER.error("ERROR LOADING TILE: ${file.absolutePath}")
         } catch (e: IndexOutOfBoundsException) {
             currentWorld.writeToLog("ERROR Upgrading ${obfuscateObjectWithCommand(location, "error")}")
-            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}")
+            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}\n ${e.message}\n ${e.stackTraceToString()}")
         }
     }
 

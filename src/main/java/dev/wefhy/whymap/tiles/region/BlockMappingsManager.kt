@@ -2,7 +2,6 @@ package dev.wefhy.whymap.tiles.region
 
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.minecraftBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.customMappingsDir
-import dev.wefhy.whymap.config.WhyMapConfig.mappingsExportDir
 import dev.wefhy.whymap.utils.mkDirsIfNecessary
 import dev.wefhy.whymap.utils.toHex
 import java.nio.ByteBuffer
@@ -13,7 +12,7 @@ import kotlin.random.Random
 @Suppress("UNREACHABLE_CODE")
 object BlockMappingsManager {
     private val md = MessageDigest.getInstance("MD5")
-    private val fileWithCurrentVersion = mappingsExportDir.resolve("current")
+    private val fileWithCurrentVersion = customMappingsDir.resolve("current")
 
     private val internalMappings: List<BlockMapping.InternalMapping> by lazy {
         val classloader = javaClass.classLoader
@@ -21,7 +20,7 @@ object BlockMappingsManager {
         resource.openStream().use {
             it.readAllBytes()
         }.toString(Charsets.UTF_8).lines().map {
-            it.split(" ").let { (version, hash) ->
+            it.split("=").let { (version, hash) ->
                 BlockMapping.InternalMapping(version.toShort(), hash)
             }
         }.also { BlockMapping.WhyMapBeta = it.find { it.version == 0.toShort() }!! }
@@ -40,7 +39,12 @@ object BlockMappingsManager {
 
     val currentMapping: BlockMapping by lazy {
         val currentHash = mappingsJoined.calculateHash().toHex()
-        (allMappings[currentHash] ?: createNewCustomMappings(currentHash, mappings)).also { it.isCurrent = true }
+        (allMappings[currentHash] ?: createNewCustomMappings(currentHash, mappings)).also {
+            it.isCurrent = true
+            if (it !is BlockMapping.InternalMapping) {
+                fileWithCurrentVersion.writeText(it.hash, Charsets.UTF_8)
+            }
+        }
     }
 
     private fun createNewCustomMappings(hash: String, mappings: List<String>): BlockMapping {
