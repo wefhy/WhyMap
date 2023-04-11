@@ -2,7 +2,6 @@
 
 package dev.wefhy.whymap.config
 
-import dev.wefhy.whymap.tiles.region.FileVersionManager
 import java.io.File
 import java.time.format.DateTimeFormatter
 
@@ -53,7 +52,6 @@ object WhyMapConfig {
     val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
 
     val tileMetadataSize = 16 // bytes
-    val latestFileVersion = FileVersionManager.WhyMapFileVersion.latest
 
     val nativeReRenderInterval = 250 // ms
     val reRenderInterval = 1 // seconds

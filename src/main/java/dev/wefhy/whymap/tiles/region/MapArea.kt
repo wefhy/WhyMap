@@ -24,9 +24,9 @@ import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.currentVersion
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.currentMapping
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getCurrentRemapLookup
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.recognizeVersion
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
@@ -185,7 +185,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutput = ByteArrayOutputStream()
                 XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(currentVersion.getMetadataArray())
+                    xz.write(currentMapping.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
@@ -208,7 +208,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     val metadata = ByteArray(tileMetadataSize)
                     xz.read(metadata)
                     val version = recognizeVersion(WhyMapMetadata(metadata))
-                    if (version.isUnknown) {
+                    if (version == null) { // Support WhyMap versions before 0.9.2 which didn't carry metadata
                         metadata.copyInto(data)
                         xz.read(data, metadata.size, data.size - metadata.size)
                     } else {
@@ -230,8 +230,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     byteBuffer.get(depthMap[y])
                 }
 
-                if (!version.isCurrent) {
-                    val remapLookup = getRemapLookup(version, currentVersion)
+                if (version == null || !version.isCurrent) {
+                    val remapLookup = getCurrentRemapLookup(version ?: BlockMapping.WhyMapBeta)
                     blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
                     modifiedSinceSave = true

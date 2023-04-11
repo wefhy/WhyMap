@@ -93,9 +93,10 @@ inline fun bytesToInt(r: Byte, g: Byte, b: Byte, a: Byte): Int {
     return (a.toInt() shl 24) or (r.toInt() shl 16) or (g.toInt() shl 8) or b.toInt()
 }
 
-inline fun File.mkDirsIfNecessary() {
+inline fun File.mkDirsIfNecessary(): File {
     if (!parentFile.exists())
         parentFile.mkdirs()
+    return this
 }
 
 inline fun getDepthShade(depth: UByte): Float { //TODO use lookup table
