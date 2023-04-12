@@ -1,6 +1,7 @@
 package dev.wefhy.whymap.tiles.region
 
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.minecraftBlocks
+import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.customMappingsDir
 import dev.wefhy.whymap.utils.mkDirsIfNecessary
 import dev.wefhy.whymap.utils.toHex
@@ -9,7 +10,6 @@ import java.security.MessageDigest
 import kotlin.experimental.inv
 import kotlin.random.Random
 
-@Suppress("UNREACHABLE_CODE")
 object BlockMappingsManager {
     private val md = MessageDigest.getInstance("MD5")
     private val fileWithCurrentVersion = customMappingsDir.resolve("current")
@@ -67,48 +67,6 @@ object BlockMappingsManager {
         mappings.joinToString("\n")
     }
 
-    //    @ExpensiveCall
-//    private fun getInternalMappings(): Map<String, Short>? {
-//        val classloader = javaClass.classLoader
-//        val resource = classloader.getResource("blockmappings.txt") ?: return null
-//        val mappingFiles = resource.openStream().use {
-//            it.readAllBytes().toString(Charsets.UTF_8).lines()
-//        }.associate { it.split(" ").let { (version, hash) -> hash to version.toShort() } }
-//        return mappingFiles
-////        return mappingFiles.map { (fileName, hash) ->
-////            val file = classloader.getResource("blockmappings/$fileName")!!
-////            val data = file.openStream().use {
-////                it.readAllBytes()
-////            }
-////            val actualHash = md.digest(data)
-////            if (!actualHash.contentEquals(hash)) {
-////                println("Hash mismatch for $fileName")
-////                println("Expected: $hash")
-////                println("Actual: $actualHash")
-////                return null
-////            }
-////            data.toString(Charsets.UTF_8)
-////        }
-//    }
-
-//    private fun findInternalMapping(hash: String): Internal? {
-//        return getInternalMappings()?.get(hash)?.let { version ->
-//            Internal(
-//                version,
-//                blockMappingsForVersion(version),
-//                hash,
-//            )
-//        }
-//    }
-
-//    private fun findExternalMapping(hash: String): External? {
-//        return customMappingsDir.listFiles()?.find {
-//            it.nameWithoutExtension == hash
-//        }?.readLines(Charsets.UTF_8)?.let { mappings ->
-//            External(mappings, hash)
-//        }
-//    }
-
     fun List<String>.calculateHash(): ByteArray {
         return joinToString("\n").calculateHash()
     }
@@ -120,15 +78,6 @@ object BlockMappingsManager {
     private fun ByteArray.calculateHash(): ByteArray {
         return md.digest(this)
     }
-
-//    fun blockMappingsForVersion(version: Short): List<String> {
-//        val classloader = javaClass.classLoader
-//        val resource = classloader.getResource("blockmappings/${version.fileName}")!!
-//        val mappings = resource.openStream().use {
-//            it.readAllBytes().toString(Charsets.UTF_8)
-//        }.split("\n")
-//        return mappings
-//    }
 
     fun getCurrentRemapLookup(mapping: BlockMapping): List<Short> {
         return getRemapLookup(
@@ -156,7 +105,7 @@ object BlockMappingsManager {
 
     private fun findInternal(version: Short): BlockMapping? = internalMappings.find { it.version == version }
 
-    fun recognizeVersion(metadata: FileVersionManager.WhyMapMetadata): BlockMapping? {
+    fun recognizeVersion(metadata: WhyMapMetadata): BlockMapping? {
         val buffer = ByteBuffer.wrap(metadata.data)
         val version = buffer.short
         val c1 = Random(version.toInt()).nextInt()
@@ -175,19 +124,10 @@ object BlockMappingsManager {
         SAVE_ONLY_VANILLA,
     }
 
-//    /**
-//     * @param mappings The mappings to use
-//     * When using custom mappings, file should be postfixed with _custom
-//     */
-//    class CustomMappingsManager(
-//        val mappings: List<String>,
-//    ) {
-//        fun getRemapLookup(fromVersion: WhyMapFileVersion): List<Short> {
-//            return getRemapLookup(blockMappingsForVersion(fromVersion), mappings)
-//        }
-//
-//        fun getExportLookup(toVersion: WhyMapFileVersion): List<Short> {
-//            return getRemapLookup(mappings, blockMappingsForVersion(toVersion))
-//        }
-//    }
+    @JvmInline
+    value class WhyMapMetadata(val data: ByteArray) {
+        init {
+            assert(data.size == WhyMapConfig.tileMetadataSize)
+        }
+    }
 }

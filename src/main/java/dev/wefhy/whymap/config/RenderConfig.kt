@@ -4,6 +4,12 @@
 package dev.wefhy.whymap.config
 
 object RenderConfig {
+
+//    init {
+//        @Suppress("UnstableApiUsage")
+//        FabricWrappedVanillaResourcePack().
+//    }
+
     private val ignoredOverlayBlocks = arrayOf(
         "string",
         "tripwire",

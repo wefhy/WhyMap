@@ -124,9 +124,6 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-//            call.respondText(getMappings()) TODO
-        }
-        get("/exportBlockMappings") {
             call.respondText(BlockMappingsManager.mappingsJoined)
         }
         get("/lastRegionUpdates/{threshold}") {
