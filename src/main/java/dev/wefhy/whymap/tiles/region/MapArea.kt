@@ -32,7 +32,6 @@ import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
-import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.texture.NativeImage
 import net.minecraft.util.math.BlockPos
@@ -90,64 +89,50 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            UpdateQueue.addUpdate(location.x, location.z)
     }
 
-    private inline fun<reified T> returnArrayFragment(position: ChunkPos, block: (startX: Int, startZ: Int, z: Int) -> T): Array<T>? {
+    private inline fun<reified T> returnArrayFragment(position: ChunkPos, block: (startX: Int, z: Int) -> T): Array<T>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
         return Array(16) { z ->
-            block(startX, startZ, startZ + z)
+            block(startX, startZ + z)
         }
     }
 
-    fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
-            blockIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+    private inline fun<reified T> Array<ShortArray>.getChunk(position: ChunkPos, block: (ShortArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkOverlay(position: ChunkPos): Array<List<BlockState>>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
-            blockOverlayIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+    private inline fun<reified T> Array<ByteArray>.getChunk(position: ChunkPos, block: (ByteArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<WhyColor, WhyColor>>>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
-            biomeMap[startZ + z].slice(startX until (startX + 16)).map {
-                Pair(biomeManager.decodeBiomeFoliage(it), biomeManager.decodeBiomeWaterColor(it))
-            }
-        }
-    }
-
-    fun getChunkHeightmap(position: ChunkPos): Array<ShortArray>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
-            heightMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkDepthmap(position: ChunkPos): Array<ByteArray>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
-            depthMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkNormals(position: ChunkPos): Array<Array<Normal>>? {
-        //TODO load only if in exists array; save exists array to file
-        return returnArrayFragment(position) { startX, startZ, z ->
+    private inline fun <reified T> generateChunk(position: ChunkPos, block: (x: Int, z: Int) -> T): Array<Array<T>> {
+        return returnArrayFragment(position) { startX, z ->
             Array(16) { x ->
-                getNormalSharp(startX + x, startZ + z)
+                block(startX + x, z)
             }
-        }
+        }!!
+    }
+
+    fun getChunk(position: ChunkPos) = blockIdMap.getChunk(position) { it.map{ decodeBlock(it)} }
+
+    fun getChunkOverlay(position: ChunkPos) = blockOverlayIdMap.getChunk(position) { it.map { decodeBlock(it) } }
+
+    fun getChunkBiomeFoliageAndWater(position: ChunkPos) = biomeMap.getChunk(position) { it.map {
+        biomeManager.decodeBiomeFoliage(it) to biomeManager.decodeBiomeWaterColor(it)
+    } }
+
+    fun getChunkHeightmap(position: ChunkPos) = heightMap.getChunk(position) { it }
+
+    fun getChunkDepthmap(position: ChunkPos) = depthMap.getChunk(position) { it }
+
+    fun getChunkNormals(position: ChunkPos) = generateChunk(position) { x, z ->
+        getNormalSharp(x, z)
     }
 
     suspend fun save() = withContext(WhyDispatchers.IO) {
@@ -230,7 +215,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
 //                    blockOverlayIdMap.mapInPlace(::remap)
                     blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
-                    modifiedSinceSave = true
+//                    modifiedSinceSave = true
                 }
             }
         } catch (e: EOFException) {
