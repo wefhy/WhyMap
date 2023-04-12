@@ -10,8 +10,7 @@ import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
 import dev.wefhy.whymap.config.WhyMapConfig.maxPort
 import dev.wefhy.whymap.events.*
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
@@ -125,10 +124,7 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            call.respondText(getMappings())
-        }
-        get("/exportBlockMappings") {
-            call.respondText(exportBlockMappings())
+            call.respondText(BlockMappingsManager.mappingsJoined)
         }
         get("/lastRegionUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L

@@ -1,12 +1,13 @@
 package dev.wefhy.whymap.whygraphics
 
+import dev.wefhy.whymap.utils.ExpensiveCall
 import dev.wefhy.whymap.whygraphics.WhyTile.Companion.chunkSize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class WhyTiledImageTest {
 
-    @OptIn(WhyImage.ExpensiveCall::class)
+    @OptIn(ExpensiveCall::class)
     @Test
     fun get() {
         val tile = WhyTile(Array(WhyTile.arraySize) {

@@ -93,9 +93,10 @@ inline fun bytesToInt(r: Byte, g: Byte, b: Byte, a: Byte): Int {
     return (a.toInt() shl 24) or (r.toInt() shl 16) or (g.toInt() shl 8) or b.toInt()
 }
 
-inline fun File.mkDirsIfNecessary() {
+inline fun File.mkDirsIfNecessary(): File {
     if (!parentFile.exists())
         parentFile.mkdirs()
+    return this
 }
 
 inline fun getDepthShade(depth: UByte): Float { //TODO use lookup table
@@ -140,4 +141,26 @@ val String.sanitizedPath
 inline fun <T : Closeable?, R> T.useWith(block: T.() -> R): R {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     return use { it.block() }
+}
+
+@RequiresOptIn("This call might be expensive, consider using direct array access")
+annotation class ExpensiveCall
+
+fun String.parseHex() = chunked(2).map { Integer.valueOf(it, 16).toByte() }.toByteArray()
+
+private val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
+
+fun ByteArray.toHex(): String {
+    val hexChars = CharArray(size * 2)
+    for (j in indices) {
+        val v = get(j).toInt() and 0xFF
+        hexChars[j * 2] = HEX_ARRAY[v ushr 4]
+        hexChars[j * 2 + 1] = HEX_ARRAY[v and 0x0F]
+    }
+    return String(hexChars)
+}
+
+fun<A,B> memoize(block: (A) -> B): (A) -> B {
+    val cache = mutableMapOf<A, B>()
+    return { cache.getOrPut(it) { block(it) } }
 }

@@ -2,6 +2,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
+import java.security.MessageDigest
 
 // Copyright (c) 2022 wefhy
 
@@ -79,7 +80,7 @@ tasks.getByName<ProcessResources>("processResources") {
 	}
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+tasks.withType<KotlinCompile>().all {
 	kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
 	if (isReleaseBuild) {
 		kotlinOptions.freeCompilerArgs += "-Xno-call-assertions"
@@ -137,6 +138,49 @@ val yarnInstall = task<Exec>("yarnInstall") {
 	commandLine("yarn", "install")
 }
 
+val blockMappingsList = task("blockMappingsList") {
+	val inDir = "src/main/resources/blockmappings"
+	val outFile = "src/main/resources/blockmappings.txt"
+	val md = MessageDigest.getInstance("MD5")
+	inputs.dir(inDir)
+	outputs.file(outFile)
+	File(outFile).writeText(
+		File(inDir)
+			.listFiles()
+			.filter { it.extension == "blockmap" }
+			.sorted()
+			.joinToString("\n") {
+			val md5 = md.digest(it.readBytes())
+			"${it.nameWithoutExtension}=${md5.toHex()}"
+		}
+	)
+}
+
+val newBlockMappings = task("newBlockMappings") {
+	val inPath = "run/WhyMap/mappings-custom"
+	val outPath = "src/main/resources/blockmappings"
+	inputs.dir(inPath)
+	outputs.file(outPath)
+	val inDir = File(inPath)
+	val outDir = File(outPath)
+	val currentFileName = inDir.resolve("current").takeIf { it.exists() }?.readText()?.trim() ?: return@task
+	val currentFile = inDir.resolve("$currentFileName.blockmap")
+	val fileNumber = outDir.listFiles().mapNotNull { it.nameWithoutExtension.toIntOrNull() }.maxOrNull()?.plus(1) ?: 0
+	currentFile.copyTo(outDir.resolve("$fileNumber.blockmap"))
+}
+
+fun ByteArray.toHex(): String {
+	val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
+	val hexChars = CharArray(size * 2)
+	for (j in indices) {
+		val v = get(j).toInt() and 0xFF
+		hexChars[j * 2] = HEX_ARRAY[v ushr 4]
+		hexChars[j * 2 + 1] = HEX_ARRAY[v and 0x0F]
+	}
+	return String(hexChars)
+}
+
+
 fun getCurrentVersion(): String {
 	val stdout = ByteArrayOutputStream()
 	exec {
@@ -173,6 +217,7 @@ tasks {
 	}
 	"processResources" {
 		dependsOn(copyDistFolder)
+		dependsOn(blockMappingsList)
 	}
 	"copyDistFolder" {
 		dependsOn(deleteOldWeb)

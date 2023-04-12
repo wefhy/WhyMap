@@ -14,26 +14,24 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
-import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.WhyMapMetadata
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.currentMapping
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getCurrentRemapLookup
+import dev.wefhy.whymap.tiles.region.BlockMappingsManager.recognizeVersion
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
-import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.texture.NativeImage
 import net.minecraft.util.math.BlockPos
@@ -65,7 +63,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val biomeMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 7 bits, possibly 8
     val lightMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 4 bits
     val depthMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 8 bits
-    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
+//    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
 
     val file = currentWorld.getFile(location)
     val thumbnailFile = currentWorld.getThumbnailFile(location)
@@ -91,71 +89,50 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            UpdateQueue.addUpdate(location.x, location.z)
     }
 
-    fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
+    private inline fun<reified T> returnArrayFragment(position: ChunkPos, block: (startX: Int, z: Int) -> T): Array<T>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
         return Array(16) { z ->
-            blockIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+            block(startX, startZ + z)
         }
     }
 
-    fun getChunkOverlay(position: ChunkPos): Array<List<BlockState>>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            blockOverlayIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+    private inline fun<reified T> Array<ShortArray>.getChunk(position: ChunkPos, block: (ShortArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<WhyColor, WhyColor>>>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            biomeMap[startZ + z].slice(startX until (startX + 16)).map {
-                Pair(biomeManager.decodeBiomeFoliage(it), biomeManager.decodeBiomeWaterColor(it))
-            }
+    private inline fun<reified T> Array<ByteArray>.getChunk(position: ChunkPos, block: (ByteArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkHeightmap(position: ChunkPos): Array<ShortArray>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            heightMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkDepthmap(position: ChunkPos): Array<ByteArray>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            depthMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkNormals(position: ChunkPos): Array<Array<Normal>>? {
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+    private inline fun <reified T> generateChunk(position: ChunkPos, block: (x: Int, z: Int) -> T): Array<Array<T>>? {
+        return returnArrayFragment(position) { startX, z ->
             Array(16) { x ->
-                getNormalSharp(startX + x, startZ + z)
+                block(startX + x, z)
             }
         }
+    }
+
+    fun getChunk(position: ChunkPos) = blockIdMap.getChunk(position) { it.map{ decodeBlock(it)} }
+
+    fun getChunkOverlay(position: ChunkPos) = blockOverlayIdMap.getChunk(position) { it.map { decodeBlock(it) } }
+
+    fun getChunkBiomeFoliageAndWater(position: ChunkPos) = biomeMap.getChunk(position) { it.map {
+        biomeManager.decodeBiomeFoliage(it) to biomeManager.decodeBiomeWaterColor(it)
+    } }
+
+    fun getChunkHeightmap(position: ChunkPos) = heightMap.getChunk(position) { it }
+
+    fun getChunkDepthmap(position: ChunkPos) = depthMap.getChunk(position) { it }
+
+    fun getChunkNormals(position: ChunkPos) = generateChunk(position) { x, z ->
+        getNormalSharp(x, z)
     }
 
     suspend fun save() = withContext(WhyDispatchers.IO) {
@@ -185,7 +162,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutput = ByteArrayOutputStream()
                 XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(latestFileVersion.getMetadataArray())
+                    xz.write(currentMapping.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
@@ -207,8 +184,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val version = XZInputStream(it).use { xz ->
                     val metadata = ByteArray(tileMetadataSize)
                     xz.read(metadata)
-                    val version = recognizeVersion(WhyMapMetadata(metadata))
-                    if (version.isUnknown) {
+                    val version = recognizeVersion(WhyMapMetadata(metadata)) ?: BlockMapping.WhyMapBeta
+                    if (version == BlockMapping.WhyMapBeta) { // Support WhyMap versions before 0.9.2 which didn't carry metadata
                         metadata.copyInto(data)
                         xz.read(data, metadata.size, data.size - metadata.size)
                     } else {
@@ -231,9 +208,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
 
                 if (!version.isCurrent) {
-                    val remapLookup = getRemapLookup(version, latestFileVersion)
-                    blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
-                    blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
+                    val remapLookup = getCurrentRemapLookup(version)
+                    val remapSize = remapLookup.size
+//                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
+//                    blockIdMap.mapInPlace(::remap)
+                    blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
+//                    blockOverlayIdMap.mapInPlace(::remap)
+                    blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
                     modifiedSinceSave = true
                 }
             }
@@ -242,7 +223,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             LOGGER.error("ERROR LOADING TILE: ${file.absolutePath}")
         } catch (e: IndexOutOfBoundsException) {
             currentWorld.writeToLog("ERROR Upgrading ${obfuscateObjectWithCommand(location, "error")}")
-            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}")
+            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}\n ${e.message}\n ${e.stackTraceToString()}")
         }
     }
 
@@ -293,13 +274,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
             return
         }
         modifiedSinceSave = true
-        exists[chunk.pos.regionRelativeZ][chunk.pos.regionRelativeX] = true
 
         val worldLightView = lightingProvider[LightType.BLOCK]
 //        val surface = chunkGetSurface(chunk, Heightmap.Type.OCEAN_FLOOR)
 //        val heightmapFloor = chunk.getHeightmap(Heightmap.Type.OCEAN_FLOOR)
         val heightmapFloorTmp = chunk.getOceanFloorHeightMapHotFix() // TODO this should be replaced by heightmapFloor when it works
-        val heightmapSurface = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE) //TODO I should generate heightmap myself so I can ignore certain blocks completely (like vines, string etc) and not have them as overlays
+        val heightmapSurface =
+            chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE) //TODO I should generate heightmap myself so I can ignore certain blocks completely (like vines, string etc) and not have them as overlays
         val absoluteBlockPos = BlockPos.Mutable()
         val chunkBlockPos = BlockPos.Mutable()
         val chunkOverlayBlockPos = BlockPos.Mutable()
@@ -437,7 +418,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             for (x in 0 until storageTileBlocks) {
                 try {
                     val color = calculateColor(z, x)
-                    image.setColor(x , z , 255 shl 24 or color.intBGR)
+                    image.setColor(x, z, 255 shl 24 or color.intBGR)
                 } catch (_: IndexOutOfBoundsException) {
                     print("Failed to render map area (${location.x}, ${location.z})")
                 }
