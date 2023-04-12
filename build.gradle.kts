@@ -80,7 +80,7 @@ tasks.getByName<ProcessResources>("processResources") {
 	}
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+tasks.withType<KotlinCompile>().all {
 	kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
 	if (isReleaseBuild) {
 		kotlinOptions.freeCompilerArgs += "-Xno-call-assertions"

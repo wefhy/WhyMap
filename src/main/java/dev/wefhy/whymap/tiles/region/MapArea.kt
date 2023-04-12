@@ -111,12 +111,12 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    private inline fun <reified T> generateChunk(position: ChunkPos, block: (x: Int, z: Int) -> T): Array<Array<T>> {
+    private inline fun <reified T> generateChunk(position: ChunkPos, block: (x: Int, z: Int) -> T): Array<Array<T>>? {
         return returnArrayFragment(position) { startX, z ->
             Array(16) { x ->
                 block(startX + x, z)
             }
-        }!!
+        }
     }
 
     fun getChunk(position: ChunkPos) = blockIdMap.getChunk(position) { it.map{ decodeBlock(it)} }
