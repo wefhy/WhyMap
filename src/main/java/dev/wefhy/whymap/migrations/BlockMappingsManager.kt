@@ -1,4 +1,6 @@
-package dev.wefhy.whymap.tiles.region
+// Copyright (c) 2023 wefhy
+
+package dev.wefhy.whymap.migrations
 
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.minecraftBlocks
 import dev.wefhy.whymap.config.WhyMapConfig

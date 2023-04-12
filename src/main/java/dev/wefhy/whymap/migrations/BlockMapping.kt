@@ -1,6 +1,6 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.tiles.region
+package dev.wefhy.whymap.migrations
 
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.utils.parseHex
