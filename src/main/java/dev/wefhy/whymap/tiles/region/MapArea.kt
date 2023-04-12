@@ -90,12 +90,19 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            UpdateQueue.addUpdate(location.x, location.z)
     }
 
-    fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
+    private inline fun<reified T> returnArrayFragment(position: ChunkPos, block: (startX: Int, startZ: Int, z: Int) -> T): Array<T>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
         return Array(16) { z ->
+            block(startX, startZ, startZ + z)
+        }
+    }
+
+    fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
+        //TODO load only if in exists array; save exists array to file
+        return returnArrayFragment(position) { startX, startZ, z ->
             blockIdMap[startZ + z].slice(startX until (startX + 16)).map {
                 decodeBlock(it)
             }
@@ -104,10 +111,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     fun getChunkOverlay(position: ChunkPos): Array<List<BlockState>>? {
         //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+        return returnArrayFragment(position) { startX, startZ, z ->
             blockOverlayIdMap[startZ + z].slice(startX until (startX + 16)).map {
                 decodeBlock(it)
             }
@@ -116,10 +120,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<WhyColor, WhyColor>>>? {
         //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+        return returnArrayFragment(position) { startX, startZ, z ->
             biomeMap[startZ + z].slice(startX until (startX + 16)).map {
                 Pair(biomeManager.decodeBiomeFoliage(it), biomeManager.decodeBiomeWaterColor(it))
             }
@@ -128,29 +129,21 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     fun getChunkHeightmap(position: ChunkPos): Array<ShortArray>? {
         //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+        return returnArrayFragment(position) { startX, startZ, z ->
             heightMap[startZ + z].sliceArray(startX until (startX + 16))
         }
     }
 
     fun getChunkDepthmap(position: ChunkPos): Array<ByteArray>? {
         //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+        return returnArrayFragment(position) { startX, startZ, z ->
             depthMap[startZ + z].sliceArray(startX until (startX + 16))
         }
     }
 
     fun getChunkNormals(position: ChunkPos): Array<Array<Normal>>? {
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+        //TODO load only if in exists array; save exists array to file
+        return returnArrayFragment(position) { startX, startZ, z ->
             Array(16) { x ->
                 getNormalSharp(startX + x, startZ + z)
             }
