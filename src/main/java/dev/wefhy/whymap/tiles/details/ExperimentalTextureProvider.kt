@@ -50,7 +50,14 @@ object ExperimentalTextureProvider {
             val file = getTopTexture(name)
                 ?: getRegularTexture(name)
                 ?: kotlin.run {
-                    val shortName = name.replace("_stairs", "").replace("_slab", "").replace("smooth_", "")
+                    val shortName = name
+                        .replace("_stairs", "")
+                        .replace("_slab", "")
+                        .replace("smooth_", "")
+                        .replace("infested_", "")
+                        .replace("stripped_", "")
+                        .replace("wall_", "") //this handles coral wall fans
+                        .replace("waxed_", "")
                     getTopTexture(shortName)
                         ?: getRegularTexture(shortName)
                         ?: getTopTexture(shortName + 's')
@@ -61,6 +68,8 @@ object ExperimentalTextureProvider {
                         ?: getRegularTexture(shortName.replace("_carpet", "_wool"))
                         ?: getRegularTexture(shortName.replace("_carpet", "_block"))
                         ?: getRegularTexture(shortName.replace("wood", "log"))
+                        ?: tryGenerateCustomTexture(name)
+                        ?: tryGenerateCustomTexture(shortName)
                         ?: return@getOrPut Optional.empty<BufferedImage>().also {
                             missingTextures += name
 //                            LOGGER.warn("Skipping $name")
@@ -112,6 +121,27 @@ object ExperimentalTextureProvider {
 //        registerBufferedImageTexture(i, bi)
 //    }
 
+    /**
+     * Should generate textures for:
+     * - {material}_stairs
+     * - {fluid}_cauldron
+     * - potted_{item}
+     * - smooth_{material}
+     * - infested_{material}
+     * - {material}_wall
+     * - {material}_button
+     * - {mob}_head
+     * - {color}_bed
+     * - {color}_banner
+     * - {material}_pressure_plate
+     * - {coral}_wall_fan
+     * - {material}_fence
+     * - {material}_fence_gate
+     * - waxed_{material}
+     */
+    private inline fun tryGenerateCustomTexture(name: String): URL? {
+        return null
+    }
 
     private fun getTopTexture(name: String): URL? {
         return classLoader.getResource("zoom-textures/${name}_top.png")
