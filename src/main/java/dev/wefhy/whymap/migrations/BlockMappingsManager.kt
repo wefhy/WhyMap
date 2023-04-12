@@ -42,7 +42,7 @@ object BlockMappingsManager {
     val currentMapping: BlockMapping by lazy {
         val currentHash = mappingsJoined.calculateHash().toHex()
         (allMappings[currentHash] ?: createNewCustomMappings(currentHash, mappings)).also {
-            it.isCurrent = true
+            BlockMapping.current = it
             if (it !is BlockMapping.InternalMapping) {
                 fileWithCurrentVersion.writeText(it.hash, Charsets.UTF_8)
             }
