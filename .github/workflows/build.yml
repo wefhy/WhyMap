@@ -72,9 +72,14 @@ jobs:
           curseforge-token: ${{ secrets.CF_API_TOKEN }}
           version-type: release
           changelog: ${{steps.changelog.outputs.changelog}}
-          game-versions: 1.19.3
+          game-versions: |
+            1.19.3
+            1.19.4
           files-primary: build/libs/*.jar
           loaders: fabric
+          dependencies: |
+            fabric-api | depends
+            fabric-language-kotlin | depends
 
 
 #      - name: "Upload to CurseForge"

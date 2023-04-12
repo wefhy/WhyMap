@@ -129,6 +129,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     fun getChunkHeightmap(position: ChunkPos) = heightMap.getChunk(position) { it }
 
+    fun getChunkLightmap(position: ChunkPos) = lightMap.getChunk(position) { it }
+
     fun getChunkDepthmap(position: ChunkPos) = depthMap.getChunk(position) { it }
 
     fun getChunkNormals(position: ChunkPos) = generateChunk(position) { x, z ->
