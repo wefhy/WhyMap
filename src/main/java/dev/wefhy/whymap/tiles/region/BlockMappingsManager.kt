@@ -95,6 +95,7 @@ object BlockMappingsManager {
 
     private fun getRemapLookup(mappings1: List<String>, mappings2: List<String>): List<Short> {
         //TODO memoize mappings
+        //TODO binary search? Are they always sorted?
         return mappings1.map { mappings2.indexOf(it).toShort() }.map { if (it >= 0) it else mappings2.indexOf("block.minecraft.air").toShort() }
     }
 

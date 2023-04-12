@@ -215,7 +215,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
 //                    blockOverlayIdMap.mapInPlace(::remap)
                     blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
-//                    modifiedSinceSave = true
+                    modifiedSinceSave = true
                 }
             }
         } catch (e: EOFException) {
