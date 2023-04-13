@@ -7,8 +7,7 @@ import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
-import dev.wefhy.whymap.config.WhyMapConfig.maxPort
+import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.*
@@ -63,7 +62,7 @@ object WhyServer {
     private const val parsingError: String = "Can't parse request"
 
     fun host() {
-        for (p in defaultPort..maxPort) {
+        for (p in portRange) {
             try {
                 WhyMapConfig.port = p
                 println("Trynig to run WhyMap server on port $p...")

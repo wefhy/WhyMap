@@ -4,6 +4,7 @@ package dev.wefhy.whymap
 
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
@@ -71,6 +72,7 @@ class WhyMapClient : ClientModInitializer {
         val mapPosY = 70f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
+            val mapMode = FileConfigManager.config.userSettings.minimapMode
             if (!mapMode.visible) return@register
             val player = mc.player ?: return@register println("No player!")
             val playerPos = player.pos ?: return@register println("No player pos!")
@@ -182,7 +184,7 @@ class WhyMapClient : ClientModInitializer {
                 }
             }
             if (kbShowMinimap.wasPressed()) {
-                mapMode = mapMode.next()
+                FileConfigManager.config.userSettings.minimapMode = FileConfigManager.config.userSettings.minimapMode.next()
             }
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
@@ -292,7 +294,6 @@ class WhyMapClient : ClientModInitializer {
     }
 
     companion object {
-        var mapMode = MapMode.Disabled
         val kbNewWaypoint = KeyBindingHelper.registerKeyBinding(
             KeyBinding(
                 "key.whymap.newwaypoint",

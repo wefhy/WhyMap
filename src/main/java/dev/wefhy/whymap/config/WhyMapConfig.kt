@@ -62,6 +62,7 @@ object WhyMapConfig {
 
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
+    val configFile = modPath.resolve("config.toml")
     val mappingsExportDir = modPath.resolve("mappings-export")
     val customMappingsDir = modPath.resolve("mappings-custom")
     val logsPath = modPath.resolve("logs")
@@ -71,7 +72,8 @@ object WhyMapConfig {
     val webExportDirectory = modPath.resolve("WebExport")
     val currentWorldName = "CurrentWorldName"
     val defaultPort = 7542
-    val maxPort = 7551
+    val maxPort = defaultPort + 11
+    val portRange = defaultPort..maxPort
     var port = defaultPort
     val mapLink
         get() = "http://localhost:$port"
