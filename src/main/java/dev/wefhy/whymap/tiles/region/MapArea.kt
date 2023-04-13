@@ -172,7 +172,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             }
             it.write(compressed)
         }
-
+        reRenderAndSaveThumbnail()
         LOGGER.debug("SAVED: ${file.absolutePath}")
 //        MinecraftClient.getInstance().textureManager.getTexture()
         modifiedSinceSave = false
@@ -354,7 +354,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         GlobalScope.launch {
             RegionUpdateQueue.addUpdate(location.x, location.z)
             ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
-            reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
+            //reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
             val thumbnail = location.parent(TileZoom.ThumbnailZoom)
             ThumbnailUpdateQueue.addUpdate(thumbnail.x, thumbnail.z)
         }
