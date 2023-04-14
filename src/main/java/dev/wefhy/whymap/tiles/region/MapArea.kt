@@ -211,7 +211,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 if (!version.isCurrent) {
                     val remapLookup = currentWorld.blockMappingsManager.getCurrentRemapLookup(version)
                     val remapSize = remapLookup.size
-                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentMapping.hash}(${currentMapping.isCurrent}) for region $location")
+                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentWorld.blockMappingsManager.currentMapping.hash}(${currentWorld.blockMappingsManager.currentMapping.isCurrent}) for region $location")
 //                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
 //                    blockIdMap.mapInPlace(::remap)
 //                    blockOverlayIdMap.mapInPlace(::remap)
