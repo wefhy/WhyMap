@@ -35,6 +35,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
+    override val blockMappingsManager = BlockMappingsManager()
 
     override val name: String =
         if (!mc.isConnectedToLocalServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
@@ -57,7 +58,6 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
 
     init {
         waypoints.load()
-        BlockMappingsManager.currentMapping
     }
 
     private fun saveAll() {
@@ -76,6 +76,7 @@ class OfflineWorld(override val name: String, override val dimensionName: String
     override val provider = CurrentWorldProvider(this)
     override val biomeManager = BiomeOfflineManager()
     override val dimensionScale = TODO("Not yet implemented")
+    override val blockMappingsManager = TODO("Needs another type of mapping manager")
 
     override fun close() {
         super.close()
@@ -88,6 +89,7 @@ abstract class WhyWorld : Closeable {
     abstract val provider: CurrentWorldProvider<WhyWorld>
     abstract val biomeManager: BiomeManager
     abstract val dimensionScale: Double
+    abstract val blockMappingsManager: BlockMappingsManager
 
     val worldPath by lazy { modPath.resolve(name).resolve(dimensionName) }
     val mapTilesPath by lazy { worldPath.resolve("tiles") }

@@ -24,10 +24,8 @@ import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
 import dev.wefhy.whymap.migrations.BlockMapping
+import dev.wefhy.whymap.migrations.BlockMappingsManager.Companion.recognizeVersion
 import dev.wefhy.whymap.migrations.BlockMappingsManager.WhyMapMetadata
-import dev.wefhy.whymap.migrations.BlockMappingsManager.currentMapping
-import dev.wefhy.whymap.migrations.BlockMappingsManager.getCurrentRemapLookup
-import dev.wefhy.whymap.migrations.BlockMappingsManager.recognizeVersion
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
@@ -165,7 +163,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutput = ByteArrayOutputStream()
                 XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(currentMapping.getMetadataArray())
+                    xz.write(currentWorld.blockMappingsManager.currentMapping.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }
@@ -211,7 +209,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
 
                 if (!version.isCurrent) {
-                    val remapLookup = getCurrentRemapLookup(version)
+                    val remapLookup = currentWorld.blockMappingsManager.getCurrentRemapLookup(version)
                     val remapSize = remapLookup.size
 //                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
 //                    blockIdMap.mapInPlace(::remap)
