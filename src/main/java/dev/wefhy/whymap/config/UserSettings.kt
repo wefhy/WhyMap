@@ -3,14 +3,13 @@
 package dev.wefhy.whymap.config
 
 import dev.wefhy.whymap.WhyMapClient
-import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserSettings(
     //TODO use data object in kotlin 1.9
     var exposeHttpApi: ExposeHttpApi = ExposeHttpApi.LOCALHOST_ONLY,
-    var httpApiPort: Int = defaultPort,
+//    var httpApiPort: Int = defaultPort,
 //    var updateInterval: Int = 20, //ticks
 //    var ignoredOverlays: List<String> = listOf(
 //        "string",
