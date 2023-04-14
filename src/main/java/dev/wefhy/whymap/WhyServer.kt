@@ -71,7 +71,9 @@ fun Application.myApplicationModule() {
         }
     }
     routing {
-        serverRouting()
+        serverRouting(
+
+        )
     }
 }
 
@@ -83,7 +85,14 @@ object WhyServer {
             try {
                 WhyMapConfig.port = p
                 println("Trynig to run WhyMap server on port $p...")
-                embeddedServer(CIO, port = p, module = Application::myApplicationModule).start(wait = true)
+                val host = when(FileConfigManager.config.userSettings.exposeHttpApi) {
+                    ExposeHttpApi.DISABLED -> return
+                    ExposeHttpApi.LOCALHOST_ONLY -> "localhost"
+                    ExposeHttpApi.EVERYWHERE -> "0.0.0.0"
+                    ExposeHttpApi.DEBUG -> "0.0.0.0"
+                }
+
+                embeddedServer(CIO, port = p, module = Application::myApplicationModule, host = host).start(wait = true)
                 break
             } catch (e: Throwable) {
                 println("Failed to run server on port $p. Trying on next one.")
