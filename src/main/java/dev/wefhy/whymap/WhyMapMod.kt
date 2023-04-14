@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap
 
+import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
 import dev.wefhy.whymap.events.RegionUpdateQueue
@@ -109,6 +110,7 @@ class WhyMapMod : ModInitializer {
 
         val worldLeaveListener = { handler: ClientPlayNetworkHandler, client: MinecraftClient ->
             LOGGER.info("SAVING ALL DATA!!!")
+            FileConfigManager.save()
             val tmpWorld = activeWorld
             activeWorld = null
             tmpWorld?.close()

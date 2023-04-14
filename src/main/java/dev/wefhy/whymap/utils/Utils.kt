@@ -160,6 +160,11 @@ fun ByteArray.toHex(): String {
     return String(hexChars)
 }
 
+inline fun<reified T : Enum<T>> Enum<T>.nextValue(): Enum<T> {
+    val values = javaClass.enumConstants
+    return values[(this.ordinal + 1) % values.size]
+}
+
 fun<A,B> memoize(block: (A) -> B): (A) -> B {
     val cache = mutableMapOf<A, B>()
     return { cache.getOrPut(it) { block(it) } }

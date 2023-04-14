@@ -212,11 +212,14 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 if (!version.isCurrent) {
                     val remapLookup = getCurrentRemapLookup(version)
                     val remapSize = remapLookup.size
+                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentMapping.hash}(${currentMapping.isCurrent}) for region $location")
 //                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
 //                    blockIdMap.mapInPlace(::remap)
-                    blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
 //                    blockOverlayIdMap.mapInPlace(::remap)
-                    blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
+//                    blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
+//                    blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
+                    blockOverlayIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
+                    blockIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
                     modifiedSinceSave = true
                 }
             }
@@ -416,16 +419,18 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private fun _renderNativeImage(): NativeImage {
         val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
+        var failCounter = 0
         for (z in 0 until storageTileBlocks) {
             for (x in 0 until storageTileBlocks) {
                 try {
                     val color = calculateColor(z, x)
                     image.setColor(x, z, 255 shl 24 or color.intBGR)
                 } catch (_: IndexOutOfBoundsException) {
-                    print("Failed to render map area (${location.x}, ${location.z})")
+                    failCounter++
                 }
             }
         }
+        println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
         lastNativeUpdate = currentMillis()
         modifiedSinceNativeRender = false
         renderedNative = image
@@ -436,6 +441,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         val bitmap = BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
         val raster = bitmap.raster!!
         val scale = 1 shl scaleLog
+        var failCounter = 0
 
         for (z in 0 until storageTileBlocks step scale) {
             ensureActive()
@@ -451,10 +457,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //                    raster.setSample(bitmapX, bitmapY, 2, color.intB)
 //                    raster.setSample(bitmapX, bitmapY, 3, color.intA)
                 } catch (_: IndexOutOfBoundsException) {
-                    print("Failed to render map area (${location.x}, ${location.z})")
+                    failCounter++
+//                    print("Failed to render web map area (${location.x}, ${location.z}), s: $scaleLog")
+//                    OccurenceCounter.addAndPrintEvery100("rendering with scale $scaleLog")
                 }
             }
         }
+        println("Failed to render $failCounter pixels in web map area (${location.x}, ${location.z}), s: $scaleLog")
 
         if (scaleLog == 0) {
             rendered = bitmap
