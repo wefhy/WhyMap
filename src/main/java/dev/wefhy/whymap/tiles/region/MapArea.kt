@@ -211,7 +211,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 if (!version.isCurrent) {
                     val remapLookup = currentWorld.blockMappingsManager.getCurrentRemapLookup(version)
                     val remapSize = remapLookup.size
-                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentWorld.blockMappingsManager.currentMapping.hash}(${currentWorld.blockMappingsManager.currentMapping.isCurrent}) for region $location")
+//                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentWorld.blockMappingsManager.currentMapping.hash}(${currentWorld.blockMappingsManager.currentMapping.isCurrent}) for region $location")
 //                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
 //                    blockIdMap.mapInPlace(::remap)
 //                    blockOverlayIdMap.mapInPlace(::remap)
@@ -429,7 +429,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
             }
         }
-        println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
+        if (failCounter > 0)
+            println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
         lastNativeUpdate = currentMillis()
         modifiedSinceNativeRender = false
         renderedNative = image
@@ -462,7 +463,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 }
             }
         }
-        println("Failed to render $failCounter pixels in web map area (${location.x}, ${location.z}), s: $scaleLog")
+        if (failCounter > 0)
+            println("Failed to render $failCounter pixels in web map area (${location.x}, ${location.z}), s: $scaleLog")
 
         if (scaleLog == 0) {
             rendered = bitmap
