@@ -5,6 +5,7 @@ package dev.wefhy.whymap
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.config.FileConfigManager
+import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
@@ -52,9 +53,9 @@ class WhyMapClient : ClientModInitializer {
     }
 
     enum class MapMode(val visible: Boolean) {
-        Disabled(false),
-        Normal(true),
-        Rotated(true);
+        DISABLED(false),
+        NORTH_LOCKED(true),
+        ROTATED(true);
 
         fun next() = values()[(ordinal + 1) % values().size]
     }
@@ -68,11 +69,21 @@ class WhyMapClient : ClientModInitializer {
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
         val mapScale = 1/3f
-        val mapPosX = 70f
-        val mapPosY = 70f
+        val mapSize = 130f
+        val mapRadius = mapSize / 2f
+        val mapPadding = 5f
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             val mapMode = FileConfigManager.config.userSettings.minimapMode
+            val mapPosition = FileConfigManager.config.userSettings.minimapPosition
+
+            val mapPosX = when (mapPosition) {
+                MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
+                MinimapPosition.TOP_RIGHT -> mc.window.scaledWidth - mapRadius - mapPadding
+                MinimapPosition.TOP_CENTER -> mc.window.scaledWidth / 2f
+            }
+            val mapPosY = mapRadius + mapPadding
+
             if (!mapMode.visible) return@register
             val player = mc.player ?: return@register println("No player!")
             val playerPos = player.pos ?: return@register println("No player pos!")
@@ -102,9 +113,7 @@ class WhyMapClient : ClientModInitializer {
                 }
             }
 
-            run {
-                val mapSize = 130f
-                val mapRadius = mapSize / 2f
+            if(true) {
                 val cropXstart = mapPosX - mapRadius
                 val cropYstart = mapPosY - mapRadius
                 val cropXend = mapPosX + mapRadius
@@ -123,7 +132,7 @@ class WhyMapClient : ClientModInitializer {
             }
 
             matrixStack.push()
-            if (mapMode == MapMode.Rotated) {
+            if (mapMode == MapMode.ROTATED) {
                 matrixStack.translate(mapPosX, mapPosY, 0f)
                 matrixStack.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(player.yaw + 180))
                 matrixStack.translate(-mapPosX, -mapPosY, 0f)
@@ -145,7 +154,7 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.push()
             matrixStack.translate(mapPosX, mapPosY, 0f)
             matrixStack.scale(0.1f, 0.1f, 0.1f)
-            if (mapMode == MapMode.Normal) {
+            if (mapMode == MapMode.NORTH_LOCKED) {
                 matrixStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(player.yaw + 180))
             }
             playerIcon(matrixStack)

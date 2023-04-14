@@ -26,6 +26,13 @@ object FileConfigManager {
             toml.decodeFromString(configFile.readText())
         } catch (e: Exception) {
             println("Failed to load config: ${e.message}")
+            try {
+                val bak = configFile.resolveSibling("${configFile.nameWithoutExtension}.${configFile.extension}.bak")
+                bak.delete()
+                configFile.renameTo(bak)
+            } catch (e: Exception) {
+                println("Failed to backup old config: ${e.message}")
+            }
             ConfigData()
         }
     } else {

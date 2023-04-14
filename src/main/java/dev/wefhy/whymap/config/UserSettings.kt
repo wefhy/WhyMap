@@ -7,7 +7,8 @@ import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserSettings( //TODO use data object in kotlin 1.9
+data class UserSettings(
+    //TODO use data object in kotlin 1.9
     var exposeHttpApi: ExposeHttpApi = ExposeHttpApi.LOCALHOST_ONLY,
     var httpApiPort: Int = defaultPort,
 //    var updateInterval: Int = 20, //ticks
@@ -17,7 +18,7 @@ data class UserSettings( //TODO use data object in kotlin 1.9
 //        "vine",
 //    ),
     var minimapPosition: MinimapPosition = MinimapPosition.TOP_LEFT,
-    var minimapMode: WhyMapClient.MapMode = WhyMapClient.MapMode.Normal,
+    var minimapMode: WhyMapClient.MapMode = WhyMapClient.MapMode.NORTH_LOCKED,
 //    var minimapSize: Int = 128,
 //    var minimapScale : Int = 1,
 //    var minimapOpacity: Int = 100,
@@ -25,21 +26,22 @@ data class UserSettings( //TODO use data object in kotlin 1.9
 ) {
     enum class MinimapPosition {
         TOP_LEFT,
-        TOP_RIGHT
+        TOP_CENTER,
+        TOP_RIGHT,
     }
 
     enum class ExposeHttpApi {
         DISABLED,
         LOCALHOST_ONLY,
-        EVERYWHERE
+        EVERYWHERE,
+        DEBUG
     }
 
     companion object {
-        fun help(): String {
-            val fieldTypes = UserSettings::class.java.declaredFields.map { it.name to it.type }
-            val enumTypes = fieldTypes.filter { it.second.isEnum }
-            val enumValues = enumTypes.map { it.first to it.second.enumConstants.joinToString(", ") }
-            return enumValues.joinToString("\n") { (enum, values) -> "$enum: $values" }.prependIndent("# ")
-        }
+        fun help(): String = UserSettings::class.java.declaredFields
+            .filter { it.type.isEnum }
+            .map { it.name to it.type.enumConstants.joinToString(", ") }
+            .joinToString("\n") { (enum, values) -> "# $enum: $values" }
+
     }
 }

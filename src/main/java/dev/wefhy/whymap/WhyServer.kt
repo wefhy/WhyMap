@@ -6,6 +6,8 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
+import dev.wefhy.whymap.config.FileConfigManager
+import dev.wefhy.whymap.config.UserSettings.ExposeHttpApi
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.events.*
@@ -32,6 +34,10 @@ import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
 
 fun Application.myApplicationModule() {
+
+    val exposeHttpApiSetting = FileConfigManager.config.userSettings.exposeHttpApi
+    if (exposeHttpApiSetting == ExposeHttpApi.DISABLED)
+        return
     install(ContentNegotiation) {
         json(Json {
 //                        prettyPrint = true
@@ -39,19 +45,30 @@ fun Application.myApplicationModule() {
             ignoreUnknownKeys = true
         })
     }
-    install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Delete)
-        allowHeader(HttpHeaders.AccessControlAllowHeaders)
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.AccessControlAllowOrigin)
-        exposeHeader(HttpHeaders.AccessControlAllowHeaders)
-        exposeHeader(HttpHeaders.ContentType)
-        exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+    install(CORS) {
         allowCredentials = true
-//        allowHost("localhost:*")
-        anyHost()
+        when (exposeHttpApiSetting) {
+            ExposeHttpApi.LOCALHOST_ONLY -> {
+                allowHost("localhost")
+                allowHost("127.0.0.1")
+            }
+            ExposeHttpApi.EVERYWHERE -> {
+                anyHost()
+            }
+            ExposeHttpApi.DEBUG -> {
+                anyHost()
+                allowMethod(HttpMethod.Get)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Delete)
+                allowHeader(HttpHeaders.AccessControlAllowHeaders)
+                allowHeader(HttpHeaders.ContentType)
+                allowHeader(HttpHeaders.AccessControlAllowOrigin)
+                exposeHeader(HttpHeaders.AccessControlAllowHeaders)
+                exposeHeader(HttpHeaders.ContentType)
+                exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+            }
+            ExposeHttpApi.DISABLED -> println("Dear Kotlin Devs, this branch is unreachable, why do I need it?")
+        }
     }
     routing {
         serverRouting()
