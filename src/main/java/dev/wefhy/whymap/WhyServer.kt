@@ -6,9 +6,10 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
+import dev.wefhy.whymap.config.FileConfigManager
+import dev.wefhy.whymap.config.UserSettings.ExposeHttpApi
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.config.WhyMapConfig.defaultPort
-import dev.wefhy.whymap.config.WhyMapConfig.maxPort
+import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -32,6 +33,10 @@ import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
 
 fun Application.myApplicationModule() {
+
+    val exposeHttpApiSetting = FileConfigManager.config.userSettings.exposeHttpApi
+    if (exposeHttpApiSetting == ExposeHttpApi.DISABLED)
+        return
     install(ContentNegotiation) {
         json(Json {
 //                        prettyPrint = true
@@ -39,22 +44,35 @@ fun Application.myApplicationModule() {
             ignoreUnknownKeys = true
         })
     }
-    install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Delete)
-        allowHeader(HttpHeaders.AccessControlAllowHeaders)
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.AccessControlAllowOrigin)
-        exposeHeader(HttpHeaders.AccessControlAllowHeaders)
-        exposeHeader(HttpHeaders.ContentType)
-        exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+    install(CORS) {
         allowCredentials = true
-//        allowHost("localhost:*")
-        anyHost()
+        when (exposeHttpApiSetting) {
+            ExposeHttpApi.LOCALHOST_ONLY -> {
+                allowHost("localhost")
+                allowHost("127.0.0.1")
+            }
+            ExposeHttpApi.EVERYWHERE -> {
+                anyHost()
+            }
+            ExposeHttpApi.DEBUG -> {
+                anyHost()
+                allowMethod(HttpMethod.Get)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Delete)
+                allowHeader(HttpHeaders.AccessControlAllowHeaders)
+                allowHeader(HttpHeaders.ContentType)
+                allowHeader(HttpHeaders.AccessControlAllowOrigin)
+                exposeHeader(HttpHeaders.AccessControlAllowHeaders)
+                exposeHeader(HttpHeaders.ContentType)
+                exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+            }
+            ExposeHttpApi.DISABLED -> println("Dear Kotlin Devs, this branch is unreachable, why do I need it?")
+        }
     }
     routing {
-        serverRouting()
+        serverRouting(
+
+        )
     }
 }
 
@@ -62,11 +80,18 @@ object WhyServer {
     private const val parsingError: String = "Can't parse request"
 
     fun host() {
-        for (p in defaultPort..maxPort) {
+        for (p in portRange) {
             try {
                 WhyMapConfig.port = p
                 println("Trynig to run WhyMap server on port $p...")
-                embeddedServer(CIO, port = p, module = Application::myApplicationModule).start(wait = true)
+                val host = when(FileConfigManager.config.userSettings.exposeHttpApi) {
+                    ExposeHttpApi.DISABLED -> return
+                    ExposeHttpApi.LOCALHOST_ONLY -> "localhost"
+                    ExposeHttpApi.EVERYWHERE -> "0.0.0.0"
+                    ExposeHttpApi.DEBUG -> "0.0.0.0"
+                }
+
+                embeddedServer(CIO, port = p, module = Application::myApplicationModule, host = host).start(wait = true)
                 break
             } catch (e: Throwable) {
                 println("Failed to run server on port $p. Trying on next one.")

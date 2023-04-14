@@ -63,6 +63,7 @@ dependencies {
 	extraLibs(implementation("io.ktor", "ktor-server-cors", "2.2.2"))
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
+	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.4.0"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
 	testImplementation(platform("org.junit:junit-bom:5.9.2"))
