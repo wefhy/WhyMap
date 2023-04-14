@@ -9,6 +9,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
+import dev.wefhy.whymap.migrations.BlockMappingsManager
 import dev.wefhy.whymap.tiles.details.ExperimentalTileGenerator
 import dev.wefhy.whymap.tiles.region.MapRegionManager
 import dev.wefhy.whymap.tiles.thumbnails.RegionThumbnailer
@@ -56,6 +57,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
 
     init {
         waypoints.load()
+        BlockMappingsManager.currentMapping
     }
 
     private fun saveAll() {
