@@ -145,7 +145,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
         currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
             return@withContext
-        //TODO write file versions and support migrations
         if (!file.exists()) {
             file.parentFile.mkdirs()
             file.createNewFile()

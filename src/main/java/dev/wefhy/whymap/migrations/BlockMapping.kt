@@ -2,6 +2,8 @@
 
 package dev.wefhy.whymap.migrations
 
+import dev.wefhy.whymap.CurrentWorldProvider
+import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.config.WhyMapConfig
 import java.io.File
 import java.nio.ByteBuffer
@@ -9,8 +11,9 @@ import kotlin.experimental.inv
 import kotlin.random.Random
 
 sealed interface BlockMapping: DataMapping {
+    context(CurrentWorldProvider<WhyWorld>)
     val isCurrent: Boolean
-        get() = this == current
+        get() = this == currentWorld.mappingsManager.currentBlockMapping
     class ExternalMapping(file: File): DataMapping.ExternalMapping(file), BlockMapping
     class LoadedMapping(hash: String, mapping: List<String>): DataMapping.LoadedMapping(hash, mapping), BlockMapping
     class InternalMapping(version: Short, hash: String): DataMapping.InternalMapping(version, hash), BlockMapping {
@@ -34,7 +37,6 @@ sealed interface BlockMapping: DataMapping {
         }
     }
     companion object {
-        var current: BlockMapping? = null
         lateinit var WhyMapBeta: InternalMapping
     }
 }

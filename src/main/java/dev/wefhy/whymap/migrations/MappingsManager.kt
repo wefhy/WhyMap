@@ -138,7 +138,6 @@ class MappingsManager(
 
     val currentBlockMapping: BlockMapping = blockMappingsJoined.calculateHash().toHex().let { currentHash ->
         (allBlockMappings[currentHash] ?: createNewCustomBlockMappings(currentHash, blockMappings)).also {
-            BlockMapping.current = it
             if (it !is BlockMapping.InternalMapping) {
                 fileWithCurrentBlockMapVersion.writeText(it.hash, Charsets.UTF_8)
             }
@@ -147,7 +146,6 @@ class MappingsManager(
 
     val currentBiomeMapping: BiomeMapping = biomeMappingsJoined.calculateHash().toHex().let { currentHash ->
         (allBiomeMappings[currentHash] ?: createNewCustomBiomeMappings(currentHash, biomeMappings)).also {
-            BiomeMapping.current = it
             if (it !is BiomeMapping.InternalMapping) {
                 fileWithCurrentBiomeMapVersion.writeText(it.hash, Charsets.UTF_8)
             }
