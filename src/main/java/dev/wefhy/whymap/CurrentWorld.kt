@@ -9,7 +9,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
-import dev.wefhy.whymap.migrations.BlockMappingsManager
+import dev.wefhy.whymap.migrations.MappingsManager
 import dev.wefhy.whymap.tiles.details.ExperimentalTileGenerator
 import dev.wefhy.whymap.tiles.region.MapRegionManager
 import dev.wefhy.whymap.tiles.thumbnails.RegionThumbnailer
@@ -35,7 +35,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
-    override val blockMappingsManager = BlockMappingsManager()
+    override val mappingsManager = MappingsManager(biomeMappings = biomeManager.biomeNameList)
 
     override val name: String =
         if (!mc.isConnectedToLocalServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
@@ -76,7 +76,7 @@ class OfflineWorld(override val name: String, override val dimensionName: String
     override val provider = CurrentWorldProvider(this)
     override val biomeManager = BiomeOfflineManager()
     override val dimensionScale = TODO("Not yet implemented")
-    override val blockMappingsManager = TODO("Needs another type of mapping manager")
+    override val mappingsManager = TODO("Needs another type of mapping manager")
 
     override fun close() {
         super.close()
@@ -89,7 +89,7 @@ abstract class WhyWorld : Closeable {
     abstract val provider: CurrentWorldProvider<WhyWorld>
     abstract val biomeManager: BiomeManager
     abstract val dimensionScale: Double
-    abstract val blockMappingsManager: BlockMappingsManager
+    abstract val mappingsManager: MappingsManager
 
     val worldPath by lazy { modPath.resolve(name).resolve(dimensionName) }
     val mapTilesPath by lazy { worldPath.resolve("tiles") }

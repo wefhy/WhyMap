@@ -15,8 +15,8 @@ import dev.wefhy.whymap.whygraphics.WhyColor
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 
-object BlockQuickAccess {
-    internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray()
+object BlockQuickAccess { //todo should be a class per world
+    internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray() //TODO get them from the world
     private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
     private val forceOverlayLookup = Block.STATE_IDS.filter { RenderConfig.isOverlayForced(it.block.translationKey) }.toSet()
     private val forceSolidLookup = Block.STATE_IDS.filter { RenderConfig.isSolidForced(it.block.translationKey) }.toSet()

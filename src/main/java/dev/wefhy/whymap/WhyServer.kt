@@ -148,7 +148,7 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            call.respondText(activeWorld?.blockMappingsManager?.mappingsJoined.toString())
+            call.respondText(activeWorld?.mappingsManager?.blockMappingsJoined.toString())
         }
         get("/lastRegionUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L

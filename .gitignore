@@ -40,4 +40,5 @@ src/main/resources/web/index.html
 src/main/resources/web/favicon.ico
 src/main/resources/web/assets/index*
 src/main/resources/blockmappings.txt
+src/main/resources/biomemappings.txt
 logs/

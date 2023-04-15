@@ -14,6 +14,7 @@ class BiomeCurrentWorldManager : BiomeManager() {
     private val biomeNameMap = biomeRegistry.entrySet.associate { it.key.value.path to it.value }
     private val biomeNameMapRev = biomeRegistry.entrySet.associate { it.value to it.key.value.path }
     private val biomeIdMap = biomeNameMap.entries.sortedBy { it.key }.map { it.value }.toTypedArray()
+    val biomeNameList = biomeNameMap.keys.sorted()
     private val biomeIdMapRev = biomeNameMap.entries.sortedBy { it.key }.withIndex().associate { it.value.value to it.index.toByte() }
     private val fastLookupBiomeFoliage = biomeIdMap.map { WhyColor.fromRGB(it.foliageColor) }
     private val fastLookupBiomeWaterColor = biomeIdMap.map { WhyColor.fromRGB(it.waterColor) } //TODO maybe add some alpha here already?
@@ -38,10 +39,10 @@ class BiomeCurrentWorldManager : BiomeManager() {
 
     override fun biomeGetName(biome: Biome): String = biomeNameMapRev[biome]!!
     override fun encodeBiome(biome: Biome): Byte = biomeIdMapRev[biome]!!
-    override fun decodeBiome(id: Byte): Biome = biomeIdMap[id.toInt()]
+    override fun decodeBiome(id: Byte): Biome = biomeIdMap[id.toUByte().toInt()]
     //    override fun decodeBiomeFoliage(id: Byte): MapArea.FloatColor = fastLookupBiomeFoliage[id.toInt()]
-    override fun decodeBiomeFoliage(id: Byte): WhyColor = fastLookupBiomeFoliageExtras[id.toInt()]
-    override fun decodeBiomeWaterColor(id: Byte): WhyColor = fastLookupBiomeWaterColor[id.toInt()]
+    override fun decodeBiomeFoliage(id: Byte): WhyColor = fastLookupBiomeFoliageExtras[id.toUByte().toInt()]
+    override fun decodeBiomeWaterColor(id: Byte): WhyColor = fastLookupBiomeWaterColor[id.toUByte().toInt()]
     override fun isPlains(biome: Biome) = biome == plains
 }
 
