@@ -151,6 +151,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             file.createNewFile()
         }
         file.outputStream().use {
+            it.write(currentWorld.mappingsManager.metadata)
             val compressed = withContext(WhyDispatchers.LowPriority) {
                 val data = ByteArray(storageTileBlocksSquared * 9)
                 val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6)
@@ -168,7 +169,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 byteBuffer.flip()
                 val xzOutput = ByteArrayOutputStream()
                 XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(currentWorld.mappingsManager.currentBlockMapping.getMetadataArray())
                     xz.write(data)
                     xz.close()
                 }

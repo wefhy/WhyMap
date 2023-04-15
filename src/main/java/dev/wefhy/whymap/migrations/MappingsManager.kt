@@ -157,6 +157,11 @@ class MappingsManager(
     val unsupportedAntiNPEBlockRemapLookup = currentBlockMapping.getCurrentRemapLookup()
     val unsupportedAntiNPEBiomeRemapLookup = currentBiomeMapping.getCurrentRemapLookup()
 
+    val metadata = FileMetadataManager.encodeMetadata(
+        currentBlockMapping,
+        currentBiomeMapping,
+    )
+
     private fun createNewCustomBlockMappings(hash: String, mappings: List<String>): BlockMapping {
         val file = customMappingsDir.resolve("$hash.blockmap")
         file.mkDirsIfNecessary().writeText(blockMappingsJoined, Charsets.UTF_8)

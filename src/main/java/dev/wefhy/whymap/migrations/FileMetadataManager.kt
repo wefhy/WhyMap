@@ -3,6 +3,9 @@
 package dev.wefhy.whymap.migrations
 
 import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
+import dev.wefhy.whymap.utils.parseHex
+import dev.wefhy.whymap.utils.toHex
+import io.ktor.util.*
 import java.nio.ByteBuffer
 
 
@@ -18,14 +21,14 @@ import java.nio.ByteBuffer
 object FileMetadataManager {
     private const val fileVersion = 1
 
-    fun encodeMetadata(biomeMapping: BiomeMapping, blockMapping: BlockMapping): ByteArray {
+    fun encodeMetadata(blockMapping: BlockMapping, biomeMapping: BiomeMapping): ByteArray {
         val arr = ByteArray(metadataSize)
         val buffer = ByteBuffer.wrap(arr)
         buffer.putInt(fileVersion)
         buffer.putInt(fileVersion.inv())
         buffer.putLong(System.currentTimeMillis()) // TODO: use last meaningful update from MapArea (so don't include version changes)
-        buffer.put(blockMapping.hash.toByteArray())
-        buffer.put(biomeMapping.hash.toByteArray())
+        buffer.put(blockMapping.hash.parseHex())
+        buffer.put(biomeMapping.hash.parseHex())
         buffer.flip()
         return arr
     }
@@ -38,9 +41,8 @@ object FileMetadataManager {
         val fileVersionInverted = buffer.int
         if (fileVersion != fileVersionInverted.inv()) return null
         val lastUpdate = buffer.long
-        buffer.alignedSlice(16)
-        val blockMapping = buffer.slice(16, 16).toString()
-        val biomeMapping = buffer.slice(32, 16).toString()
+        val blockMapping = buffer.slice(16, 16).moveToByteArray().toHex()
+        val biomeMapping = buffer.slice(32, 16).moveToByteArray().toHex()
         return WhyMapMetadata(fileVersion, blockMapping, biomeMapping, lastUpdate)
     }
 
