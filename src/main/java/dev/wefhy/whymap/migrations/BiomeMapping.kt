@@ -15,5 +15,6 @@ interface BiomeMapping: DataMapping {
     }
     companion object {
         lateinit var current: BiomeMapping
+        lateinit var LegacyBiomeMapping: InternalMapping
     }
 }

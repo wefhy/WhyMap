@@ -38,6 +38,9 @@ class MappingsManager(
                 .map { (version, hash) ->
                     BiomeMapping.InternalMapping(version.toShort(), hash)
                 }
+                .also {
+                    it.find { it.version == 0.toShort() }?.let { BiomeMapping.LegacyBiomeMapping = it }
+                }
 
         private fun getMappings(resourceName: String): List<List<String>> =
             classLoader
@@ -151,6 +154,9 @@ class MappingsManager(
         }
     }
 
+    val unsupportedAntiNPEBlockRemapLookup = currentBlockMapping.getCurrentRemapLookup()
+    val unsupportedAntiNPEBiomeRemapLookup = currentBiomeMapping.getCurrentRemapLookup()
+
     private fun createNewCustomBlockMappings(hash: String, mappings: List<String>): BlockMapping {
         val file = customMappingsDir.resolve("$hash.blockmap")
         file.mkDirsIfNecessary().writeText(blockMappingsJoined, Charsets.UTF_8)
@@ -167,7 +173,9 @@ class MappingsManager(
         }
     }
 
-    fun getCurrentRemapLookup(mapping: BlockMapping): List<Short> = mapping.getCurrentRemapLookup()
+    internal inline fun getCurrentRemapLookup(mapping: BlockMapping): List<Short> = mapping.getCurrentRemapLookup()
+
+    internal inline fun getCurrentRemapLookup(mapping: BiomeMapping): List<Short> = mapping.getCurrentRemapLookup()
 
     private fun BlockMapping.getCurrentRemapLookup(): List<Short> {
         return getRemapLookup(
@@ -183,11 +191,19 @@ class MappingsManager(
         )
     }
 
-    fun getCurrentRemapLookups(metadata: FileMetadataManager.WhyMapMetadata): Pair<List<Short>?, List<Short>?> {
+    fun getMappings(metadata: FileMetadataManager.WhyMapMetadata): MappingsSet {
         val blockMapping = allBlockMappings[metadata.blockMapHash]
         val biomeMapping = allBiomeMappings[metadata.biomeMapHash]
-        return blockMapping?.getCurrentRemapLookup() to biomeMapping?.getCurrentRemapLookup()
+        return MappingsSet(blockMapping, biomeMapping)
+        //todo if either is null, tile should be not marked as modified (so if it's not visited, it won't be saved). TBH it's already kinda handled at the end of MapArea.load()
+        //todo if either is null, you could use AI to guess most common blocks correctly
     }
+
+//    fun getCurrentRemapLookups(metadata: FileMetadataManager.WhyMapMetadata): Pair<List<Short>?, List<Short>?> {
+//        val blockMapping = allBlockMappings[metadata.blockMapHash]
+//        val biomeMapping = allBiomeMappings[metadata.biomeMapHash]
+//        return blockMapping?.getCurrentRemapLookup() to biomeMapping?.getCurrentRemapLookup()
+//    }
 
     enum class UnsupportedBlockMappingsBehavior {
         DISABLE_WRITE,
@@ -203,4 +219,9 @@ class MappingsManager(
             assert(data.size == WhyMapConfig.legacyMetadataSize)
         }
     }
+
+    data class MappingsSet(
+        val blockMappings: BlockMapping?,
+        val biomeMappings: BiomeMapping?,
+    )
 }

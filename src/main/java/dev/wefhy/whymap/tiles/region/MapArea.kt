@@ -15,6 +15,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTi
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
+import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
 import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
@@ -23,7 +24,10 @@ import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
+import dev.wefhy.whymap.migrations.BiomeMapping
 import dev.wefhy.whymap.migrations.BlockMapping
+import dev.wefhy.whymap.migrations.FileMetadataManager.decodeMetadata
+import dev.wefhy.whymap.migrations.MappingsManager
 import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeLegacyVersion
 import dev.wefhy.whymap.migrations.MappingsManager.WhyMapLegacyMetadata
 import dev.wefhy.whymap.utils.*
@@ -44,6 +48,7 @@ import org.tukaani.xz.XZOutputStream
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.EOFException
+import java.io.PushbackInputStream
 import java.nio.ByteBuffer
 import javax.imageio.ImageIO
 import kotlin.math.atan
@@ -180,21 +185,41 @@ class MapArea private constructor(val location: LocalTileRegion) {
     private fun load() {
         currentWorld.writeToLog("Loading ${obfuscateObjectWithCommand(location, "load")}, file existed: ${file.exists()}")
         try {
-            file.inputStream().use {
-                val data = ByteArray(storageTileBlocksSquared * 9)
-                val version = XZInputStream(it).use { xz ->
-                    val metadata = ByteArray(legacyMetadataSize)
-                    xz.read(metadata)
-                    val version = recognizeLegacyVersion(WhyMapLegacyMetadata(metadata)) ?: BlockMapping.WhyMapBeta
-                    if (version == BlockMapping.WhyMapBeta) { // Support WhyMap versions before 0.9.2 which didn't carry metadata
-                        metadata.copyInto(data)
-                        xz.read(data, metadata.size, data.size - metadata.size)
-                    } else {
-                        xz.read(data)
-                    }
-                    xz.close()
-                    version
+            PushbackInputStream(file.inputStream(), metadataSize).use {
+                val metabytes = ByteArray(metadataSize)
+                it.read(metabytes)
+                val metadata = decodeMetadata(metabytes)
+                if (metadata == null) {
+                    it.unread(metabytes)
                 }
+
+                val data = ByteArray(storageTileBlocksSquared * 9)
+                val mappingsSet = if (metadata != null) {
+                    XZInputStream(it).use { xz ->
+                        xz.read(data)
+                        xz.close()
+                    }
+                    currentWorld.mappingsManager.getMappings(metadata)
+                } else {
+                    MappingsManager.MappingsSet(
+                        XZInputStream(it).use { xz ->
+                            val legacyMetadata = ByteArray(legacyMetadataSize)
+                            xz.read(legacyMetadata)
+                            val version = recognizeLegacyVersion(WhyMapLegacyMetadata(legacyMetadata)) ?: BlockMapping.WhyMapBeta
+                            if (version == BlockMapping.WhyMapBeta) { // Support WhyMap versions before 0.9.2 which didn't carry legacyMetadata
+                                legacyMetadata.copyInto(data)
+                                xz.read(data, legacyMetadata.size, data.size - legacyMetadata.size)
+                            } else {
+                                xz.read(data)
+                            }
+                            xz.close()
+                            version
+                        },
+                        BiomeMapping.LegacyBiomeMapping
+                    )
+                }
+                val blockMapping = mappingsSet.blockMappings
+                val biomeMapping = mappingsSet.biomeMappings
 
                 val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
                 val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
@@ -207,18 +232,21 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     byteBuffer.get(lightMap[y])
                     byteBuffer.get(depthMap[y])
                 }
-
-                if (!version.isCurrent) {
-                    val remapLookup = currentWorld.mappingsManager.getCurrentRemapLookup(version)
-                    val remapSize = remapLookup.size
-//                    println("Applying remap from ${version.hash}(${version.isCurrent}) to ${currentWorld.blockMappingsManager.currentMapping.hash}(${currentWorld.blockMappingsManager.currentMapping.isCurrent}) for region $location")
-//                    fun remap(i: Short) = if (i < remapSize) remapLookup[i.toInt()] else 0
-//                    blockIdMap.mapInPlace(::remap)
-//                    blockOverlayIdMap.mapInPlace(::remap)
-//                    blockOverlayIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
-//                    blockIdMap.mapInPlace { i -> if (i < remapSize) remapLookup[i.toInt()] else 0 }
+                if (blockMapping == null || !blockMapping.isCurrent) {
+                    val remapLookup = if (blockMapping != null)
+                        currentWorld.mappingsManager.getCurrentRemapLookup(blockMapping)
+                    else
+                        currentWorld.mappingsManager.unsupportedAntiNPEBlockRemapLookup
                     blockOverlayIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
                     blockIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
+                    modifiedSinceSave = true
+                }
+                if (biomeMapping == null || !biomeMapping.isCurrent) {
+                    val remapLookup = if (biomeMapping != null)
+                        currentWorld.mappingsManager.getCurrentRemapLookup(biomeMapping)
+                    else
+                        currentWorld.mappingsManager.unsupportedAntiNPEBiomeRemapLookup
+                    biomeMap.mapInPlace { i -> remapLookup.getOrElse(i.toUByte().toInt()) { 0 }.toByte() }
                     modifiedSinceSave = true
                 }
             }

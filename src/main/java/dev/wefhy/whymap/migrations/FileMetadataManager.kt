@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.migrations
 
+import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
 import java.nio.ByteBuffer
 
 
@@ -18,7 +19,7 @@ object FileMetadataManager {
     private const val fileVersion = 1
 
     fun encodeMetadata(biomeMapping: BiomeMapping, blockMapping: BlockMapping): ByteArray {
-        val arr = ByteArray(64)
+        val arr = ByteArray(metadataSize)
         val buffer = ByteBuffer.wrap(arr)
         buffer.putInt(fileVersion)
         buffer.putInt(fileVersion.inv())
@@ -30,7 +31,7 @@ object FileMetadataManager {
     }
 
     fun decodeMetadata(arr: ByteArray): WhyMapMetadata? {
-        if (arr.size != 64) return null
+        if (arr.size != metadataSize) return null
 
         val buffer = ByteBuffer.wrap(arr)
         val fileVersion = buffer.int
