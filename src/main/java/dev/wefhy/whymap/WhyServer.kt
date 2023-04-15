@@ -11,7 +11,6 @@ import dev.wefhy.whymap.config.UserSettings.ExposeHttpApi
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.events.*
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
@@ -149,7 +148,7 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            call.respondText(BlockMappingsManager.mappingsJoined)
+            call.respondText(activeWorld?.mappingsManager?.blockMappingsJoined.toString())
         }
         get("/lastRegionUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L

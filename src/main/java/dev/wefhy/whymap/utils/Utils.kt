@@ -116,7 +116,19 @@ inline fun ShortArray.mapInPlace(transform: (Short) -> Short) {
     }
 }
 
+inline fun ByteArray.mapInPlace(transform: (Byte) -> Byte) {
+    for (i in indices) {
+        this[i] = transform(this[i])
+    }
+}
+
 inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
+    for (subArray in this) {
+        subArray.mapInPlace(transform)
+    }
+}
+
+inline fun Array<ByteArray>.mapInPlace(transform: (Byte) -> Byte) {
     for (subArray in this) {
         subArray.mapInPlace(transform)
     }

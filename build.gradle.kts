@@ -145,6 +145,7 @@ val blockMappingsList = task("blockMappingsList") {
 	val md = MessageDigest.getInstance("MD5")
 	inputs.dir(inDir)
 	outputs.file(outFile)
+	if (!File(inDir).exists()) return@task File(outFile).writeText("")
 	File(outFile).writeText(
 		File(inDir)
 			.listFiles()
@@ -157,17 +158,47 @@ val blockMappingsList = task("blockMappingsList") {
 	)
 }
 
-val newBlockMappings = task("newBlockMappings") {
+val biomeMappingsList = task("biomeMappingsList") {
+	val inDir = "src/main/resources/biomemappings"
+	val outFile = "src/main/resources/biomemappings.txt"
+	val md = MessageDigest.getInstance("MD5")
+	inputs.dir(inDir)
+	outputs.file(outFile)
+	if (!File(inDir).exists()) return@task File(outFile).writeText("")
+	File(outFile).writeText(
+		File(inDir)
+			.listFiles()
+			.filter { it.extension == "biomemap" }
+			.sorted()
+			.joinToString("\n") {
+			val md5 = md.digest(it.readBytes())
+			"${it.nameWithoutExtension}=${md5.toHex()}"
+		}
+	)
+}
+
+val newMappings = task("newMappings") {
 	val inPath = "run/WhyMap/mappings-custom"
-	val outPath = "src/main/resources/blockmappings"
-	inputs.dir(inPath)
-	outputs.file(outPath)
+	val outBlockmaps = "src/main/resources/blockmappings"
+	val outBiomemaps = "src/main/resources/biomemappings"
+//	inputs.dir(inPath)
+//	outputs.dir(outBiomemaps)
+//	outputs.dir(outBlockmaps)
 	val inDir = File(inPath)
-	val outDir = File(outPath)
-	val currentFileName = inDir.resolve("current").takeIf { it.exists() }?.readText()?.trim() ?: return@task
-	val currentFile = inDir.resolve("$currentFileName.blockmap")
-	val fileNumber = outDir.listFiles().mapNotNull { it.nameWithoutExtension.toIntOrNull() }.maxOrNull()?.plus(1) ?: 0
-	currentFile.copyTo(outDir.resolve("$fileNumber.blockmap"))
+	val outBlockDir = File(outBlockmaps)
+	val outBiomeDir = File(outBiomemaps)
+	inDir.resolve("current-biome").takeIf { it.exists() }?.let {
+		val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
+		val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+		biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
+		inDir.resolve("current-biome").delete()
+	}
+	inDir.resolve("current-block").takeIf { it.exists() }?.let {
+		val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
+		val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+		blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
+		inDir.resolve("current-block").delete()
+	}
 }
 
 fun ByteArray.toHex(): String {
@@ -219,6 +250,7 @@ tasks {
 	"processResources" {
 		dependsOn(copyDistFolder)
 		dependsOn(blockMappingsList)
+		dependsOn(biomeMappingsList)
 	}
 	"copyDistFolder" {
 		dependsOn(deleteOldWeb)

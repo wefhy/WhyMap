@@ -116,7 +116,7 @@ class ExperimentalTileGenerator {
                 }
             }
         } catch (e: IndexOutOfBoundsException) {
-            println("Failed to render chunk (${position.x}, ${position.z}) due to out of bounds")
+            println("   Failed to render chunk (${position.x}, ${position.z}) due to out of bounds")
             null
         } catch (e: IllegalArgumentException) {
             println("Failed to render chunk (${position.x}, ${position.z}) due do indexed image (probably)")

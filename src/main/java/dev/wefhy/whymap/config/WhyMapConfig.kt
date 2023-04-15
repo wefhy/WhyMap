@@ -51,7 +51,8 @@ object WhyMapConfig {
     val tileResolution = storageTileBlocks //512
     val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
 
-    val tileMetadataSize = 16 // bytes
+    val legacyMetadataSize = 16 // bytes
+    val metadataSize = 64 // bytes
 
     val nativeReRenderInterval = 250 // ms
     val reRenderInterval = 1 // seconds
