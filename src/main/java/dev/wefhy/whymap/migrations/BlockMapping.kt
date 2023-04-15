@@ -28,7 +28,7 @@ sealed interface BlockMapping: DataMapping {
         }
 
         override fun getMetadataArray(): ByteArray {
-            val arr = ByteArray(WhyMapConfig.tileMetadataSize)
+            val arr = ByteArray(WhyMapConfig.legacyMetadataSize)
             getMetadataHead().copyInto(arr)
             return arr
         }

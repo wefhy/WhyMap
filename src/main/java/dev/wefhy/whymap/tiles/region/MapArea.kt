@@ -14,18 +14,18 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
 import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
-import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
 import dev.wefhy.whymap.migrations.BlockMapping
-import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeVersion
-import dev.wefhy.whymap.migrations.MappingsManager.WhyMapMetadata
+import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeLegacyVersion
+import dev.wefhy.whymap.migrations.MappingsManager.WhyMapLegacyMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
@@ -183,9 +183,9 @@ class MapArea private constructor(val location: LocalTileRegion) {
             file.inputStream().use {
                 val data = ByteArray(storageTileBlocksSquared * 9)
                 val version = XZInputStream(it).use { xz ->
-                    val metadata = ByteArray(tileMetadataSize)
+                    val metadata = ByteArray(legacyMetadataSize)
                     xz.read(metadata)
-                    val version = recognizeVersion(WhyMapMetadata(metadata)) ?: BlockMapping.WhyMapBeta
+                    val version = recognizeLegacyVersion(WhyMapLegacyMetadata(metadata)) ?: BlockMapping.WhyMapBeta
                     if (version == BlockMapping.WhyMapBeta) { // Support WhyMap versions before 0.9.2 which didn't carry metadata
                         metadata.copyInto(data)
                         xz.read(data, metadata.size, data.size - metadata.size)

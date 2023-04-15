@@ -74,7 +74,7 @@ class MappingsManager(
 
         private fun findInternalBiomeMapping(version: Short): BiomeMapping? = internalBiomeMappings.find { it.version == version }
 
-        fun recognizeVersion(metadata: WhyMapMetadata): BlockMapping? {
+        fun recognizeLegacyVersion(metadata: WhyMapLegacyMetadata): BlockMapping? {
             val buffer = ByteBuffer.wrap(metadata.data)
             val version = buffer.short
             val c1 = Random(version.toInt()).nextInt()
@@ -83,6 +83,15 @@ class MappingsManager(
                 return findInternalBlockMapping(version) ?: allBlockMappings[metadata.data.toHex()]
             }
             return allBlockMappings[metadata.data.toHex()]
+        }
+
+        fun recognizeAllMappings(metadata: WhyMapLegacyMetadata): Pair<BlockMapping?, BiomeMapping?> {
+            val buffer = ByteBuffer.wrap(metadata.data)
+            val version = buffer.short
+
+            val blockMapping = findInternalBlockMapping(version) ?: allBlockMappings[metadata.data.toHex()]
+            val biomeMapping = findInternalBiomeMapping(version) ?: allBiomeMappings[metadata.data.toHex()]
+            return blockMapping to biomeMapping
         }
 
         fun getRemapLookup(mapping1: DataMapping, mapping2: DataMapping): List<Short> {
@@ -95,7 +104,8 @@ class MappingsManager(
         private fun getRemapLookup(mappings1: List<String>, mappings2: List<String>): List<Short> {
             //TODO memoize mappings
             //TODO binary search? Are they always sorted?
-            val air = mappings2.indexOf("block.minecraft.air").toShort()
+            //TODO separate function for biomes and blocks
+            val air = mappings2.indexOf("block.minecraft.air").toShort().takeIf { it >= 0 } ?: mappings2.indexOf("plains").toShort()
             return mappings1.map { mappings2.indexOf(it).toShort() }.map { if (it >= 0) it else air }
         }
 
@@ -157,21 +167,29 @@ class MappingsManager(
         }
     }
 
-    fun getCurrentRemapLookup(mapping: BlockMapping): List<Short> {
+    fun getCurrentRemapLookup(mapping: BlockMapping): List<Short> = mapping.getCurrentRemapLookup()
+
+    private fun BlockMapping.getCurrentRemapLookup(): List<Short> {
         return getRemapLookup(
-            mapping,
+            this,
             currentBlockMapping
         )
     }
 
-    fun getCurrentRemapLookup(mapping: BiomeMapping): List<Short> {
+    private fun BiomeMapping.getCurrentRemapLookup(): List<Short> {
         return getRemapLookup(
-            mapping,
+            this,
             currentBiomeMapping
         )
     }
 
-    enum class UnsupportedBLockMappingsBehavior {
+    fun getCurrentRemapLookups(metadata: FileMetadataManager.WhyMapMetadata): Pair<List<Short>?, List<Short>?> {
+        val blockMapping = allBlockMappings[metadata.blockMapHash]
+        val biomeMapping = allBiomeMappings[metadata.biomeMapHash]
+        return blockMapping?.getCurrentRemapLookup() to biomeMapping?.getCurrentRemapLookup()
+    }
+
+    enum class UnsupportedBlockMappingsBehavior {
         DISABLE_WRITE,
         DONT_CONVERT_OLD,
         EMBED_MAPPINGS,
@@ -180,9 +198,9 @@ class MappingsManager(
     }
 
     @JvmInline
-    value class WhyMapMetadata(val data: ByteArray) {
+    value class WhyMapLegacyMetadata(val data: ByteArray) {
         init {
-            assert(data.size == WhyMapConfig.tileMetadataSize)
+            assert(data.size == WhyMapConfig.legacyMetadataSize)
         }
     }
 }
