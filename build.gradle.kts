@@ -14,7 +14,7 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.1.7"
+	id ("fabric-loom") version "1.1.13"
 	id ("maven-publish")
 	kotlin("jvm") version "1.8.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
@@ -26,7 +26,7 @@ java {
 //	withSourcesJar()
 }
 base {
-	archivesBaseName = mod_id.toLowerCaseAsciiOnly()
+	archivesName.set(mod_id.toLowerCaseAsciiOnly())
 }
 version = getCurrentVersion()
 group = maven_group
