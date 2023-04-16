@@ -20,6 +20,18 @@ plugins {
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
 }
 
+buildscript {
+	repositories {
+		mavenCentral()
+		maven(url = "https://maven.fabricmc.net/")
+		maven (url = "https://maven.google.com/" )
+	}
+	dependencies {
+//		classpath("net.fabricmc:fabric-loom:1.1.12")
+		classpath("com.guardsquare:proguard-gradle:7.3.2")
+	}
+}
+
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
 	targetCompatibility = JavaVersion.VERSION_17
