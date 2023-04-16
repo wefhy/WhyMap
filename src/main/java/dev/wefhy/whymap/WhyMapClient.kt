@@ -66,6 +66,8 @@ class WhyMapClient : ClientModInitializer {
             else -> 1
         }
 
+    private fun Float.toRad() = this * Math.PI.toFloat() / 180f
+
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
         val mapScale = 1/3.0
@@ -134,7 +136,7 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.push()
             if (mapMode == MapMode.ROTATED) {
                 matrixStack.translate(mapPosX, mapPosY, 0.0)
-                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, player.yaw + 180))
+                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, -(player.yaw + 180).toRad()))
                 matrixStack.translate(-mapPosX, -mapPosY, 0.0)
             }
 
@@ -155,7 +157,7 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.translate(mapPosX, mapPosY, 0.0)
             matrixStack.scale(0.1f, 0.1f, 0.1f)
             if (mapMode == MapMode.NORTH_LOCKED) {
-                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, player.yaw + 180))
+                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, (player.yaw + 180).toRad()))
             }
             playerIcon(matrixStack)
             matrixStack.pop()
