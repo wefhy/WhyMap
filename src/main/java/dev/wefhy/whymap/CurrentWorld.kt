@@ -38,7 +38,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     override val mappingsManager = MappingsManager(biomeMappings = biomeManager.biomeNameList)
 
     override val name: String =
-        if (!mc.isConnectedToLocalServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
+        if (mc.game.currentSession!!.isRemoteServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
             WorldSavePath.ROOT
         ).parent.fileName.toString()
 

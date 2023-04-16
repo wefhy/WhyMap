@@ -32,7 +32,7 @@ import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
-import net.minecraft.util.math.RotationAxis
+import net.minecraft.util.math.Quaternion
 import org.lwjgl.glfw.GLFW
 import java.awt.image.BufferedImage
 import kotlin.random.Random
@@ -68,10 +68,10 @@ class WhyMapClient : ClientModInitializer {
 
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
-        val mapScale = 1/3f
-        val mapSize = 130f
-        val mapRadius = mapSize / 2f
-        val mapPadding = 5f
+        val mapScale = 1/3.0
+        val mapSize = 130.0
+        val mapRadius = mapSize / 2.0
+        val mapPadding = 5.0
         val mc = MinecraftClient.getInstance()
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             val mapMode = FileConfigManager.config.userSettings.minimapMode
@@ -80,7 +80,7 @@ class WhyMapClient : ClientModInitializer {
             val mapPosX = when (mapPosition) {
                 MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
                 MinimapPosition.TOP_RIGHT -> mc.window.scaledWidth - mapRadius - mapPadding
-                MinimapPosition.TOP_CENTER -> mc.window.scaledWidth / 2f
+                MinimapPosition.TOP_CENTER -> mc.window.scaledWidth / 2.0
             }
             val mapPosY = mapRadius + mapPadding
 
@@ -133,9 +133,9 @@ class WhyMapClient : ClientModInitializer {
 
             matrixStack.push()
             if (mapMode == MapMode.ROTATED) {
-                matrixStack.translate(mapPosX, mapPosY, 0f)
-                matrixStack.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(player.yaw + 180))
-                matrixStack.translate(-mapPosX, -mapPosY, 0f)
+                matrixStack.translate(mapPosX, mapPosY, 0.0)
+                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, player.yaw + 180))
+                matrixStack.translate(-mapPosX, -mapPosY, 0.0)
             }
 
             for ((region, rendered) in rendered) {
@@ -144,18 +144,18 @@ class WhyMapClient : ClientModInitializer {
                 val diffX = start.x - block.x
                 val diffZ = start.z - block.z
                 matrixStack.push()
-                matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
+                matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0.0)
                 val texture = rendered
 
-                draw(mc, matrixStack, texture, mapScale)
+                draw(mc, matrixStack, texture, mapScale.toFloat())
                 matrixStack.pop()
             }
             matrixStack.pop()
             matrixStack.push()
-            matrixStack.translate(mapPosX, mapPosY, 0f)
+            matrixStack.translate(mapPosX, mapPosY, 0.0)
             matrixStack.scale(0.1f, 0.1f, 0.1f)
             if (mapMode == MapMode.NORTH_LOCKED) {
-                matrixStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(player.yaw + 180))
+                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, player.yaw + 180))
             }
             playerIcon(matrixStack)
             matrixStack.pop()
@@ -281,7 +281,7 @@ class WhyMapClient : ClientModInitializer {
         buffer.vertex(positionMatrix, -width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
         buffer.vertex(positionMatrix, width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
         buffer.vertex(positionMatrix, width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
+        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
         tessellator.draw()
@@ -296,7 +296,7 @@ class WhyMapClient : ClientModInitializer {
         buffer.vertex(positionMatrix, 0f, height, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
         buffer.vertex(positionMatrix, width, height, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
         buffer.vertex(positionMatrix, width, 0f, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
+        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
         tessellator.draw()
