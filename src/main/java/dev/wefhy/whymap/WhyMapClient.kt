@@ -32,7 +32,7 @@ import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
-import net.minecraft.util.math.Quaternion
+import net.minecraft.util.math.Vec3f
 import org.lwjgl.glfw.GLFW
 import java.awt.image.BufferedImage
 import kotlin.random.Random
@@ -136,7 +136,7 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.push()
             if (mapMode == MapMode.ROTATED) {
                 matrixStack.translate(mapPosX, mapPosY, 0.0)
-                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, -(player.yaw + 180).toRad()))
+                matrixStack.multiply(Vec3f.NEGATIVE_Z.getDegreesQuaternion(player.yaw + 180))
                 matrixStack.translate(-mapPosX, -mapPosY, 0.0)
             }
 
@@ -157,7 +157,7 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.translate(mapPosX, mapPosY, 0.0)
             matrixStack.scale(0.1f, 0.1f, 0.1f)
             if (mapMode == MapMode.NORTH_LOCKED) {
-                matrixStack.multiply(Quaternion.fromEulerXyz(0f, 0f, (player.yaw + 180).toRad()))
+                matrixStack.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(player.yaw + 180))
             }
             playerIcon(matrixStack)
             matrixStack.pop()
