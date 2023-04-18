@@ -9,7 +9,7 @@ import dev.wefhy.whymap.utils.mkDirsIfNecessary
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import net.minecraft.util.math.GlobalPos
+import net.minecraft.util.dynamic.GlobalPos
 
 context(CurrentWorldProvider<WhyWorld>)
 class Waypoints {

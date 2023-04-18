@@ -5,18 +5,18 @@ package dev.wefhy.whymap.utils
 import net.minecraft.world.dimension.DimensionType
 
 fun DimensionType.serialize(): String = when {
-    bedWorks -> "Overworld"
-    respawnAnchorWorks -> "Nether"
+    isBedWorking -> "Overworld"
+    isRespawnAnchorWorking -> "Nether"
     else -> customDimensionName()
 }
 
 private fun DimensionType.customDimensionName(): String {
     val values = booleanArrayOf(
-        bedWorks,
-        ultrawarm,
-        natural,
-        piglinSafe(),
-        respawnAnchorWorks,
+        isBedWorking,
+        isUltrawarm,
+        isNatural,
+        isPiglinSafe,
+        isRespawnAnchorWorking,
     )
-    return "CustomDimension-${values.joinToString("") { if (it) "1" else "0" }}-$coordinateScale-$height-$logicalHeight"
+    return "CustomDimension-${values.joinToString("") { if (it) "1" else "0" }}-$coordinateScale-0-$logicalHeight"
 }

@@ -271,7 +271,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //                getBlockState(mutablePosition).isOpaque
 //                Block.isFaceFullSquare(null, Direction.UP)
 //                while (!getBlockState(mutablePosition).material.isSolid && (y > bottomY) && (fastOverlayLookup.contains(getBlockState(mutablePosition).block.defaultState))) { //TODO or isOpaque
-                while (isOverlay(getBlockState(mutablePosition)) && (y > bottomY)) { //TODO or isOpaque
+                while (isOverlay(getBlockState(mutablePosition)) && (y > 0)) { //TODO or isOpaque
                     mutablePosition.y = --y
                 }
                 output[z][x] = y //TODO this will point to air block just like regular heightmap
@@ -348,8 +348,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val light = worldLightView.getLightLevel(absoluteBlockPos)
 //                val biome = biomeAccess.getBiome(absoluteBlockPos).value()
 //                val biome = MinecraftClient.getInstance().world!!.getBiome(absoluteBlockPos).value()
-                val biome = biomeAccess.getBiome(absoluteBlockPos).value().takeUnless { biomeManager.isPlains(it) }
-                    ?: biomeAccess.getBiomeForNoiseGen(absoluteBlockPos).value()
+                val biome = biomeAccess.getBiome(absoluteBlockPos).takeUnless { biomeManager.isPlains(it) }
+                    ?: biomeAccess.getBiomeForNoiseGen(absoluteBlockPos)
 
 
                 blockIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(block)
@@ -444,13 +444,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
     }
 
     private fun _renderNativeImage(): NativeImage {
-        val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
+        val image = NativeImage(NativeImage.Format.ABGR, storageTileBlocks, storageTileBlocks, false)
         var failCounter = 0
         for (z in 0 until storageTileBlocks) {
             for (x in 0 until storageTileBlocks) {
                 try {
                     val color = calculateColor(z, x)
-                    image.setColor(x, z, 255 shl 24 or color.intBGR)
+                    image.setPixelColor(x, z, 255 shl 24 or color.intBGR)
                 } catch (_: IndexOutOfBoundsException) {
                     failCounter++
                 }

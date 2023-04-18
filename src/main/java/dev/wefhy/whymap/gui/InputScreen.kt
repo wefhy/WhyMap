@@ -13,8 +13,8 @@ class InputScreen(callback: BooleanConsumer?, title: Text?, message: Text?, yesT
 
     override fun init() {
         super.init()
-        val textFieldWidget = TextFieldWidget(textRenderer, width/2 - 50, 50, 100, 20, Text.literal("waypoint name"))
+        val textFieldWidget = TextFieldWidget(textRenderer, width/2 - 50, 50, 100, 20, Text.of("waypoint name"))
         textFieldWidget.setChangedListener { inputText = it }
-        addDrawableChild(textFieldWidget)
+        addChild(textFieldWidget)
     }
 }

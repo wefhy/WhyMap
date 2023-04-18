@@ -23,9 +23,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawableHelper
 import net.minecraft.client.option.KeyBinding
-import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.render.Tessellator
-import net.minecraft.client.render.VertexFormat
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.texture.NativeImage
 import net.minecraft.client.texture.NativeImageBackedTexture
@@ -34,12 +32,13 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.Vec3f
 import org.lwjgl.glfw.GLFW
+import org.lwjgl.opengl.GL11
 import java.awt.image.BufferedImage
 import kotlin.random.Random
 
 class WhyMapClient : ClientModInitializer {
 
-    private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColor(x, y) }
+    private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getPixelColor(x, y) }
 
     fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
         val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
@@ -252,7 +251,7 @@ class WhyMapClient : ClientModInitializer {
         val image = NativeImage(width, height, false)
         for (x in 0 until image.width) {
             for (y in 0 until image.height) {
-                image.setColor(x, y, image.block(x, y))
+                image.setPixelColor(x, y, image.block(x, y))
             }
         }
         return image
@@ -275,32 +274,36 @@ class WhyMapClient : ClientModInitializer {
     }
 
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
-        val positionMatrix = matrixStack.peek().positionMatrix
+        val positionMatrix = matrixStack.peek().model
         val tessellator = Tessellator.getInstance()
         val buffer = tessellator.buffer
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
+        buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
         buffer.vertex(positionMatrix, -width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
         buffer.vertex(positionMatrix, -width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
         buffer.vertex(positionMatrix, width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
         buffer.vertex(positionMatrix, width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
-        RenderSystem.setShaderTexture(0, textureId)
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+        MinecraftClient.getInstance().textureManager.bindTexture(textureId)
+//        RenderSystem.bindTexture(textureId)
+//        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
+//        RenderSystem.setShaderTexture(0, textureId)
+        RenderSystem.color4f(1f, 1f, 1f, 1f)
         tessellator.draw()
     }
 
     fun draw(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
-        val positionMatrix = matrixStack.peek().positionMatrix
+        val positionMatrix = matrixStack.peek().model
         val tessellator = Tessellator.getInstance()
         val buffer = tessellator.buffer
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
+        buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
         buffer.vertex(positionMatrix, 0f, 0f, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
         buffer.vertex(positionMatrix, 0f, height, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
         buffer.vertex(positionMatrix, width, height, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
         buffer.vertex(positionMatrix, width, 0f, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
-        RenderSystem.setShaderTexture(0, textureId)
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+        MinecraftClient.getInstance().textureManager.bindTexture(textureId)
+//        RenderSystem.bindTexture(textureId)
+//        RenderSystem.setShader { GameRenderer.getPositionColorTexShader() }
+//        RenderSystem.setShaderTexture(0, textureId)
+        RenderSystem.color4f(1f, 1f, 1f, 1f)
         tessellator.draw()
     }
 
