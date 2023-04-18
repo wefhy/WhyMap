@@ -80,6 +80,9 @@ jobs:
           dependencies: |
             fabric-api | depends
             fabric-language-kotlin | depends
+            cloth-config | recommends
+            modmenu | suggests
+#            distant-horizons | conflicts
 
 
 #      - name: "Upload to CurseForge"

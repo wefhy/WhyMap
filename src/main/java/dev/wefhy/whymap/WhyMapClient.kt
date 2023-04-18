@@ -4,6 +4,7 @@ package dev.wefhy.whymap
 
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.clothconfig.ClothConfig
 import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.events.FeatureUpdateQueue
@@ -195,6 +196,9 @@ class WhyMapClient : ClientModInitializer {
             if (kbShowMinimap.wasPressed()) {
                 FileConfigManager.config.userSettings.minimapMode = FileConfigManager.config.userSettings.minimapMode.next()
             }
+            if (kbModSettings.wasPressed()) {
+                mc.setScreen(ClothConfig().buildConfig(null))
+            }
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
 
@@ -316,6 +320,14 @@ class WhyMapClient : ClientModInitializer {
                 "key.whymap.showminimap",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_Y,
+                "category.whymap"
+            )
+        )
+        val kbModSettings = KeyBindingHelper.registerKeyBinding(
+            KeyBinding(
+                "key.whymap.modsettings",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_M,
                 "category.whymap"
             )
         )
