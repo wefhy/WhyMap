@@ -152,33 +152,40 @@ class MapArea private constructor(val location: LocalTileRegion) {
         file.outputStream().use {
             it.write(currentWorld.mappingsManager.metadata)
             val compressed = withContext(WhyDispatchers.LowPriority) {
-                val data = ByteArray(storageTileBlocksSquared * 9)
-                val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6)
-                val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
-                val shortShortBuffer = shortBuffer.asShortBuffer()
-                for (y in 0 until storageTileBlocks) {
-                    shortShortBuffer.put(blockIdMap[y])       //2
-                    shortShortBuffer.put(blockOverlayIdMap[y])//2
-                    shortShortBuffer.put(heightMap[y])        //2
-                    byteBuffer.put(biomeMap[y])        //1
-                    byteBuffer.put(lightMap[y])        //1
-                    byteBuffer.put(depthMap[y])        //1
-                }
-                shortShortBuffer.flip()
-                byteBuffer.flip()
-                val xzOutput = ByteArrayOutputStream()
-                XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
-                    xz.write(data)
-                    xz.close()
-                }
-                xzOutput.toByteArray() // TODO compression and saving can be multithreaded
-            }
-            it.write(compressed)
+                packData().compress().writeTo(it)
+            }//.toByteArray()
+//            it.write(compressed)
         }
         reRenderAndSaveThumbnail()
         LOGGER.debug("SAVED: ${file.absolutePath}")
 //        MinecraftClient.getInstance().textureManager.getTexture()
         modifiedSinceSave = false
+    }
+
+    private fun packData(): ByteArray {
+        val data = ByteArray(storageTileBlocksSquared * 9)
+        val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
+        val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
+        for (y in 0 until storageTileBlocks) {
+            shortBuffer.put(blockIdMap[y])       //2
+            shortBuffer.put(blockOverlayIdMap[y])//2
+            shortBuffer.put(heightMap[y])        //2
+            byteBuffer.put(biomeMap[y])        //1
+            byteBuffer.put(lightMap[y])        //1
+            byteBuffer.put(depthMap[y])        //1
+        }
+        shortBuffer.flip()
+        byteBuffer.flip()
+        return data
+    }
+
+    private fun ByteArray.compress(): ByteArrayOutputStream {
+        val xzOutput = ByteArrayOutputStream()
+        XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
+            xz.write(this)
+            xz.close()
+        }
+        return xzOutput
     }
 
     private fun load() {
