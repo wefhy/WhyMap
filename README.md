@@ -1,6 +1,6 @@
 # WhyMap
 [![GitHub](https://img.shields.io/github/license/wefhy/whymap?style=flat-square)](LICENSE)
-[![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion)](https://modrinth.com/mod/whymap/versions)
+[![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion&style=flat-square)](https://modrinth.com/mod/whymap/versions)
 [![Minecraft Version](https://img.shields.io/badge/dynamic/json?label=Minecraft%20Versions&query=%24.game_versions&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap&style=flat-square)](#actively-supported-versions)
 
 
@@ -104,5 +104,7 @@ gradle build
 
 ## Contributions
 **I DO NOT accept contributions to this repository at this moment. Pull requests will be rejected.**
+
+This repository will most likely be open for contributions starting November 2023.
 
 If you wish to help with frontend development, [frontend repository](https://github.com/wefhy/WhyMap-frontend) is open for contributions (or even a complete rewrite because I'm bad at frontend coding)
