@@ -21,7 +21,7 @@ Your map will be presented at http://localhost:7542
 
 ### Join discord for support:
 
-[![Discord](https://img.shields.io/badge/Discord-white?style=for-the-badge&logo=discord)](https://discord.gg/FzCKRPHR)
+[![Discord](https://img.shields.io/badge/Discord-white?style=for-the-badge&logo=discord)](https://discord.gg/swfXTSvEVC)
 
 ## How to use it?
  - Install the mod and required dependencies ([Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) and [Fabric API](https://modrinth.com/mod/fabric-api))
