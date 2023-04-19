@@ -1,7 +1,7 @@
 # WhyMap
-![GitHub](https://img.shields.io/github/license/wefhy/whymap?style=flat-square)
-![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion)
-![Minecraft Version](https://img.shields.io/badge/dynamic/json?label=Minecraft%20Versions&query=%24.game_versions&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap&style=flat-square)
+[![GitHub](https://img.shields.io/github/license/wefhy/whymap?style=flat-square)](LICENSE)
+[![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion)](https://modrinth.com/mod/whymap/versions)
+[![Minecraft Version](https://img.shields.io/badge/dynamic/json?label=Minecraft%20Versions&query=%24.game_versions&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap&style=flat-square)](#actively-supported-versions)
 
 
 
