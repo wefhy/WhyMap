@@ -1,4 +1,9 @@
 # WhyMap
+![GitHub](https://img.shields.io/github/license/wefhy/whymap?style=flat-square)
+![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion)
+![Minecraft Version](https://img.shields.io/badge/dynamic/json?label=Minecraft%20Versions&query=%24.game_versions&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap&style=flat-square)
+
+
 
 See interactive web demo on: https://wefhy.github.io/whymap-demo/map.html
 
@@ -8,9 +13,15 @@ It's old 0.8 version from September 2022 but should give you hint of what it fee
 High performance minecraft world map with web-based interface and infinite zoom.
 Your map will be presented at http://localhost:7542
 
- - Modrinth: https://modrinth.com/mod/whymap
- - CurseForge: https://www.curseforge.com/minecraft/mc-mods/whymap
- - Discord: https://discord.gg/FzCKRPHR
+## Download the mod from:
+
+[![Modrinth Download](https://img.shields.io/modrinth/dt/whymap?style=for-the-badge&label=Modrinth&labelColor=white&logo=modrinth)](https://modrinth.com/mod/whymap)
+[![Github Download](https://img.shields.io/github/downloads/wefhy/whymap/total?style=for-the-badge&label=Github&labelColor=333333&color=darkgreen&logo=github)](https://github.com/wefhy/WhyMap/releases)
+[![Curseforge Download](https://img.shields.io/badge/dynamic/json?label=CurseForge&query=%24.downloads.total&suffix=%2B&url=https%3A%2F%2Fapi.cfwidget.com%2F815690&style=for-the-badge&color&logo=curseforge)](https://www.curseforge.com/minecraft/mc-mods/whymap)
+
+### Join discord for support:
+
+[![Discord](https://img.shields.io/badge/Discord-white?style=for-the-badge&logo=discord)](https://discord.gg/FzCKRPHR)
 
 ## How to use it?
  - Install the mod and required dependencies ([Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) and [Fabric API](https://modrinth.com/mod/fabric-api))
@@ -60,6 +71,10 @@ Your map will be presented at http://localhost:7542
 #### Can I use it with Quilt?
  - I only actively support Fabric, however it should work with Quilt.
  - In order to run it with Quilt, you need to install [Quilted Fabric API](https://modrinth.com/mod/qsl) and [Quilt Kotlin Libraries](https://modrinth.com/mod/qkl) instead of Fabric API and Fabric Language Kotlin.
+#### How big is the project?
+- ![GitHub top language](https://img.shields.io/github/languages/top/wefhy/whymap?style=flat-square&logo=kotlin)
+- ![Lines of code](https://img.shields.io/tokei/lines/github/wefhy/WhyMap?style=flat-square)
+
 
 ## Building from sources
 
