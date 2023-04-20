@@ -79,6 +79,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 }
 
+@Suppress("UnstableApiUsage")
 tasks.getByName<ProcessResources>("processResources") {
 	filesMatching("fabric.mod.json") {
 		expand(
@@ -115,6 +116,9 @@ tasks.withType<Jar> {
 		rename { "${it}_${mod_id}"}
 	}
 	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
+	//TODO can be improved?
+	// https://stackoverflow.com/a/36404235/7438147
+	// https://stackoverflow.com/a/9359588/7438147
 }
 
 val yarnBuild = task<Exec>("yarnBuild") {
