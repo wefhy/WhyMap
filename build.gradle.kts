@@ -56,10 +56,10 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
 	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.9.0+kotlin.1.8.0")
 
-	modImplementation ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
+	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
 		exclude (group = "net.fabricmc.fabric-api")
 	}
-	modApi("com.terraformersmc", "modmenu", "6.2.0")
+	modCompileOnlyApi("com.terraformersmc", "modmenu", "6.2.0")
 
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.2.2"))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.2.2"))
