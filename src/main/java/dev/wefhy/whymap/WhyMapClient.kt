@@ -4,7 +4,7 @@ package dev.wefhy.whymap
 
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
-import dev.wefhy.whymap.clothconfig.ClothConfig
+import dev.wefhy.whymap.clothconfig.ConfigEntryPoint.getConfigScreen
 import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.events.FeatureUpdateQueue
@@ -197,7 +197,7 @@ class WhyMapClient : ClientModInitializer {
                 FileConfigManager.config.userSettings.minimapMode = FileConfigManager.config.userSettings.minimapMode.next()
             }
             if (kbModSettings.wasPressed()) {
-                mc.setScreen(ClothConfig().buildConfig(null))
+                mc.setScreen(getConfigScreen(null))
             }
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
