@@ -50,6 +50,7 @@ import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.PushbackInputStream
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.imageio.ImageIO
 import kotlin.math.atan
 
@@ -81,6 +82,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
     var nativeRenderInProgress = false //TODO atomic(false)
+    var nativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
 
     val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
     val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
@@ -397,6 +399,18 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
+    private fun nativeUpdateChunks() {
+        var chunk: LocalTile<TileZoom.ChunkZoom>
+        while(true) {
+            chunk = nativeChunkUpdateQueue.poll() ?: break
+            nativeUpdateChunk(chunk)
+        }
+    }
+
+    private fun nativeUpdateChunk(localTileChunk: LocalTileChunk) {
+
+    }
+
     private fun nativeShouldBeReRendered(): Boolean {
         val elapsed = currentMillis() - lastNativeUpdate
         return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
@@ -480,7 +494,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private fun _renderWhyImage(): WhyTiledImage {
         var failCounter = 0
-        val image = WhyTiledImage.BuildForRegion { x, y ->
+        val image = WhyTiledImage.BuildForRegion { y, x ->
             try {
                 calculateColor(y, x)
             } catch (_: IndexOutOfBoundsException) {

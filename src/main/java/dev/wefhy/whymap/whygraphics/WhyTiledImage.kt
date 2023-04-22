@@ -3,7 +3,7 @@
 package dev.wefhy.whymap.whygraphics
 
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.config.WhyMapConfig.chunksPerRegionLog
+import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.utils.ExpensiveCall
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -82,10 +82,10 @@ class WhyTiledImage(
 
     companion object {
 
-        fun BuildForRegion(builder: (x: Int, y: Int) -> WhyColor): WhyTiledImage {
+        fun BuildForRegion(builder: (y: Int, x: Int) -> WhyColor): WhyTiledImage {
             return WhyTiledImage(WhyMapConfig.storageTileChunks, WhyMapConfig.storageTileChunks) { y, x ->
                 WhyTile { yPixel, xPixel ->
-                    builder(x shl chunksPerRegionLog + xPixel, y shl chunksPerRegionLog + yPixel)
+                    builder((y shl blocksInChunkLog) + yPixel, (x shl blocksInChunkLog) + xPixel)
                 }
             }
         }
