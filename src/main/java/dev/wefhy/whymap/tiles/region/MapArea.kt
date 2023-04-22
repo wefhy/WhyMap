@@ -80,6 +80,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     var lastUpdate = 0L
     var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
+    var nativeRenderInProgress = false //TODO atomic(false)
 
     val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
     val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
@@ -447,10 +448,38 @@ class MapArea private constructor(val location: LocalTileRegion) {
     fun renderNativeImage(): NativeImage {
         return if (::renderedNative.isInitialized && !nativeShouldBeReRendered())
             renderedNative
-        else _renderNativeImage()
+        else {
+            nativeRenderInProgress = true
+            _renderNativeImage().also { nativeRenderInProgress = false }
+        }
+    }
+
+    fun renderNativeImageBuffered(): NativeImage? {
+        return if (!::renderedNative.isInitialized) {
+            null.also {
+                rerenderBuffered()
+            }
+        } else {
+            renderedNative.also {
+                if (nativeShouldBeReRendered()) {
+                    rerenderBuffered()
+                }
+            }
+        }
+    }
+
+    private fun rerenderBuffered() {
+        if (!nativeRenderInProgress) {
+            nativeRenderInProgress = true
+            mapAreaScope.launch {
+                _renderNativeImage()
+                nativeRenderInProgress = false
+            }
+        }
     }
 
     private fun _renderNativeImage(): NativeImage {
+//        valStatPrintLog("render native")
         val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
         var failCounter = 0
         for (z in 0 until storageTileBlocks) {

@@ -108,7 +108,8 @@ class WhyMapClient : ClientModInitializer {
             val rendered = runBlocking {
                 regions.associateWith {
                     mrm.getRegionForMinimapRendering(it) {
-                        renderNativeImage()
+                        renderNativeImageBuffered()
+//                        renderNativeImage()
                     }
                 }
             }
@@ -145,7 +146,7 @@ class WhyMapClient : ClientModInitializer {
                 val diffZ = start.z - block.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
-                val texture = rendered
+                val texture: NativeImage = rendered
 
                 draw(mc, matrixStack, texture, mapScale)
                 matrixStack.pop()
@@ -277,10 +278,12 @@ class WhyMapClient : ClientModInitializer {
         val tessellator = Tessellator.getInstance()
         val buffer = tessellator.buffer
         buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
-        buffer.vertex(positionMatrix, -width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
-        buffer.vertex(positionMatrix, -width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
-        buffer.vertex(positionMatrix, width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
-        buffer.vertex(positionMatrix, width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
+        val halfWidth = width * 0.5f
+        val halfHeight = height * 0.5f
+        buffer.vertex(positionMatrix, -halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
+        buffer.vertex(positionMatrix, -halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
+        buffer.vertex(positionMatrix, halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
+        buffer.vertex(positionMatrix, halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
         RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
