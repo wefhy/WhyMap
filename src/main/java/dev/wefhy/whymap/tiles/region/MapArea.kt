@@ -31,6 +31,7 @@ import dev.wefhy.whymap.migrations.MappingsManager
 import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeLegacyVersion
 import dev.wefhy.whymap.migrations.MappingsManager.WhyMapLegacyMetadata
 import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.DebugTools.valStatPrintLog
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
@@ -456,19 +457,19 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     fun renderNativeImageBuffered(): NativeImage? {
         return if (!::renderedNative.isInitialized) {
-            null.also {
-                rerenderBuffered()
-            }
+            launchNativeRender()
+            valStatPrintLog("waiting")
+            null
         } else {
-            renderedNative.also {
-                if (nativeShouldBeReRendered()) {
-                    rerenderBuffered()
-                }
+            if (nativeShouldBeReRendered()) {
+                launchNativeRender()
             }
+            valStatPrintLog("success")
+            renderedNative
         }
     }
 
-    private fun rerenderBuffered() {
+    private fun launchNativeRender() {
         if (!nativeRenderInProgress) {
             nativeRenderInProgress = true
             mapAreaScope.launch {

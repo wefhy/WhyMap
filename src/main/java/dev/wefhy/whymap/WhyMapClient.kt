@@ -42,6 +42,11 @@ class WhyMapClient : ClientModInitializer {
 
     private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColor(x, y) }
 
+    val nativeImageBackedTextures by lazy {  //TODO use better way of reusing native textures
+        Array(4) { NativeImageBackedTexture(512, 512, false) }
+    }
+
+
     fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
         val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
 
@@ -141,6 +146,8 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.translate(-mapPosX, -mapPosY, 0f)
             }
 
+
+
             for ((region, rendered) in rendered) {
                 if (rendered == null) continue
                 val start = region.getStart()
@@ -149,8 +156,10 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
                 val texture: NativeImage = rendered
-
-                draw(mc, matrixStack, texture, mapScale)
+                rendered.close()
+                val i =
+                    region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
+                draw(mc, matrixStack, texture, mapScale, nativeImageBackedTextures[i], i)
                 matrixStack.pop()
             }
             matrixStack.pop()
@@ -279,6 +288,15 @@ class WhyMapClient : ClientModInitializer {
 
     fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float) {
         val textureId = mc.textureManager.registerDynamicTexture("dynamic_image", NativeImageBackedTexture(texture))
+        draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
+    }
+
+    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: NativeImageBackedTexture, i: Int) {
+        if (textureContainer.image != texture) {
+            textureContainer.image = texture
+        }
+        textureContainer.upload()
+        val textureId = mc.textureManager.registerDynamicTexture("dynamicimage$i", textureContainer)
         draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
     }
 
