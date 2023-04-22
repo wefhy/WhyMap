@@ -73,15 +73,35 @@ class WhyMapClient : ClientModInitializer {
             else -> 1
         }
 
+    private val mapScale
+        get() = 1/3f * WhyUserSettings.mapSettings.mapScale.toFloat()
+
+    private val mapSize = 130f
+    private val mapRadius
+        get() = mapSize / 2f * WhyUserSettings.mapSettings.mapScale.toFloat()
+    private val mapPadding = 5f
+
+
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
-        val mapScale = 1/3f
-        val mapSize = 130f
-        val mapRadius = mapSize / 2f
-        val mapPadding = 5f
         val mc = MinecraftClient.getInstance()
         val hud = WhyHud(mc)
-        HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
+
+        fun drawHud(matrixStack: MatrixStack) {
+            if (!WhyUserSettings.generalSettings.displayHud) return
+            with(matrixStack) {
+                push()
+                if (WhyUserSettings.mapSettings.minimapMode.visible) {
+                    translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
+                } else {
+                    translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
+                }
+                hud.draw()
+                pop()
+            }
+        }
+
+        fun drawMiniMap(matrixStack: MatrixStack) {
             val mapMode = WhyUserSettings.mapSettings.minimapMode
             val mapPosition = WhyUserSettings.mapSettings.minimapPosition
 
@@ -92,10 +112,10 @@ class WhyMapClient : ClientModInitializer {
             }
             val mapPosY = mapRadius + mapPadding
 
-            if (!mapMode.visible) return@register
-            val player = mc.player ?: return@register println("No player!")
-            val playerPos = player.pos ?: return@register println("No player pos!")
-            val mrm = activeWorld?.mapRegionManager ?: return@register println("No map region manager!")
+            if (!mapMode.visible) return
+            val player = mc.player ?: return println("No player!")
+            val playerPos = player.pos ?: return println("No player pos!")
+            val mrm = activeWorld?.mapRegionManager ?: return println("No map region manager!")
             val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
             val region = block.parent(TileZoom.RegionZoom)
             val center = region.getCenter()
@@ -175,20 +195,13 @@ class WhyMapClient : ClientModInitializer {
             matrixStack.pop()
             RenderSystem.disableScissor()
 
-            with(matrixStack) {
-                push()
-                translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
-                hud.draw()
-                pop()
-            }
-
 //
 //            val rendered = runBlocking {
 //                mrm.getRegionForTilesRendering(region) {
 ////                    getRendered()
 //                    renderNativeImage()
 //                }
-//            } ?: return@register println("Nothing to render!")
+//            } ?: return println("Nothing to render!")
 //            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
 //            matrixStack.push()
 //            matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
@@ -196,6 +209,11 @@ class WhyMapClient : ClientModInitializer {
 ////            val texture = createRandomTexture(512, 256)
 //            draw(mc, matrixStack, texture, mapScale)
 //            matrixStack.pop()
+        }
+
+        HudRenderCallback.EVENT.register { matrixStack: MatrixStack, tickDelta: Float ->
+            drawMiniMap(matrixStack)
+            drawHud(matrixStack)
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { mc ->

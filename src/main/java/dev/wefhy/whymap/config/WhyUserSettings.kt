@@ -15,7 +15,7 @@ object WhyUserSettings: WhySettings() {
     val serverSettings = ServerSettingsCategory().register()
 
     fun load(userSettings: UserSettings) {
-        generalSettings.mapScale = userSettings.mapScale
+        mapSettings.mapScale = userSettings.mapScale
         generalSettings.displayHud = userSettings.displayHud
         mapSettings.minimapPosition = userSettings.minimapPosition
         mapSettings.minimapMode = userSettings.minimapMode
@@ -24,7 +24,7 @@ object WhyUserSettings: WhySettings() {
 
     fun save(): UserSettings {
         return UserSettings(
-            mapScale = generalSettings.mapScale,
+            mapScale = mapSettings.mapScale,
             displayHud = generalSettings.displayHud,
             minimapPosition = mapSettings.minimapPosition,
             minimapMode = mapSettings.minimapMode,
@@ -34,13 +34,14 @@ object WhyUserSettings: WhySettings() {
 }
 
 class GeneralSettingsCategory : WhySettingsCategory("General") {
-    var mapScale by SettingsEntry(1.0).addSlider("Map scale", 0.5, 2.0)
     var displayHud by SettingsEntry(true).addToggle("Display HUD")
 }
 
 class MapSettingsCategory: WhySettingsCategory("Map") {
     var minimapPosition by SettingsEntry(UserSettings.MinimapPosition.TOP_LEFT).addToggle("Minimap position")
     var minimapMode by SettingsEntry(WhyMapClient.MapMode.NORTH_LOCKED).addToggle("Minimap mode")
+    var mapScale by SettingsEntry(1.0).addSlider("Map scale", 0.5, 2.0)
+
 }
 
 class ServerSettingsCategory: WhySettingsCategory("Server") {

@@ -50,7 +50,7 @@ class SettingsEntry<T: Any>(val default: T) {
         fun SettingsEntry<Boolean>.addToggle(name: String): SettingsEntry<Boolean> {
             var value by this
             addEntry {
-                startBooleanToggle(Text.literal(name), default)
+                startBooleanToggle(Text.literal(name), value)
                     .setSaveConsumer { value = it }
                     .setDefaultValue(default)
                     .build()
