@@ -28,7 +28,7 @@ abstract class WhySettings() {
         return configBuilder.build()
     }
 
-    fun WhySettingsCategory.register(): WhySettingsCategory {
+    fun<T: WhySettingsCategory> T.register(): T {
         categories.add(this)
         return this
     }

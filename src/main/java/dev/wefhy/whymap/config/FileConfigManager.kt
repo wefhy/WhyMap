@@ -21,25 +21,29 @@ object FileConfigManager {
     // Can this hint default values?
     // Add information about exact mod version that generated this config
 
-    var config = if (configFile.exists()) {
-        try {
-            toml.decodeFromString(configFile.readText())
-        } catch (e: Exception) {
-            println("Failed to load config: ${e.message}")
+    init {
+        val config = if (configFile.exists()) {
             try {
-                val bak = configFile.resolveSibling("${configFile.nameWithoutExtension}.${configFile.extension}.bak")
-                bak.delete()
-                configFile.renameTo(bak)
+                toml.decodeFromString(configFile.readText())
             } catch (e: Exception) {
-                println("Failed to backup old config: ${e.message}")
+                println("Failed to load config: ${e.message}")
+                try {
+                    val bak = configFile.resolveSibling("${configFile.nameWithoutExtension}.${configFile.extension}.bak")
+                    bak.delete()
+                    configFile.renameTo(bak)
+                } catch (e: Exception) {
+                    println("Failed to backup old config: ${e.message}")
+                }
+                ConfigData()
             }
+        } else {
             ConfigData()
         }
-    } else {
-        ConfigData()
+        WhyUserSettings.load(config.userSettings)
     }
 
     fun save() = try {
+        val config = ConfigData(userSettings = WhyUserSettings.save())
         configFile.writeText("${toml.encodeToString(config)}\n\n${UserSettings.help()}", Charsets.UTF_8)
         println("Saved config to ${configFile.absolutePath}")
     } catch (e: Exception) {

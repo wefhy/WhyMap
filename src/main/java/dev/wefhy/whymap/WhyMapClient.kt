@@ -5,8 +5,8 @@ package dev.wefhy.whymap
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.clothconfig.ConfigEntryPoint.getConfigScreen
-import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
+import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
 import dev.wefhy.whymap.hud.WhyHud
@@ -82,8 +82,8 @@ class WhyMapClient : ClientModInitializer {
         val mc = MinecraftClient.getInstance()
         val hud = WhyHud(mc)
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
-            val mapMode = FileConfigManager.config.userSettings.minimapMode
-            val mapPosition = FileConfigManager.config.userSettings.minimapPosition
+            val mapMode = WhyUserSettings.mapSettings.minimapMode
+            val mapPosition = WhyUserSettings.mapSettings.minimapPosition
 
             val mapPosX = when (mapPosition) {
                 MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
@@ -214,7 +214,7 @@ class WhyMapClient : ClientModInitializer {
                 }
             }
             if (kbShowMinimap.wasPressed()) {
-                FileConfigManager.config.userSettings.minimapMode = FileConfigManager.config.userSettings.minimapMode.next()
+                WhyUserSettings.mapSettings.minimapMode = WhyUserSettings.mapSettings.minimapMode.next()
             }
             if (kbModSettings.wasPressed()) {
                 mc.setScreen(getConfigScreen(null))

@@ -6,10 +6,10 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
-import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.ExposeHttpApi
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.portRange
+import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -34,7 +34,7 @@ import java.awt.image.BufferedImage
 
 fun Application.myApplicationModule() {
 
-    val exposeHttpApiSetting = FileConfigManager.config.userSettings.exposeHttpApi
+    val exposeHttpApiSetting = WhyUserSettings.serverSettings.exposeHttpApi
     if (exposeHttpApiSetting == ExposeHttpApi.DISABLED)
         return
     install(ContentNegotiation) {
@@ -84,7 +84,7 @@ object WhyServer {
             try {
                 WhyMapConfig.port = p
                 println("Trynig to run WhyMap server on port $p...")
-                val host = when(FileConfigManager.config.userSettings.exposeHttpApi) {
+                val host = when(WhyUserSettings.serverSettings.exposeHttpApi) {
                     ExposeHttpApi.DISABLED -> return
                     ExposeHttpApi.LOCALHOST_ONLY -> "localhost"
                     ExposeHttpApi.EVERYWHERE -> "0.0.0.0"
