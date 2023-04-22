@@ -14,13 +14,14 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
 import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
-import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
@@ -36,7 +37,6 @@ import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.texture.NativeImage
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.Heightmap
@@ -50,6 +50,7 @@ import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.PushbackInputStream
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.imageio.ImageIO
 import kotlin.math.atan
 
@@ -58,7 +59,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     val biomeManager = currentWorld.biomeManager
     var modifiedSinceRender = true
-    var modifiedSinceNativeRender = true
     var modifiedSinceSave = false
 
     val blockIdMap: Array<ShortArray> = Array(storageTileBlocks) { ShortArray(storageTileBlocks) { 0 } } // at least 12 bits, possibly 16
@@ -75,11 +75,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
     val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
     lateinit var rendered: BufferedImage
-    lateinit var renderedNative: NativeImage
+    lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
-    var lastNativeUpdate = 0L
+//    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
+    var nativeRenderInProgress = false //TODO atomic(false)
+    var regionRelativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
 
     val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
     val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
@@ -372,7 +374,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
-        modifiedSinceNativeRender = true
+        regionRelativeChunkUpdateQueue.add(LocalTile.Chunk(chunk.pos.regionRelativeX, chunk.pos.regionRelativeZ))
 
 //        CoroutineScope(Job()).launch {
 //
@@ -396,10 +398,36 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    private fun nativeShouldBeReRendered(): Boolean {
-        val elapsed = currentMillis() - lastNativeUpdate
-        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
+    private fun nativeUpdateChunks() {
+        var chunk: LocalTile<TileZoom.ChunkZoom>
+        while(true) {
+            chunk = regionRelativeChunkUpdateQueue.poll() ?: break
+            nativeUpdateChunk(chunk)
+        }
     }
+
+    private fun nativeUpdateChunk(localTileChunk: LocalTileChunk) {
+        val regionRelativeChunk = LocalTile.Chunk(
+            localTileChunk.x and (storageTileChunks - 1),
+            localTileChunk.z and (storageTileChunks - 1)
+        )
+
+        val startBlockX = regionRelativeChunk.x shl blocksInChunkLog
+        val startBlockZ = regionRelativeChunk.z shl blocksInChunkLog
+
+        val renderedChunk = WhyTile { y, x ->
+            calculateColor(
+                startBlockZ + y,
+                startBlockX + x,
+            )
+        }
+        renderedWhyImage.data[regionRelativeChunk.z][regionRelativeChunk.x] = renderedChunk
+    }
+
+//    private fun nativeShouldBeReRendered(): Boolean {
+//        val elapsed = currentMillis() - lastNativeUpdate
+//        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
+//    }
 
     private fun shouldBeReRendered(scaleLog: Int): Boolean {
         return when (scaleLog) {
@@ -444,30 +472,51 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-    fun renderNativeImage(): NativeImage {
-        return if (::renderedNative.isInitialized && !nativeShouldBeReRendered())
-            renderedNative
-        else _renderNativeImage()
+//    fun renderWhyImage(): WhyTiledImage {
+//        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
+//            renderedWhyImage
+//        else {
+//            nativeRenderInProgress = true
+//            _renderWhyImage().also { nativeRenderInProgress = false }
+//        }
+//    }
+
+    fun renderWhyImageBuffered(): WhyTiledImage? {
+        return if (!::renderedWhyImage.isInitialized) {
+            launchWhyRender()
+//            valStatPrintLog("waiting")
+            null
+        } else {
+            nativeUpdateChunks()
+//            valStatPrintLog("success")
+            renderedWhyImage
+        }
     }
 
-    private fun _renderNativeImage(): NativeImage {
-        val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
+    private fun launchWhyRender() {
+        if (!nativeRenderInProgress) {
+            nativeRenderInProgress = true
+            mapAreaScope.launch {
+                _renderWhyImage()
+                nativeRenderInProgress = false
+            }
+        }
+    }
+
+    private fun _renderWhyImage(): WhyTiledImage {
         var failCounter = 0
-        for (z in 0 until storageTileBlocks) {
-            for (x in 0 until storageTileBlocks) {
-                try {
-                    val color = calculateColor(z, x)
-                    image.setColor(x, z, 255 shl 24 or color.intBGR)
-                } catch (_: IndexOutOfBoundsException) {
-                    failCounter++
-                }
+        val image = WhyTiledImage.BuildForRegion { y, x ->
+            try {
+                calculateColor(y, x)
+            } catch (_: IndexOutOfBoundsException) {
+                failCounter++
+                WhyColor.Transparent
             }
         }
         if (failCounter > 0)
             println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
-        lastNativeUpdate = currentMillis()
-        modifiedSinceNativeRender = false
-        renderedNative = image
+//        lastNativeUpdate = currentMillis()
+        renderedWhyImage = image
         return image
     }
 
@@ -511,14 +560,19 @@ class MapArea private constructor(val location: LocalTileRegion) {
     }
 
     private fun calculateColor(z: Int, x: Int): WhyColor {
-        val block = decodeBlock(blockIdMap[z][x])
-        val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-        val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
-        val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
+        val blockId = blockIdMap[z][x]
+        val overlayId = blockOverlayIdMap[z][x]
+        if (blockId == 0.toShort() && overlayId == 0.toShort()) return WhyColor.Transparent
+        val biomeId = biomeMap[z][x]
+
+        val block = decodeBlock(blockId)
+        val foliageColor = biomeManager.decodeBiomeFoliage(biomeId)
+        val baseBlockColor = decodeBlockColor(blockId)
+        val overlayBlock = decodeBlock(overlayId)
         val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-            biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+            biomeManager.decodeBiomeWaterColor(biomeId)
         else
-            decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
+            decodeBlockColor(overlayId) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
         val normal = getNormalSharp(x, z)
         val depth = depthMap[z][x].toUByte()
@@ -527,7 +581,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             baseBlockColor * foliageColor
         } else baseBlockColor) * normal.shade
 
-        if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+        if (depth > 0u && !fastIgnoreLookup[overlayId.toInt()]) {
             val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
                 -depth.toInt() * 4
             } else 0
