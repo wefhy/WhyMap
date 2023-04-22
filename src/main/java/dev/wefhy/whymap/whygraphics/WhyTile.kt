@@ -114,12 +114,12 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
 
     companion object {
         const val lineShl = 4
-        const val chunkSize = 1 shl lineShl
-        const val arrayShl = lineShl shl 1
-        const val arraySize = chunkSize * chunkSize
-        const val lineMask = chunkSize - 1
-        const val arrayMask = arraySize - 1
-        const val arraySizeDiv = 1f / arraySize
+        const val chunkSize = 1 shl lineShl // 16
+        const val arrayShl = lineShl shl 1 // 8
+        const val arraySize = chunkSize * chunkSize // 256
+        const val lineMask = chunkSize - 1 // 15
+        const val arrayMask = arraySize - 1 // 255
+        const val arraySizeDiv = 1f / arraySize // 1/256
 
         fun BufferedImage.asWhyTile(): WhyTile? {
             if (width != chunkSize) return null

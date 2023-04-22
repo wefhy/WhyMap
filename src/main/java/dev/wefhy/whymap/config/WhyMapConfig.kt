@@ -43,6 +43,7 @@ object WhyMapConfig {
     val chunk_per_quadrant = 1 shl (chunkZoom - 1) //2M
     val regionsPerQuadrant = 1 shl (regionZoom - 1) //65k
 
+    val blocksPerChunk = 1 shl blocksInChunkLog //16
     val storageTileBlocks = 1 shl storageTileLog //512
     val storageTileBlocksSquared = storageTileBlocks * storageTileBlocks //512*512 = 262k
     val storageTileChunks = storageTileBlocks shr blocksInChunkLog // 32

@@ -14,13 +14,14 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
 import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
-import dev.wefhy.whymap.config.WhyMapConfig.nativeReRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
 import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
 import dev.wefhy.whymap.events.ChunkUpdateQueue
 import dev.wefhy.whymap.events.RegionUpdateQueue
 import dev.wefhy.whymap.events.ThumbnailUpdateQueue
@@ -31,7 +32,6 @@ import dev.wefhy.whymap.migrations.MappingsManager
 import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeLegacyVersion
 import dev.wefhy.whymap.migrations.MappingsManager.WhyMapLegacyMetadata
 import dev.wefhy.whymap.utils.*
-import dev.wefhy.whymap.utils.DebugTools.valStatPrintLog
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
 import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
@@ -59,7 +59,6 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     val biomeManager = currentWorld.biomeManager
     var modifiedSinceRender = true
-    var modifiedSinceNativeRender = true
     var modifiedSinceSave = false
 
     val blockIdMap: Array<ShortArray> = Array(storageTileBlocks) { ShortArray(storageTileBlocks) { 0 } } // at least 12 bits, possibly 16
@@ -79,10 +78,10 @@ class MapArea private constructor(val location: LocalTileRegion) {
     lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
-    var lastNativeUpdate = 0L
+//    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
     var nativeRenderInProgress = false //TODO atomic(false)
-    var nativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
+    var regionRelativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
 
     val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
     val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
@@ -375,7 +374,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
-        modifiedSinceNativeRender = true
+        regionRelativeChunkUpdateQueue.add(LocalTile.Chunk(chunk.pos.regionRelativeX, chunk.pos.regionRelativeZ))
 
 //        CoroutineScope(Job()).launch {
 //
@@ -402,19 +401,33 @@ class MapArea private constructor(val location: LocalTileRegion) {
     private fun nativeUpdateChunks() {
         var chunk: LocalTile<TileZoom.ChunkZoom>
         while(true) {
-            chunk = nativeChunkUpdateQueue.poll() ?: break
+            chunk = regionRelativeChunkUpdateQueue.poll() ?: break
             nativeUpdateChunk(chunk)
         }
     }
 
     private fun nativeUpdateChunk(localTileChunk: LocalTileChunk) {
+        val regionRelativeChunk = LocalTile.Chunk(
+            localTileChunk.x and (storageTileChunks - 1),
+            localTileChunk.z and (storageTileChunks - 1)
+        )
 
+        val startBlockX = regionRelativeChunk.x shl blocksInChunkLog
+        val startBlockZ = regionRelativeChunk.z shl blocksInChunkLog
+
+        val renderedChunk = WhyTile { y, x ->
+            calculateColor(
+                startBlockZ + y,
+                startBlockX + x,
+            )
+        }
+        renderedWhyImage.data[regionRelativeChunk.z][regionRelativeChunk.x] = renderedChunk
     }
 
-    private fun nativeShouldBeReRendered(): Boolean {
-        val elapsed = currentMillis() - lastNativeUpdate
-        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
-    }
+//    private fun nativeShouldBeReRendered(): Boolean {
+//        val elapsed = currentMillis() - lastNativeUpdate
+//        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
+//    }
 
     private fun shouldBeReRendered(scaleLog: Int): Boolean {
         return when (scaleLog) {
@@ -459,25 +472,23 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-    fun renderWhyImage(): WhyTiledImage {
-        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
-            renderedWhyImage
-        else {
-            nativeRenderInProgress = true
-            _renderWhyImage().also { nativeRenderInProgress = false }
-        }
-    }
+//    fun renderWhyImage(): WhyTiledImage {
+//        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
+//            renderedWhyImage
+//        else {
+//            nativeRenderInProgress = true
+//            _renderWhyImage().also { nativeRenderInProgress = false }
+//        }
+//    }
 
     fun renderWhyImageBuffered(): WhyTiledImage? {
         return if (!::renderedWhyImage.isInitialized) {
             launchWhyRender()
-            valStatPrintLog("waiting")
+//            valStatPrintLog("waiting")
             null
         } else {
-            if (nativeShouldBeReRendered()) {
-                launchWhyRender()
-            }
-            valStatPrintLog("success")
+            nativeUpdateChunks()
+//            valStatPrintLog("success")
             renderedWhyImage
         }
     }
@@ -504,8 +515,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         if (failCounter > 0)
             println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
-        lastNativeUpdate = currentMillis()
-        modifiedSinceNativeRender = false
+//        lastNativeUpdate = currentMillis()
         renderedWhyImage = image
         return image
     }
