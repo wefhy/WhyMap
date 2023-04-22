@@ -8,6 +8,7 @@ import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
+import dev.wefhy.whymap.hud.Hud
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
 import dev.wefhy.whymap.utils.LocalTile.Companion.Region
 import dev.wefhy.whymap.utils.TileZoom
@@ -160,6 +161,19 @@ class WhyMapClient : ClientModInitializer {
             playerIcon(matrixStack)
             matrixStack.pop()
             RenderSystem.disableScissor()
+            val hud = Hud()
+
+            val lines = listOf("hi", "there", "how", "are", "you")
+            lines.forEach { line ->
+                hud.addLine(line)
+            }
+
+            with(matrixStack) {
+                push()
+                translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
+                hud.draw()
+                pop()
+            }
 
 //
 //            val rendered = runBlocking {
