@@ -8,6 +8,7 @@ import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
+import dev.wefhy.whymap.hud.WhyHud
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
 import dev.wefhy.whymap.utils.LocalTile.Companion.Region
 import dev.wefhy.whymap.utils.TileZoom
@@ -73,6 +74,7 @@ class WhyMapClient : ClientModInitializer {
         val mapRadius = mapSize / 2f
         val mapPadding = 5f
         val mc = MinecraftClient.getInstance()
+        val hud = WhyHud(mc)
         HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
             val mapMode = FileConfigManager.config.userSettings.minimapMode
             val mapPosition = FileConfigManager.config.userSettings.minimapPosition
@@ -161,6 +163,13 @@ class WhyMapClient : ClientModInitializer {
             playerIcon(matrixStack)
             matrixStack.pop()
             RenderSystem.disableScissor()
+
+            with(matrixStack) {
+                push()
+                translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
+                hud.draw()
+                pop()
+            }
 
 //
 //            val rendered = runBlocking {

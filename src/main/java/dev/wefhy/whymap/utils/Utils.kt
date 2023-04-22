@@ -24,6 +24,9 @@ const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
 const val _1_2 = 1f / 2
 
+inline fun Double.roundToString(places: Int) = String.format("%.${places}f", this)
+inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
+
 inline fun Double.roundTo(places: Int) = (this * 10.0.pow(places)).roundToInt() * 0.1.pow(places)
 
 fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x128 textures without integer overflow!!!
