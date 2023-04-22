@@ -37,7 +37,6 @@ import dev.wefhy.whymap.whygraphics.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.texture.NativeImage
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.Heightmap
@@ -76,7 +75,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
     val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
     lateinit var rendered: BufferedImage
-    lateinit var renderedNative: NativeImage
+    lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
     var lastNativeUpdate = 0L
@@ -446,58 +445,54 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-    fun renderNativeImage(): NativeImage {
-        return if (::renderedNative.isInitialized && !nativeShouldBeReRendered())
-            renderedNative
+    fun renderWhyImage(): WhyTiledImage {
+        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
+            renderedWhyImage
         else {
             nativeRenderInProgress = true
-            _renderNativeImage().also { nativeRenderInProgress = false }
+            _renderWhyImage().also { nativeRenderInProgress = false }
         }
     }
 
-    fun renderNativeImageBuffered(): NativeImage? {
-        return if (!::renderedNative.isInitialized) {
-            launchNativeRender()
+    fun renderWhyImageBuffered(): WhyTiledImage? {
+        return if (!::renderedWhyImage.isInitialized) {
+            launchWhyRender()
             valStatPrintLog("waiting")
             null
         } else {
             if (nativeShouldBeReRendered()) {
-                launchNativeRender()
+                launchWhyRender()
             }
             valStatPrintLog("success")
-            renderedNative
+            renderedWhyImage
         }
     }
 
-    private fun launchNativeRender() {
+    private fun launchWhyRender() {
         if (!nativeRenderInProgress) {
             nativeRenderInProgress = true
             mapAreaScope.launch {
-                _renderNativeImage()
+                _renderWhyImage()
                 nativeRenderInProgress = false
             }
         }
     }
 
-    private fun _renderNativeImage(): NativeImage {
-//        valStatPrintLog("render native")
-        val image = NativeImage(NativeImage.Format.RGBA, storageTileBlocks, storageTileBlocks, false)
+    private fun _renderWhyImage(): WhyTiledImage {
         var failCounter = 0
-        for (z in 0 until storageTileBlocks) {
-            for (x in 0 until storageTileBlocks) {
-                try {
-                    val color = calculateColor(z, x)
-                    image.setColor(x, z, 255 shl 24 or color.intBGR)
-                } catch (_: IndexOutOfBoundsException) {
-                    failCounter++
-                }
+        val image = WhyTiledImage.BuildForRegion { x, y ->
+            try {
+                calculateColor(y, x)
+            } catch (_: IndexOutOfBoundsException) {
+                failCounter++
+                WhyColor.Transparent
             }
         }
         if (failCounter > 0)
             println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
         lastNativeUpdate = currentMillis()
         modifiedSinceNativeRender = false
-        renderedNative = image
+        renderedWhyImage = image
         return image
     }
 

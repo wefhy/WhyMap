@@ -9,6 +9,8 @@ import java.awt.image.WritableRaster
 
 open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparent }) : WhyImage(chunkSize, chunkSize) {
 
+    constructor(builder: (y: Int, x: Int) -> WhyColor) : this(Array(arraySize) { i -> builder(i and lineMask, i shr lineShl) })
+
     @OptIn(ExpensiveCall::class)
     override fun get(y: Int, x: Int): WhyColor {
         return data[(y shl lineShl) + x]

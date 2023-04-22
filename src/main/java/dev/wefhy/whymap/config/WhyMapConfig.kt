@@ -31,7 +31,7 @@ object WhyMapConfig {
     val blocksInChunkLog = 4
     val storageTileLog = 9
     val regionThumbnailScaleLog = 2
-    val chunksPerRegionLog = storageTileLog - blocksInChunkLog
+    val chunksPerRegionLog = storageTileLog - blocksInChunkLog // 5
     val chunkZoom = blockZoom - blocksInChunkLog // 22
     val regionZoom = blockZoom - storageTileLog // 17
     val thumbnailZoom = regionZoom - regionThumbnailScaleLog // 15

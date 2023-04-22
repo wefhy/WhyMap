@@ -115,7 +115,7 @@ class WhyMapClient : ClientModInitializer {
             val rendered = runBlocking {
                 regions.associateWith {
                     mrm.getRegionForMinimapRendering(it) {
-                        renderNativeImageBuffered()
+                        renderWhyImageBuffered()
 //                        renderNativeImage()
                     }
                 }
@@ -155,12 +155,13 @@ class WhyMapClient : ClientModInitializer {
                 val diffZ = start.z - block.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
-                val texture: NativeImage = rendered
-                rendered.close()
+//                val texture: WhyTiledImage = rendered
+                val texture: NativeImage = rendered.toNativeImage() //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
                 val i =
                     region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
                 draw(mc, matrixStack, texture, mapScale, nativeImageBackedTextures[i], i)
                 matrixStack.pop()
+                texture.close()
             }
             matrixStack.pop()
             matrixStack.push()
