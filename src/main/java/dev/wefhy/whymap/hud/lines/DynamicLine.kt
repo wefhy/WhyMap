@@ -4,7 +4,8 @@ package dev.wefhy.whymap.hud.lines
 
 import dev.wefhy.whymap.hud.HudLine
 
-class DynamicLine(private val getText: () -> String) : HudLine() {
+class DynamicLine(private val getText: () -> String?) : HudLine() {
+
     override val text: String
-        get() = getText()
+        get() = getText()?.also { visible = true } ?: "".also { visible = false }
 }

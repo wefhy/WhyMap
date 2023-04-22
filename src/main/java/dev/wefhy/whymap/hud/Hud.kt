@@ -7,7 +7,7 @@ import dev.wefhy.whymap.hud.lines.StaticLine
 import dev.wefhy.whymap.whygraphics.WhyColor
 import net.minecraft.client.util.math.MatrixStack
 
-class Hud {
+open class Hud {
 
     val lines = mutableListOf<HudLine>()
 
@@ -19,7 +19,7 @@ class Hud {
         lines.add(StaticLine(text, color))
     }
 
-    fun addLine(text: () -> String) {
+    fun addLine(text: () -> String?) {
         lines.add(DynamicLine(text))
     }
 

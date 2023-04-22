@@ -26,7 +26,7 @@ abstract class HudLine {
     open val color: WhyColor = WhyColor.White
     open val scale: Float = 0.8f
     open val priority: Int = 0
-    open val visible: Boolean = true
+    var visible: Boolean = true
     open val height: Float
         get() = scale * 12f
 }
