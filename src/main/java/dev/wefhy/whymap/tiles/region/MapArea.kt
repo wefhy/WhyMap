@@ -550,14 +550,19 @@ class MapArea private constructor(val location: LocalTileRegion) {
     }
 
     private fun calculateColor(z: Int, x: Int): WhyColor {
-        val block = decodeBlock(blockIdMap[z][x])
-        val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-        val baseBlockColor = decodeBlockColor(blockIdMap[z][x])
-        val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
+        val blockId = blockIdMap[z][x]
+        val overlayId = blockOverlayIdMap[z][x]
+        if (blockId == 0.toShort() && overlayId == 0.toShort()) return WhyColor.Transparent
+        val biomeId = biomeMap[z][x]
+
+        val block = decodeBlock(blockId)
+        val foliageColor = biomeManager.decodeBiomeFoliage(biomeId)
+        val baseBlockColor = decodeBlockColor(blockId)
+        val overlayBlock = decodeBlock(overlayId)
         val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-            biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
+            biomeManager.decodeBiomeWaterColor(biomeId)
         else
-            decodeBlockColor(blockOverlayIdMap[z][x]) //TODO overlays should use correct alpha - it's not handled at all for now :(
+            decodeBlockColor(overlayId) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
         val normal = getNormalSharp(x, z)
         val depth = depthMap[z][x].toUByte()
@@ -566,7 +571,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             baseBlockColor * foliageColor
         } else baseBlockColor) * normal.shade
 
-        if (depth > 0u && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
+        if (depth > 0u && !fastIgnoreLookup[overlayId.toInt()]) {
             val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
                 -depth.toInt() * 4
             } else 0
