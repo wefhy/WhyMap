@@ -1,5 +1,10 @@
 # WhyMap changelog
 
+## 1.6.1
+ - Disable minimap by default
+ - Add a warning saying minimap will cause crashes
+ - Improve hud position on the screen
+
 ## 1.6.0
  - Fixed minimap crashes-
  - Fixed minimap memory leaks
