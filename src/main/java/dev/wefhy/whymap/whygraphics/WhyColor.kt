@@ -54,6 +54,15 @@ class WhyColor(
             )
         }
 
+        fun fromABGR(abgr: Int): WhyColor {
+            return WhyColor(
+                (abgr and 0xFF) * _1_255,
+                ((abgr shr 8) and 0xFF) * _1_255,
+                ((abgr shr 16) and 0xFF) * _1_255,
+                ((abgr shr 24) and 0xFF) * _1_255
+            )
+        }
+
 //        fun fromARGB(argb: Int): WhyColor {
 //            return WhyColor(
 //                ((argb shr 16) and 0xFF) * _1_255,
