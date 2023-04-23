@@ -14,6 +14,7 @@ class WhyColor(
     @JvmField val b: Float,
     @JvmField val a: Float = 1f
 ) {
+//    val intABGR by lazy { _intABGR }
     override fun toString(): String {
         return "WhyColor(r=$r, g=$g, b=$b, a=$a)"
     }
