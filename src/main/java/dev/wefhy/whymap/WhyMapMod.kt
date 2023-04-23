@@ -32,6 +32,7 @@ class WhyMapMod : ModInitializer {
     val chunkLoadScope = CoroutineScope(WhyDispatchers.ChunkLoad)
 
     override fun onInitialize() {
+        FileConfigManager.load()
 
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
             if (cw == null || wc == null || wc.isEmpty) return@register

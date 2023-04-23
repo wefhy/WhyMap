@@ -32,7 +32,8 @@
         "adapter": "kotlin",
         "value": "dev.wefhy.whymap.WhyMapClient"
       }
-    ]
+    ],
+    "modmenu" : [ "dev.wefhy.whymap.clothconfig.ModMenuEntryPoint" ]
   },
   "mixins": [
     "whymap.mixins.json"
@@ -42,11 +43,15 @@
     "fabricloader": ">=0.14.9",
     "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0",
     "fabric": "*",
-    "minecraft": "^1.19.3",
+    "minecraft": "~1.19.3",
     "java": ">=17",
     "fabric-key-binding-api-v1": "*"
   },
+  "recommends": {
+    "cloth-config": "^10.0"
+  },
   "suggests": {
+    "modmenu": "^6.0"
   },
   "custom": {
     "modupdater": {

@@ -19,4 +19,18 @@ object DebugTools {
         valueStats[r] = v + 1
         return r
     }
+
+
+    fun<T: Any> valStatPrintLog(r: T) {
+        val v = valueStats.getOrDefault(r, 0)
+        val i = v + 1
+        valueStats[r] = i
+        if (i.isPowerOfTwo()) {
+            println("$r: $i")
+        }
+    }
+}
+
+private fun Int.isPowerOfTwo(): Boolean {
+    return this > 0 && this and (this - 1) == 0
 }

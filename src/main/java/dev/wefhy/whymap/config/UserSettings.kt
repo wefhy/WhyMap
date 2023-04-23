@@ -16,6 +16,8 @@ data class UserSettings(
 //        "tripwire",
 //        "vine",
 //    ),
+    var mapScale: Double = 1.0,
+    var displayHud: Boolean = true,
     var minimapPosition: MinimapPosition = MinimapPosition.TOP_LEFT,
     var minimapMode: WhyMapClient.MapMode = WhyMapClient.MapMode.NORTH_LOCKED,
 //    var minimapSize: Int = 128,

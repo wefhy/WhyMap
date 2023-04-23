@@ -2,6 +2,8 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import dev.wefhy.whymap.config.WhyMapConfig
+import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.utils.ExpensiveCall
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -12,8 +14,14 @@ import java.io.OutputStream
 class WhyTiledImage(
     private val xTiles: Int,
     private val yTiles: Int,
-) : WhyImage(xTiles * WhyTile.chunkSize, yTiles * WhyTile.chunkSize) {
     val data: Array<Array<WhyTile?>> = Array(yTiles) { Array(xTiles) { null } }
+) : WhyImage(xTiles * WhyTile.chunkSize, yTiles * WhyTile.chunkSize) {
+
+    constructor(xTiles: Int, yTiles: Int, builder: (y: Int, x: Int) -> WhyTile) : this(
+        xTiles,
+        yTiles,
+        Array(yTiles) { y -> Array(xTiles) { x -> builder(y, x) } }
+    )
 
     @ExpensiveCall
     override fun get(y: Int, x: Int): WhyColor? {
@@ -70,5 +78,17 @@ class WhyTiledImage(
     context(OutputStream)
     fun toJpeg() {
         encodeJPEG(toBufferedImage())
+    }
+
+    companion object {
+
+        fun BuildForRegion(builder: (y: Int, x: Int) -> WhyColor): WhyTiledImage {
+            return WhyTiledImage(WhyMapConfig.storageTileChunks, WhyMapConfig.storageTileChunks) { y, x ->
+                WhyTile { yPixel, xPixel ->
+                    builder((y shl blocksInChunkLog) + yPixel, (x shl blocksInChunkLog) + xPixel)
+                }
+            }
+        }
+
     }
 }

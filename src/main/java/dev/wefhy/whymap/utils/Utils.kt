@@ -17,6 +17,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.internal.*
+import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -28,6 +29,12 @@ inline fun Double.roundToString(places: Int) = String.format("%.${places}f", thi
 inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
 
 inline fun Double.roundTo(places: Int) = (this * 10.0.pow(places)).roundToInt() * 0.1.pow(places)
+
+private inline fun Double._significant(places: Int) = (places - log10(this)).toInt().coerceAtLeast(0)
+
+internal inline fun Double.significant(places: Int) = String.format("%.${_significant(places)}f", this)
+
+internal inline fun Double.significantBy(max: Double, places: Int) = String.format("%.${max._significant(places)}f", this)
 
 fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x128 textures without integer overflow!!!
     val bytes = (data.dataBuffer as DataBufferByte).data

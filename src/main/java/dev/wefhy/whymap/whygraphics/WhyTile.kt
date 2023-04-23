@@ -9,6 +9,8 @@ import java.awt.image.WritableRaster
 
 open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Transparent }) : WhyImage(chunkSize, chunkSize) {
 
+    constructor(builder: (y: Int, x: Int) -> WhyColor) : this(Array(arraySize) { i -> builder(i shr lineShl, i and lineMask) })
+
     @OptIn(ExpensiveCall::class)
     override fun get(y: Int, x: Int): WhyColor {
         return data[(y shl lineShl) + x]
@@ -90,7 +92,7 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
         for (y in yOffset until yOffset + chunkSize) {
             for (x in xOffset until xOffset + chunkSize) {
                 val color = data[i++]
-                nativeImage.setColor(x, y, color.intRGBA)
+                nativeImage.setColor(x, y, color.intABGR)
             }
         }
     }
@@ -112,12 +114,12 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
 
     companion object {
         const val lineShl = 4
-        const val chunkSize = 1 shl lineShl
-        const val arrayShl = lineShl shl 1
-        const val arraySize = chunkSize * chunkSize
-        const val lineMask = chunkSize - 1
-        const val arrayMask = arraySize - 1
-        const val arraySizeDiv = 1f / arraySize
+        const val chunkSize = 1 shl lineShl // 16
+        const val arrayShl = lineShl shl 1 // 8
+        const val arraySize = chunkSize * chunkSize // 256
+        const val lineMask = chunkSize - 1 // 15
+        const val arrayMask = arraySize - 1 // 255
+        const val arraySizeDiv = 1f / arraySize // 1/256
 
         fun BufferedImage.asWhyTile(): WhyTile? {
             if (width != chunkSize) return null

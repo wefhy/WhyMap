@@ -8,7 +8,12 @@ import dev.wefhy.whymap.utils._1_2
 import dev.wefhy.whymap.utils._1_255
 import dev.wefhy.whymap.utils.coerceIn0255
 
-class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
+class WhyColor(
+    @JvmField val r: Float,
+    @JvmField val g: Float,
+    @JvmField val b: Float,
+    @JvmField val a: Float = 1f
+) {
     override fun toString(): String {
         return "WhyColor(r=$r, g=$g, b=$b, a=$a)"
     }
@@ -49,6 +54,15 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
             )
         }
 
+        fun fromABGR(abgr: Int): WhyColor {
+            return WhyColor(
+                (abgr and 0xFF) * _1_255,
+                ((abgr shr 8) and 0xFF) * _1_255,
+                ((abgr shr 16) and 0xFF) * _1_255,
+                ((abgr shr 24) and 0xFF) * _1_255
+            )
+        }
+
 //        fun fromARGB(argb: Int): WhyColor {
 //            return WhyColor(
 //                ((argb shr 16) and 0xFF) * _1_255,
@@ -61,7 +75,7 @@ class WhyColor(val r: Float, val g: Float, val b: Float, val a: Float = 1f) {
 }
 
 val WhyColor.intR
-    inline get() = (r * 255).toInt().coerceIn0255()
+    inline get() = (r * 255).toInt().coerceIn0255() //TODO create CoercedWhyColor? Might be a lot more efficient for some operations
 val WhyColor.intG
     inline get() = (g * 255).toInt().coerceIn0255()
 val WhyColor.intB
@@ -76,6 +90,8 @@ val WhyColor.intRGBA
     inline get() = (intR shl 24) or (intG shl 16) or (intB shl 8) or intA
 val WhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
+val WhyColor.intABGR
+    inline get() = (intA shl 24) or (intB shl 16) or (intG shl 8) or intR
 
 val WhyColor.floatArray
     get() = floatArrayOf(r, g, b, a)
