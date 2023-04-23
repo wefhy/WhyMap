@@ -21,7 +21,7 @@ object FileConfigManager {
     // Can this hint default values?
     // Add information about exact mod version that generated this config
 
-    init {
+    fun load() {
         val config = if (configFile.exists()) {
             try {
                 toml.decodeFromString(configFile.readText())
