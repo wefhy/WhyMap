@@ -14,7 +14,7 @@ import kotlin.math.log10
 import kotlin.reflect.KProperty
 
 context(WhySettingsCategory)
-class SettingsEntry<T: Any>(val default: T) {
+open class SettingsEntry<T: Any>(val default: T) {
 
     private var _value: T = default
 
@@ -32,6 +32,10 @@ class SettingsEntry<T: Any>(val default: T) {
         _value = value
     }
 
+    open var guiValue
+        get() = _value
+        set(value) { _value = value }
+
     context(ConfigCategory)
     fun addToCategory() {
         return this@ConfigCategory.entryBuilder()
@@ -48,10 +52,9 @@ class SettingsEntry<T: Any>(val default: T) {
 
     companion object {
         fun SettingsEntry<Boolean>.addToggle(name: String): SettingsEntry<Boolean> {
-            var value by this
             addEntry {
-                startBooleanToggle(Text.literal(name), value)
-                    .setSaveConsumer { value = it }
+                startBooleanToggle(Text.literal(name), guiValue)
+                    .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
                     .build()
             }
@@ -59,11 +62,10 @@ class SettingsEntry<T: Any>(val default: T) {
         }
 
         fun SettingsEntry<Int>.addSlider(name: String, min: Int = 0, max: Int = 100): SettingsEntry<Int> {
-            var value by this
             addEntry {
-                startIntSlider(Text.literal(name), value, min, max)
+                startIntSlider(Text.literal(name), guiValue, min, max)
                     .setTextGetter { Text.literal("$it%") }
-                    .setSaveConsumer { value = it }
+                    .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
                     .build()
             }
@@ -73,11 +75,10 @@ class SettingsEntry<T: Any>(val default: T) {
         fun SettingsEntry<Double>.addSlider(name: String, min: Double = 0.0, max: Double = 100.0, resolution: Int = 100): SettingsEntry<Double> {
             with(MappingContext(resolution, min, max)) {
                 val signifPlaces = log10(resolution - 1f).toInt() + 1
-                var value by this@addSlider
                 addEntry {
-                    startIntSlider(Text.literal(name), value.mapToInt, 0, resolution)
+                    startIntSlider(Text.literal(name), guiValue.mapToInt, 0, resolution)
                         .setTextGetter { Text.literal(it.mapToDouble.significantBy(max, signifPlaces)) }
-                        .setSaveConsumer { value = it.mapToDouble }
+                        .setSaveConsumer { guiValue = it.mapToDouble }
                         .setDefaultValue(default.mapToInt)
                         .build()
                 }
@@ -86,10 +87,9 @@ class SettingsEntry<T: Any>(val default: T) {
         }
 
         internal fun<T : Enum<T>> SettingsEntry<T>.addToggle(name: String): SettingsEntry<T> {
-            var value by this
             addEntry {
-                startEnumSelector(Text.literal(name), value.javaClass, value)
-                    .setSaveConsumer { value = it }
+                startEnumSelector(Text.literal(name), guiValue.javaClass, guiValue)
+                    .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
                     .build()
             }
@@ -97,6 +97,49 @@ class SettingsEntry<T: Any>(val default: T) {
         }
     }
 }
+
+context(WhySettingsCategory)
+class VetoableSettingsEntry<T: Any>(default: T, val allow: (T) -> Boolean): SettingsEntry<T>(default) {
+
+    override var guiValue: T
+        get() = super.guiValue
+        set(value) {
+            if (allow(value)) {
+                super.guiValue = value
+            }
+        }
+}
+
+context(WhySettingsCategory)
+class CustomSetSettingsEntry<T: Any>(default: T, val set: (proposedValue: T, actuallySet: () -> Unit) -> Unit): SettingsEntry<T>(default) {
+    override var guiValue: T
+        get() = super.guiValue
+        set(value) {
+            if (guiValue == value) return
+            set(value) {
+                super.guiValue = value
+            }
+        }
+}
+
+//context(WhySettingsCategory)
+//class ConfirmScreenSettingsEntry<T: Any>(default: T, confirmMessage: String): SettingsEntry<T>(default) {
+//    override var guiValue: T
+//        get() = super.guiValue
+//        set(value) {
+//            if (guiValue == value) return
+//            with(MinecraftClient.getInstance()) {
+//                WhyConfirmScreen(
+//                    "Experimental minimap",
+//                    "This minimap is experimental and may cause crashes. Are you sure you want to enable it?"
+//                ) {
+//                    if (it) {
+//                        super.guiValue = value
+//                    }
+//                }.show()
+//            }
+//        }
+//}
 
 //fun main() {
 //

@@ -3,11 +3,16 @@
 package dev.wefhy.whymap.config
 
 import dev.wefhy.whymap.WhyMapClient
+import dev.wefhy.whymap.gui.WhyConfirmScreen
+import dev.wefhy.whymap.libs.whysettings.CustomSetSettingsEntry
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry.Companion.addSlider
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry.Companion.addToggle
 import dev.wefhy.whymap.libs.whysettings.WhySettings
 import dev.wefhy.whymap.libs.whysettings.WhySettingsCategory
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import net.minecraft.client.MinecraftClient
 
 object WhyUserSettings: WhySettings() {
     val generalSettings = GeneralSettingsCategory().register()
@@ -20,6 +25,7 @@ object WhyUserSettings: WhySettings() {
         mapSettings.minimapPosition = userSettings.minimapPosition
         mapSettings.minimapMode = userSettings.minimapMode
         serverSettings.exposeHttpApi = userSettings.exposeHttpApi
+        mapSettings.forceExperimentalMinmap = userSettings.forceExperimentalMinmap
     }
 
     fun save(): UserSettings {
@@ -29,6 +35,7 @@ object WhyUserSettings: WhySettings() {
             minimapPosition = mapSettings.minimapPosition,
             minimapMode = mapSettings.minimapMode,
             exposeHttpApi = serverSettings.exposeHttpApi,
+            forceExperimentalMinmap = mapSettings.forceExperimentalMinmap,
         )
     }
 }
@@ -38,10 +45,29 @@ class GeneralSettingsCategory : WhySettingsCategory("General") {
 }
 
 class MapSettingsCategory: WhySettingsCategory("Map") {
+    var forceExperimentalMinmap by CustomSetSettingsEntry(
+        false
+    ) { proposedValue, actuallySet ->
+        if (proposedValue) {
+            GlobalScope.launch {
+                with(MinecraftClient.getInstance()) {
+                    WhyConfirmScreen(
+                        "Experimental minimap",
+                        "This minimap is experimental and WILL cause crashes if used more than a few minutes. Are you sure you want to enable it?"
+                    ) {
+                        if (it) {
+                            actuallySet()
+                        }
+                    }.show()
+                }
+            }
+        } else {
+            actuallySet()
+        }
+    }.addToggle("Force Minimap (experimental, will cause crashes)")
     var minimapPosition by SettingsEntry(UserSettings.MinimapPosition.TOP_LEFT).addToggle("Minimap position")
     var minimapMode by SettingsEntry(WhyMapClient.MapMode.NORTH_LOCKED).addToggle("Minimap mode")
     var mapScale by SettingsEntry(1.0).addSlider("Map scale", 0.5, 2.0)
-
 }
 
 class ServerSettingsCategory: WhySettingsCategory("Server") {

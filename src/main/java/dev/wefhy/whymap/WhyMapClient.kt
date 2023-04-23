@@ -91,7 +91,7 @@ class WhyMapClient : ClientModInitializer {
             if (!WhyUserSettings.generalSettings.displayHud) return
             with(matrixStack) {
                 push()
-                if (WhyUserSettings.mapSettings.minimapMode.visible) {
+                if (WhyUserSettings.mapSettings.minimapMode.visible && WhyUserSettings.mapSettings.minimapPosition == MinimapPosition.TOP_LEFT && WhyUserSettings.mapSettings.forceExperimentalMinmap) {
                     translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
                 } else {
                     translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
@@ -113,6 +113,7 @@ class WhyMapClient : ClientModInitializer {
             val mapPosY = mapRadius + mapPadding
 
             if (!mapMode.visible) return
+            if (!WhyUserSettings.mapSettings.forceExperimentalMinmap) return
             val player = mc.player ?: return println("No player!")
             val playerPos = player.pos ?: return println("No player pos!")
             val mrm = activeWorld?.mapRegionManager ?: return println("No map region manager!")
