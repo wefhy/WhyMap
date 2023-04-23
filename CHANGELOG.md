@@ -1,7 +1,11 @@
 # WhyMap changelog
 
 ## 1.6.0
- - Added clothconfig optional dependency
+ - Fixed minimap crashes-
+ - Fixed minimap memory leaks
+ - You can configure map though the UI now (click `M` or find it though ModMenu)
+ - Simple HUD (not configurable yet)
+ - Added clothconfig optional dependency (required to configure through UI)
  - Added modmenu optional dependency
 
 ## 1.5.0
