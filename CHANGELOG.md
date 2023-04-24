@@ -1,5 +1,9 @@
 # WhyMap changelog
 
+## [1.6.2]
+ - Configurable hud color
+ - Improved minimap rendering (still experimental, don't use)
+
 ## [1.6.1]
  - Disable minimap by default
  - Add a warning saying minimap will cause crashes
@@ -163,6 +167,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.6.2]: https://github.com/wefhy/WhyMap/compare/1.6.2..1.6.1
 [1.6.1]: https://github.com/wefhy/WhyMap/compare/1.6.1..1.6.0
 [1.6.0]: https://github.com/wefhy/WhyMap/compare/1.6.0..1.5.0
 [1.5.0]: https://github.com/wefhy/WhyMap/compare/1.5.0..1.4.0
