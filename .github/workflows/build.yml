@@ -42,7 +42,7 @@ jobs:
         run: ./gradlew build
       - name: "Get Version"
         id: version
-        run: echo "describe=$(git describe --tags)" >> $GITHUB_ENV
+        run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
       - name: Build Changelog
         id: changelog
         run: |
