@@ -46,6 +46,7 @@ jobs:
       - name: Build Changelog
         id: changelog
         run: |
+          chmod +x ./scripts/build_changelog.sh
           changelog=$(sh ./scripts/build_changelog.sh ${{steps.version.outputs.version}})
           echo "changelog=${changelog}" >> $GITHUB_ENV
       - name: capture build artifacts
