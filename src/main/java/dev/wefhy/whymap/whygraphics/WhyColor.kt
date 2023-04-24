@@ -64,25 +64,25 @@ class WhyColor(
             )
         }
 
-//        fun fromARGB(argb: Int): WhyColor {
-//            return WhyColor(
-//                ((argb shr 16) and 0xFF) * _1_255,
-//                ((argb shr 8) and 0xFF) * _1_255,
-//                (argb and 0xFF) * _1_255,
-//                ((argb shr 24) and 0xFF) * _1_255
-//            )
-//        }
+        fun fromARGB(argb: Int): WhyColor {
+            return WhyColor(
+                ((argb shr 16) and 0xFF) * _1_255,
+                ((argb shr 8) and 0xFF) * _1_255,
+                (argb and 0xFF) * _1_255,
+                ((argb shr 24) and 0xFF) * _1_255
+            )
+        }
     }
 }
 
 val WhyColor.intR
-    inline get() = (r * 255).toInt().coerceIn0255() //TODO create CoercedWhyColor? Might be a lot more efficient for some operations
+    inline get() = (r * 255f).toInt().coerceIn0255() //TODO create CoercedWhyColor? Might be a lot more efficient for some operations
 val WhyColor.intG
-    inline get() = (g * 255).toInt().coerceIn0255()
+    inline get() = (g * 255f).toInt().coerceIn0255()
 val WhyColor.intB
-    inline get() = (b * 255).toInt().coerceIn0255()
+    inline get() = (b * 255f).toInt().coerceIn0255()
 val WhyColor.intA
-    inline get() = (a * 255).toInt().coerceIn0255()
+    inline get() = (a * 255f).toInt().coerceIn0255()
 val WhyColor.intRGB
     inline get() = (intR shl 16) or (intG shl 8) or intB
 val WhyColor.intBGR
@@ -93,6 +93,29 @@ val WhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
 val WhyColor.intABGR
     inline get() = (intA shl 24) or (intB shl 16) or (intG shl 8) or intR
+
+private const val mulA = 255f * 255f * 255f * 255f
+private const val mulR = 255f * 255f * 255f
+private const val mulG = 255f * 255f
+private const val mulB = 255f
+
+private val WhyColor.fastA
+    inline get() = (a * mulA).coerceIn(0f, mulA).toInt()
+private val WhyColor.fastR
+    inline get() = (r * mulR).coerceIn(0f, mulR).toInt()
+private val WhyColor.fastG
+    inline get() = (g * mulG).coerceIn(0f, mulG).toInt()
+private val WhyColor.fastB
+    inline get() = (b * mulB).coerceIn(0f, mulB).toInt()
+
+private const val maskA = 0xFF000000.toInt()
+private const val maskR = 0x00FF0000.toInt()
+private const val maskG = 0x0000FF00.toInt()
+private const val maskB = 0x000000FF.toInt()
+
+internal val WhyColor.fastIntARGB
+    inline get() = (fastA and maskA) or (fastR and maskR) or (fastG and maskG) or (fastB and maskB)
+
 
 val WhyColor.floatArray
     get() = floatArrayOf(r, g, b, a)

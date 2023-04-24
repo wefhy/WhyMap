@@ -23,15 +23,20 @@ open class Hud {
         lines.add(DynamicLine(text))
     }
 
-    context(MatrixStack)
+    context(HudContext)
     fun draw() {
-        push()
+        matrixStack.push()
         lines.sortedByDescending { it.priority }.forEachIndexed { i, line ->
             if (line.visible) {
                 val height = line.draw()
-                translate(0f, height, 0f)
+                matrixStack.translate(0f, height, 0f)
             }
         }
-        pop()
+        matrixStack.pop()
     }
+
+    class HudContext(
+        val matrixStack: MatrixStack,
+        val defaultColor: WhyColor
+    )
 }

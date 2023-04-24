@@ -5,25 +5,24 @@ package dev.wefhy.whymap.hud
 import dev.wefhy.whymap.whygraphics.WhyColor
 import dev.wefhy.whymap.whygraphics.intARGB
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.util.math.MatrixStack
 
 abstract class HudLine {
 
-    context(MatrixStack)
+    context(Hud.HudContext)
     fun draw(): Float {
         return if (visible) {
             val minecraft = MinecraftClient.getInstance()
             val textRenderer = minecraft.textRenderer
-            push()
-            scale(scale, scale, scale)
-            textRenderer.drawWithShadow(this@MatrixStack, text, 0f, 0f, color.intARGB)
-            pop()
+            matrixStack.push()
+            matrixStack.scale(scale, scale, scale)
+            textRenderer.drawWithShadow(matrixStack, text, 0f, 0f, (color ?: defaultColor).intARGB)
+            matrixStack.pop()
             height
         } else 0f
     }
 
     abstract val text: String
-    open val color: WhyColor = WhyColor.White
+    open val color: WhyColor? = null
     open val scale: Float = 0.8f
     open val priority: Int = 0
     var visible: Boolean = true

@@ -9,6 +9,7 @@ import dev.wefhy.whymap.config.UserSettings.MinimapPosition
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
+import dev.wefhy.whymap.hud.Hud
 import dev.wefhy.whymap.hud.WhyHud
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
 import dev.wefhy.whymap.utils.LocalTile.Companion.Region
@@ -96,7 +97,9 @@ class WhyMapClient : ClientModInitializer {
                 } else {
                     translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
                 }
-                hud.draw()
+                with(Hud.HudContext(matrixStack, WhyUserSettings.generalSettings.hudColor)) {
+                    hud.draw()
+                }
                 pop()
             }
         }

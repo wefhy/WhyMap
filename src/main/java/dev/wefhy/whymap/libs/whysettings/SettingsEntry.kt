@@ -6,6 +6,8 @@ import dev.wefhy.whymap.utils.MappingContext
 import dev.wefhy.whymap.utils.mapToDouble
 import dev.wefhy.whymap.utils.mapToInt
 import dev.wefhy.whymap.utils.significantBy
+import dev.wefhy.whymap.whygraphics.WhyColor
+import dev.wefhy.whymap.whygraphics.intARGB
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
 import me.shedaniel.clothconfig2.api.ConfigCategory
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
@@ -92,6 +94,28 @@ open class SettingsEntry<T: Any>(val default: T) {
                     .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
                     .build()
+            }
+            return this
+        }
+
+        fun SettingsEntry<WhyColor>.addColorPicker(name: String): SettingsEntry<WhyColor> {
+            addEntry {
+                startAlphaColorField(Text.literal(name), guiValue.intARGB)
+                    .setSaveConsumer { guiValue = WhyColor.fromARGB(it) }
+                    .setDefaultValue(default.intARGB)
+                    .build()
+            }
+            return this
+        }
+
+        fun SettingsEntry<MutableList<Boolean>>.addToggleList(name: String, vararg toggles: String): SettingsEntry<MutableList<Boolean>> {
+            toggles.forEachIndexed { i, s ->
+                addEntry {
+                    startBooleanToggle(Text.literal(s), guiValue[i])
+                        .setSaveConsumer { guiValue[i] = it }
+                        .setDefaultValue(default[i])
+                        .build()
+                }
             }
             return this
         }

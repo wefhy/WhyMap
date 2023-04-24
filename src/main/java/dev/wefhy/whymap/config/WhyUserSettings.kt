@@ -6,10 +6,13 @@ import dev.wefhy.whymap.WhyMapClient
 import dev.wefhy.whymap.gui.WhyConfirmScreen
 import dev.wefhy.whymap.libs.whysettings.CustomSetSettingsEntry
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry
+import dev.wefhy.whymap.libs.whysettings.SettingsEntry.Companion.addColorPicker
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry.Companion.addSlider
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry.Companion.addToggle
 import dev.wefhy.whymap.libs.whysettings.WhySettings
 import dev.wefhy.whymap.libs.whysettings.WhySettingsCategory
+import dev.wefhy.whymap.whygraphics.WhyColor
+import dev.wefhy.whymap.whygraphics.intARGB
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import net.minecraft.client.MinecraftClient
@@ -26,6 +29,7 @@ object WhyUserSettings: WhySettings() {
         mapSettings.minimapMode = userSettings.minimapMode
         serverSettings.exposeHttpApi = userSettings.exposeHttpApi
         mapSettings.forceExperimentalMinmap = userSettings.forceExperimentalMinmap
+        generalSettings.hudColor = WhyColor.fromARGB(userSettings.hudColor)
     }
 
     fun save(): UserSettings {
@@ -36,12 +40,14 @@ object WhyUserSettings: WhySettings() {
             minimapMode = mapSettings.minimapMode,
             exposeHttpApi = serverSettings.exposeHttpApi,
             forceExperimentalMinmap = mapSettings.forceExperimentalMinmap,
+            hudColor = generalSettings.hudColor.intARGB
         )
     }
 }
 
 class GeneralSettingsCategory : WhySettingsCategory("General") {
     var displayHud by SettingsEntry(true).addToggle("Display HUD")
+    var hudColor by SettingsEntry(WhyColor.White).addColorPicker("HUD color")
 }
 
 class MapSettingsCategory: WhySettingsCategory("Map") {
@@ -73,3 +79,10 @@ class MapSettingsCategory: WhySettingsCategory("Map") {
 class ServerSettingsCategory: WhySettingsCategory("Server") {
     var exposeHttpApi by SettingsEntry(UserSettings.ExposeHttpApi.LOCALHOST_ONLY).addToggle("Expose HTTP API")
 }
+
+class HudEntrySettings(
+    val name: String,
+    val visible: Boolean,
+    val color: WhyColor,
+    val priority: Int,
+)
