@@ -419,6 +419,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             calculateColor(
                 startBlockZ + y,
                 startBlockX + x,
+                ::getNormalSharpChunk
             )
         }
         renderedWhyImage.data[regionRelativeChunk.z][regionRelativeChunk.x] = renderedChunk
@@ -507,7 +508,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         var failCounter = 0
         val image = WhyTiledImage.BuildForRegion { y, x ->
             try {
-                calculateColor(y, x)
+                calculateColor(y, x, ::getNormalSharp)
             } catch (_: IndexOutOfBoundsException) {
                 failCounter++
                 WhyColor.Transparent
@@ -530,7 +531,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             ensureActive()
             for (x in 0 until storageTileBlocks step scale) {
                 try { //TODO try block disables JVM optimizations, check whether it's worth using inside loop
-                    val color = calculateColor(z, x)
+                    val color = calculateColor(z, x, ::getNormalSharp)
                     val bitmapX = x shr scaleLog
                     val bitmapY = z shr scaleLog
 //                    bitmap.setRGB(bitmapX, bitmapY, color.intRGB)
@@ -559,7 +560,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         bitmap
     }
 
-    private fun calculateColor(z: Int, x: Int): WhyColor {
+    private fun calculateColor(z: Int, x: Int, normalFinder: (z: Int, x: Int) -> Normal): WhyColor {
         val blockId = blockIdMap[z][x]
         val overlayId = blockOverlayIdMap[z][x]
         if (blockId == 0.toShort() && overlayId == 0.toShort()) return WhyColor.Transparent
@@ -574,7 +575,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         else
             decodeBlockColor(overlayId) //TODO overlays should use correct alpha - it's not handled at all for now :(
 
-        val normal = getNormalSharp(x, z)
+        val normal = normalFinder(x, z)
         val depth = depthMap[z][x].toUByte()
 
         var color = (if (foliageBlocksSet.contains(block)) {
@@ -610,6 +611,17 @@ class MapArea private constructor(val location: LocalTileRegion) {
             0 -> (heightMap[z][1] - heightMap[z][0]) * 2
             storageTileBlocks - 1 -> (heightMap[z][storageTileBlocks - 1] - heightMap[z][storageTileBlocks - 2]) * 2
             else -> heightMap[z][x + 1] - heightMap[z][x - 1]
+        }
+    )
+
+    fun getNormalSharpChunk(x: Int, z: Int) = Normal(
+        when (z and 0xF) {
+            0 -> (heightMap[z + 1][x] - heightMap[z][x]) * 2
+            else -> (heightMap[z][x] - heightMap[z - 1][x]) * 2
+        },
+        when (x and 0xF) {
+            0 -> (heightMap[z][x + 1] - heightMap[z][x]) * 2
+            else -> (heightMap[z][x] - heightMap[z][x - 1]) * 2
         }
     )
 
