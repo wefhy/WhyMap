@@ -20,6 +20,14 @@ plugins {
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
 }
 
+loom {
+	runs {
+		getByName("client") {
+			vmArgs("-Xmx2G") // limit the heap memory to 512MB
+		}
+	}
+}
+
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
 	targetCompatibility = JavaVersion.VERSION_17
@@ -34,6 +42,8 @@ group = maven_group
 repositories {
 	mavenCentral()
 	maven(url = "https://repo.maven.apache.org/maven2/")
+	maven(url = "https://maven.shedaniel.me/") //TODO use maven local or multi project build to build from sources
+	maven(url = "https://maven.terraformersmc.com") //TODO use maven local or multi project build to build from sources
 }
 
 //configurations {
@@ -54,6 +64,10 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
 	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.9.0+kotlin.1.8.0")
 
+	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
+		exclude (group = "net.fabricmc.fabric-api")
+	}
+	modCompileOnlyApi("com.terraformersmc", "modmenu", "6.2.0")
 
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.2.2"))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.2.2"))
@@ -203,6 +217,28 @@ val newMappings = task("newMappings") {
 		blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
 		inDir.resolve("current-block").delete()
 	}
+}
+
+val fillChangelogLinks = task("fillChangelogLinks") {
+	val projectUrl = "https://github.com/wefhy/WhyMap"
+	val changelog = File("CHANGELOG.md")
+	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
+	val readLines = changelog.readLines()
+	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+	println(versions)
+	val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
+	val diffLinks = versions.mapIndexed { index, version ->
+		if (index == 0) return@mapIndexed ""
+		val from = versions[index - 1]
+		val to = version
+		"[$from]: $projectUrl/compare/$from..$to"
+	}
+
+	//Delete old links
+	val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
+	val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
+
+	changelog.writeText(output.joinToString("\n"))
 }
 
 fun ByteArray.toHex(): String {

@@ -1,6 +1,7 @@
 // Copyright (c) 2023 wefhy
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@file:OptIn(ExperimentalStdlibApi::class, ExperimentalContracts::class)
 
 package dev.wefhy.whymap.utils
 
@@ -16,7 +17,8 @@ import java.time.LocalDateTime
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.internal.*
+import kotlin.internal.InlineOnly
+import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -24,7 +26,16 @@ const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
 const val _1_2 = 1f / 2
 
+inline fun Double.roundToString(places: Int) = String.format("%.${places}f", this)
+inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
+
 inline fun Double.roundTo(places: Int) = (this * 10.0.pow(places)).roundToInt() * 0.1.pow(places)
+
+private inline fun Double._significant(places: Int) = (places - log10(this)).toInt().coerceAtLeast(0)
+
+internal inline fun Double.significant(places: Int) = String.format("%.${_significant(places)}f", this)
+
+internal inline fun Double.significantBy(max: Double, places: Int) = String.format("%.${max._significant(places)}f", this)
 
 fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x128 textures without integer overflow!!!
     val bytes = (data.dataBuffer as DataBufferByte).data
@@ -33,7 +44,7 @@ fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x12
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte() * _a
@@ -57,7 +68,7 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte()
@@ -148,7 +159,6 @@ val String.sanitizedPath
 //}
 
 @Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@OptIn(ExperimentalContracts::class)
 @InlineOnly
 inline fun <T : Closeable?, R> T.useWith(block: T.() -> R): R {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }

@@ -4,10 +4,12 @@ package dev.wefhy.whymap
 
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
-import dev.wefhy.whymap.config.FileConfigManager
+import dev.wefhy.whymap.clothconfig.ConfigEntryPoint.getConfigScreen
 import dev.wefhy.whymap.config.UserSettings.MinimapPosition
+import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
+import dev.wefhy.whymap.hud.WhyHud
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
 import dev.wefhy.whymap.utils.LocalTile.Companion.Region
 import dev.wefhy.whymap.utils.TileZoom
@@ -41,6 +43,11 @@ class WhyMapClient : ClientModInitializer {
 
     private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColor(x, y) }
 
+    val nativeImageBackedTextures by lazy {  //TODO use better way of reusing native textures
+        Array(4) { NativeImageBackedTexture(512, 512, false) }
+    }
+
+
     fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
         val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
 
@@ -66,16 +73,37 @@ class WhyMapClient : ClientModInitializer {
             else -> 1
         }
 
+    private val mapScale
+        get() = 1/3f * WhyUserSettings.mapSettings.mapScale.toFloat()
+
+    private val mapSize = 130f
+    private val mapRadius
+        get() = mapSize / 2f * WhyUserSettings.mapSettings.mapScale.toFloat()
+    private val mapPadding = 5f
+
+
     override fun onInitializeClient() {
         val playerIcon = loadPngIntoNativeImage()
-        val mapScale = 1/3f
-        val mapSize = 130f
-        val mapRadius = mapSize / 2f
-        val mapPadding = 5f
         val mc = MinecraftClient.getInstance()
-        HudRenderCallback.EVENT.register{ matrixStack: MatrixStack, tickDelta: Float ->
-            val mapMode = FileConfigManager.config.userSettings.minimapMode
-            val mapPosition = FileConfigManager.config.userSettings.minimapPosition
+        val hud = WhyHud(mc)
+
+        fun drawHud(matrixStack: MatrixStack) {
+            if (!WhyUserSettings.generalSettings.displayHud) return
+            with(matrixStack) {
+                push()
+                if (WhyUserSettings.mapSettings.minimapMode.visible && WhyUserSettings.mapSettings.minimapPosition == MinimapPosition.TOP_LEFT && WhyUserSettings.mapSettings.forceExperimentalMinmap) {
+                    translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
+                } else {
+                    translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
+                }
+                hud.draw()
+                pop()
+            }
+        }
+
+        fun drawMiniMap(matrixStack: MatrixStack) {
+            val mapMode = WhyUserSettings.mapSettings.minimapMode
+            val mapPosition = WhyUserSettings.mapSettings.minimapPosition
 
             val mapPosX = when (mapPosition) {
                 MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
@@ -84,10 +112,11 @@ class WhyMapClient : ClientModInitializer {
             }
             val mapPosY = mapRadius + mapPadding
 
-            if (!mapMode.visible) return@register
-            val player = mc.player ?: return@register println("No player!")
-            val playerPos = player.pos ?: return@register println("No player pos!")
-            val mrm = activeWorld?.mapRegionManager ?: return@register println("No map region manager!")
+            if (!mapMode.visible) return
+            if (!WhyUserSettings.mapSettings.forceExperimentalMinmap) return
+            val player = mc.player ?: return println("No player!")
+            val playerPos = player.pos ?: return println("No player pos!")
+            val mrm = activeWorld?.mapRegionManager ?: return println("No map region manager!")
             val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
             val region = block.parent(TileZoom.RegionZoom)
             val center = region.getCenter()
@@ -108,7 +137,8 @@ class WhyMapClient : ClientModInitializer {
             val rendered = runBlocking {
                 regions.associateWith {
                     mrm.getRegionForMinimapRendering(it) {
-                        renderNativeImage()
+                        renderWhyImageBuffered()
+//                        renderNativeImage()
                     }
                 }
             }
@@ -138,6 +168,8 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.translate(-mapPosX, -mapPosY, 0f)
             }
 
+
+
             for ((region, rendered) in rendered) {
                 if (rendered == null) continue
                 val start = region.getStart()
@@ -145,10 +177,13 @@ class WhyMapClient : ClientModInitializer {
                 val diffZ = start.z - block.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
-                val texture = rendered
-
-                draw(mc, matrixStack, texture, mapScale)
+//                val texture: WhyTiledImage = rendered
+                val texture: NativeImage = rendered.toNativeImage() //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
+                val i =
+                    region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
+                draw(mc, matrixStack, texture, mapScale, nativeImageBackedTextures[i], i)
                 matrixStack.pop()
+                texture.close()
             }
             matrixStack.pop()
             matrixStack.push()
@@ -167,7 +202,7 @@ class WhyMapClient : ClientModInitializer {
 ////                    getRendered()
 //                    renderNativeImage()
 //                }
-//            } ?: return@register println("Nothing to render!")
+//            } ?: return println("Nothing to render!")
 //            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
 //            matrixStack.push()
 //            matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
@@ -175,6 +210,11 @@ class WhyMapClient : ClientModInitializer {
 ////            val texture = createRandomTexture(512, 256)
 //            draw(mc, matrixStack, texture, mapScale)
 //            matrixStack.pop()
+        }
+
+        HudRenderCallback.EVENT.register { matrixStack: MatrixStack, tickDelta: Float ->
+            drawMiniMap(matrixStack)
+            drawHud(matrixStack)
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { mc ->
@@ -193,7 +233,10 @@ class WhyMapClient : ClientModInitializer {
                 }
             }
             if (kbShowMinimap.wasPressed()) {
-                FileConfigManager.config.userSettings.minimapMode = FileConfigManager.config.userSettings.minimapMode.next()
+                WhyUserSettings.mapSettings.minimapMode = WhyUserSettings.mapSettings.minimapMode.next()
+            }
+            if (kbModSettings.wasPressed()) {
+                mc.setScreen(getConfigScreen(null))
             }
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
@@ -272,15 +315,26 @@ class WhyMapClient : ClientModInitializer {
         draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
     }
 
+    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: NativeImageBackedTexture, i: Int) {
+        if (textureContainer.image != texture) {
+            textureContainer.image = texture
+        }
+        textureContainer.upload()
+        val textureId = mc.textureManager.registerDynamicTexture("dynamicimage$i", textureContainer)
+        draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
+    }
+
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
         val positionMatrix = matrixStack.peek().positionMatrix
         val tessellator = Tessellator.getInstance()
         val buffer = tessellator.buffer
         buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
-        buffer.vertex(positionMatrix, -width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
-        buffer.vertex(positionMatrix, -width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
-        buffer.vertex(positionMatrix, width / 2, height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
-        buffer.vertex(positionMatrix, width / 2, -height / 2, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
+        val halfWidth = width * 0.5f
+        val halfHeight = height * 0.5f
+        buffer.vertex(positionMatrix, -halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
+        buffer.vertex(positionMatrix, -halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
+        buffer.vertex(positionMatrix, halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
+        buffer.vertex(positionMatrix, halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
         RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
@@ -316,6 +370,14 @@ class WhyMapClient : ClientModInitializer {
                 "key.whymap.showminimap",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_Y,
+                "category.whymap"
+            )
+        )
+        val kbModSettings = KeyBindingHelper.registerKeyBinding(
+            KeyBinding(
+                "key.whymap.modsettings",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_M,
                 "category.whymap"
             )
         )

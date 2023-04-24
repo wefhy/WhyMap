@@ -40,13 +40,24 @@ jobs:
       - name: build
         id: build
         run: ./gradlew build
-      - name: "Build Changelog"
+      - name: Get Built Version
+        id: version
+        run: |
+#          describe=$(git describe --tags)
+#          echo "describe=$describe" >> $GITHUB_ENV
+          echo "describe=$(git describe --tags)" >> $GITHUB_ENV
+      #      - name: Build Changelog
+#        id: changelog
+#        run: |
+##          echo "##[set-output name=changelog;]$(sh ./scripts/build_changelog.sh)"
+#          changelog=${sh ./scripts/build_changelog.sh}
+#          echo "changelog=${changelog}" >> $GITHUB_ENV
+      - name: Build Changelog
         id: changelog
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: wefhy/release-changelog-builder-action@develop
-        with:
-          commitMode: true
-          configuration: "changelog-configuration.json"
+        run: |
+#          changelog=$(sh ./scripts/build_changelog.sh ${{env.describe}})
+          changelog=$(sh ./scripts/build_changelog.sh ${{steps.version.outputs.version}})
+          echo "changelog=${changelog}" >> $GITHUB_ENV
       - name: capture build artifacts
         if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
         uses: actions/upload-artifact@v3
@@ -67,13 +78,14 @@ jobs:
         continue-on-error: true
         with:
 #          name: WhyMap  ${{ steps.version_number.version }}
+          name: WhyMap  ${{ steps.version.outputs.version }}
           modrinth-id: g9qdEhvu
           modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
           curseforge-id: 815690
           curseforge-token: ${{ secrets.CF_API_TOKEN }}
           version-type: release
-#          changelog: ${{steps.changelog.outputs.changelog}} # TODO generate changelog better
-          changelog-file: CHANGELOG.md
+          changelog: ${{steps.changelog.outputs.changelog}}
+#          changelog-file: CHANGELOG.md
           game-versions: |
             1.19.3
             1.19.4
@@ -85,6 +97,9 @@ jobs:
           dependencies: |
             fabric-api | depends
             fabric-language-kotlin | depends
+            cloth-config | recommends
+            modmenu | suggests
+#            distant-horizons | conflicts
 
 
 #      - name: "Upload to CurseForge"
