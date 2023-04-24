@@ -241,6 +241,27 @@ val fillChangelogLinks = task("fillChangelogLinks") {
 	changelog.writeText(output.joinToString("\n"))
 }
 
+val createDiscordMessage = task("createDiscordMessage") {
+	val githubUrl = "https://github.com/wefhy/WhyMap/releases/tag/"
+	val modrinthUrl = "https://modrinth.com/mod/whymap/version/"
+	val curseforgeUrl = "https://www.curseforge.com/minecraft/mc-mods/whymap/files/"
+	val changelog = File("CHANGELOG.md")
+	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
+	val readLines = changelog.readLines()
+	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+	val latestVersion = versions.first()
+	val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
+	val message = """
+New version: $latestVersion
+$latestChangelog
+:github: $githubUrl$latestVersion
+:modrinth: $modrinthUrl$latestVersion
+:curseforge: $curseforgeUrl
+	""".trimIndent()
+	File("discordMessage.txt").writeText(message)
+	println(message)
+}
+
 fun ByteArray.toHex(): String {
 	val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
 	val hexChars = CharArray(size * 2)

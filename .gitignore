@@ -42,3 +42,4 @@ src/main/resources/web/assets/index*
 src/main/resources/blockmappings.txt
 src/main/resources/biomemappings.txt
 logs/
+discordMessage.txt

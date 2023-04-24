@@ -40,22 +40,12 @@ jobs:
       - name: build
         id: build
         run: ./gradlew build
-      - name: Get Built Version
+      - name: "Get Version"
         id: version
-        run: |
-#          describe=$(git describe --tags)
-#          echo "describe=$describe" >> $GITHUB_ENV
-          echo "describe=$(git describe --tags)" >> $GITHUB_ENV
-      #      - name: Build Changelog
-#        id: changelog
-#        run: |
-##          echo "##[set-output name=changelog;]$(sh ./scripts/build_changelog.sh)"
-#          changelog=${sh ./scripts/build_changelog.sh}
-#          echo "changelog=${changelog}" >> $GITHUB_ENV
+        run: echo "describe=$(git describe --tags)" >> $GITHUB_ENV
       - name: Build Changelog
         id: changelog
         run: |
-#          changelog=$(sh ./scripts/build_changelog.sh ${{env.describe}})
           changelog=$(sh ./scripts/build_changelog.sh ${{steps.version.outputs.version}})
           echo "changelog=${changelog}" >> $GITHUB_ENV
       - name: capture build artifacts
@@ -77,7 +67,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
         with:
-#          name: WhyMap  ${{ steps.version_number.version }}
           name: WhyMap  ${{ steps.version.outputs.version }}
           modrinth-id: g9qdEhvu
           modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
