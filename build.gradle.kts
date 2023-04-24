@@ -219,6 +219,28 @@ val newMappings = task("newMappings") {
 	}
 }
 
+val fillChangelogLinks = task("fillChangelogLinks") {
+	val projectUrl = "https://github.com/wefhy/WhyMap"
+	val changelog = File("CHANGELOG.md")
+	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
+	val readLines = changelog.readLines()
+	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+	println(versions)
+	val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
+	val diffLinks = versions.mapIndexed { index, version ->
+		if (index == 0) return@mapIndexed ""
+		val from = versions[index - 1]
+		val to = version
+		"[$from]: $projectUrl/compare/$from..$to"
+	}
+
+	//Delete old links
+	val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
+	val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
+
+	changelog.writeText(output.joinToString("\n"))
+}
+
 fun ByteArray.toHex(): String {
 	val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
 	val hexChars = CharArray(size * 2)
