@@ -1,6 +1,7 @@
 // Copyright (c) 2023 wefhy
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@file:OptIn(ExperimentalStdlibApi::class, ExperimentalContracts::class)
 
 package dev.wefhy.whymap.utils
 
@@ -16,7 +17,7 @@ import java.time.LocalDateTime
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.internal.*
+import kotlin.internal.InlineOnly
 import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -43,7 +44,7 @@ fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x12
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte() * _a
@@ -67,7 +68,7 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte()
@@ -158,7 +159,6 @@ val String.sanitizedPath
 //}
 
 @Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@OptIn(ExperimentalContracts::class)
 @InlineOnly
 inline fun <T : Closeable?, R> T.useWith(block: T.() -> R): R {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
