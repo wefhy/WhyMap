@@ -51,9 +51,11 @@ fun Application.myApplicationModule() {
                 allowHost("localhost")
                 allowHost("127.0.0.1")
             }
+
             ExposeHttpApi.EVERYWHERE -> {
                 anyHost()
             }
+
             ExposeHttpApi.DEBUG -> {
                 anyHost()
                 allowMethod(HttpMethod.Get)
@@ -66,6 +68,7 @@ fun Application.myApplicationModule() {
                 exposeHeader(HttpHeaders.ContentType)
                 exposeHeader(HttpHeaders.AccessControlAllowOrigin)
             }
+
             ExposeHttpApi.DISABLED -> println("Dear Kotlin Devs, this branch is unreachable, why do I need it?")
         }
     }
@@ -84,7 +87,7 @@ object WhyServer {
             try {
                 WhyMapConfig.port = p
                 println("Trynig to run WhyMap server on port $p...")
-                val host = when(WhyUserSettings.serverSettings.exposeHttpApi) {
+                val host = when (WhyUserSettings.serverSettings.exposeHttpApi) {
                     ExposeHttpApi.DISABLED -> return
                     ExposeHttpApi.LOCALHOST_ONLY -> "localhost"
                     ExposeHttpApi.EVERYWHERE -> "0.0.0.0"

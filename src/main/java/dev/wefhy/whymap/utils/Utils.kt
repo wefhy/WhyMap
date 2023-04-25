@@ -191,3 +191,9 @@ fun<A,B> memoize(block: (A) -> B): (A) -> B {
     val cache = mutableMapOf<A, B>()
     return { cache.getOrPut(it) { block(it) } }
 }
+
+val Int.optimisticSign
+    get() = when {
+        this < 0 -> -1
+        else -> 1
+    }

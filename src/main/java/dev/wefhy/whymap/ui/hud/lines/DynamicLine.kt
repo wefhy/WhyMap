@@ -1,8 +1,8 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.hud.lines
+package dev.wefhy.whymap.ui.hud.lines
 
-import dev.wefhy.whymap.hud.HudLine
+import dev.wefhy.whymap.ui.hud.HudLine
 
 class DynamicLine(private val getText: () -> String?) : HudLine() {
 

@@ -1,9 +1,9 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.hud
+package dev.wefhy.whymap.ui.hud
 
-import dev.wefhy.whymap.hud.lines.DynamicLine
-import dev.wefhy.whymap.hud.lines.StaticLine
+import dev.wefhy.whymap.ui.hud.lines.DynamicLine
+import dev.wefhy.whymap.ui.hud.lines.StaticLine
 import dev.wefhy.whymap.whygraphics.WhyColor
 import net.minecraft.client.util.math.MatrixStack
 

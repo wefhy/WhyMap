@@ -2,7 +2,6 @@
 
 package dev.wefhy.whymap.config
 
-import dev.wefhy.whymap.WhyMapClient
 import dev.wefhy.whymap.gui.WhyConfirmScreen
 import dev.wefhy.whymap.libs.whysettings.CustomSetSettingsEntry
 import dev.wefhy.whymap.libs.whysettings.SettingsEntry
@@ -66,7 +65,7 @@ class MapSettingsCategory: WhySettingsCategory("Map") {
         }
     }.addToggle("Force Minimap (experimental, will cause crashes)")
     var minimapPosition by SettingsEntry(UserSettings.MinimapPosition.TOP_LEFT).addToggle("Minimap position")
-    var minimapMode by SettingsEntry(WhyMapClient.MapMode.NORTH_LOCKED).addToggle("Minimap mode")
+    var minimapMode by SettingsEntry(UserSettings.MapMode.NORTH_LOCKED).addToggle("Minimap mode")
     var mapScale by SettingsEntry(1.0).addSlider("Map scale", 0.5, 2.0)
 }
 

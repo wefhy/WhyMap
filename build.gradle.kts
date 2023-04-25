@@ -69,15 +69,15 @@ dependencies {
 	}
 	modCompileOnlyApi("com.terraformersmc", "modmenu", "6.2.0")
 
-	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-serialization-kotlinx-json", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-html-builder", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-cors", "2.2.2"))
+	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.3.0"))
+	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.3.0"))
+	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", "2.3.0"))
+	extraLibs(implementation("io.ktor", "ktor-serialization-kotlinx-json", "2.3.0"))
+	extraLibs(implementation("io.ktor", "ktor-server-html-builder", "2.3.0"))
+	extraLibs(implementation("io.ktor", "ktor-server-cors", "2.3.0"))
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
-	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.4.0"))
+	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.4.1"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
 	testImplementation(platform("org.junit:junit-bom:5.9.2"))

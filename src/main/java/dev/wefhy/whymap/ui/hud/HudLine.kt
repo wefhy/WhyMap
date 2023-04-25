@@ -1,6 +1,6 @@
 // Copyright (c) 2023 wefhy
 
-package dev.wefhy.whymap.hud
+package dev.wefhy.whymap.ui.hud
 
 import dev.wefhy.whymap.whygraphics.WhyColor
 import dev.wefhy.whymap.whygraphics.intARGB

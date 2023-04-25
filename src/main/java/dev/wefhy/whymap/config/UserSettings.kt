@@ -2,7 +2,6 @@
 
 package dev.wefhy.whymap.config
 
-import dev.wefhy.whymap.WhyMapClient
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,7 +18,7 @@ data class UserSettings(
     var mapScale: Double = 1.0,
     var displayHud: Boolean = true,
     var minimapPosition: MinimapPosition = MinimapPosition.TOP_LEFT,
-    var minimapMode: WhyMapClient.MapMode = WhyMapClient.MapMode.NORTH_LOCKED,
+    var minimapMode: MapMode = MapMode.NORTH_LOCKED,
     val forceExperimentalMinmap: Boolean = false,
 //    var minimapSize: Int = 128,
 //    var minimapScale : Int = 1,
@@ -37,6 +36,14 @@ data class UserSettings(
         LOCALHOST_ONLY,
         EVERYWHERE,
         DEBUG
+    }
+
+    enum class MapMode(val visible: Boolean) {
+        DISABLED(false),
+        NORTH_LOCKED(true),
+        ROTATED(true);
+
+        fun next() = values()[(ordinal + 1) % values().size]
     }
 
     companion object {
