@@ -473,14 +473,15 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-//    fun renderWhyImage(): WhyTiledImage {
-//        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
-//            renderedWhyImage
-//        else {
-//            nativeRenderInProgress = true
-//            _renderWhyImage().also { nativeRenderInProgress = false }
-//        }
-//    }
+    fun renderWhyImageNow(): WhyTiledImage {
+        return if (::renderedWhyImage.isInitialized)
+            renderedWhyImage
+        else {
+//            nativeUpdateChunks() TODO maybe uncomment? Depends on the usecase
+            nativeRenderInProgress = true
+            _renderWhyImage().also { nativeRenderInProgress = false }
+        }
+    }
 
     fun renderWhyImageBuffered(): WhyTiledImage? {
         return if (!::renderedWhyImage.isInitialized) {
@@ -488,7 +489,9 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            valStatPrintLog("waiting")
             null
         } else {
-            nativeUpdateChunks()
+            mapAreaScope.launch {
+                nativeUpdateChunks()
+            }
 //            valStatPrintLog("success")
             renderedWhyImage
         }

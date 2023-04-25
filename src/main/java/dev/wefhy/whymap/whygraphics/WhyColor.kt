@@ -8,6 +8,10 @@ import dev.wefhy.whymap.utils._1_2
 import dev.wefhy.whymap.utils._1_255
 import dev.wefhy.whymap.utils.coerceIn0255
 
+abstract class WhyIntARGB {
+    abstract val intARGB: Int
+}
+
 class WhyColor(
     @JvmField val r: Float,
     @JvmField val g: Float,

@@ -9,6 +9,7 @@ import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import net.minecraft.client.texture.NativeImage
 import java.awt.image.BufferedImage
+import java.awt.image.WritableRaster
 import java.io.OutputStream
 
 class WhyTiledImage(
@@ -48,6 +49,16 @@ class WhyTiledImage(
             }
         }
         return image
+    }
+
+    fun writeInto(raster: WritableRaster, offsetX: Int, offsetY: Int) {
+        for (y in 0 until yTiles) {
+            val line = data[y]
+            for (x in 0 until xTiles) {
+                val tile = line[x] ?: continue
+                tile.writeInto(raster, x shl WhyTile.lineShl + offsetX, y shl WhyTile.lineShl + offsetY)
+            }
+        }
     }
 
     fun toNativeImage(): NativeImage {

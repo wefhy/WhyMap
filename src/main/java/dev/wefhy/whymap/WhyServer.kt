@@ -12,6 +12,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import io.ktor.http.*
@@ -304,6 +305,44 @@ object WhyServer {
         }
         get("/forceWipeCache") {
             forceWipeCache()
+        }
+        get("/exportArea/x1/x2/z1/z2") {
+            //TODO add option to export jpeg, png, select scale
+            val (x1, x2, z1, z2) = getParams("x1", "x2", "z1", "z2") ?: return@get call.respondText(parsingError)
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+            if (regionArea.size > 100) return@get call.respondText("Too big area!")
+            val rendered = regionArea.list().associateWith { regionTile ->
+                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                    renderWhyImageNow() //todo paralellize
+                }
+            }
+            val image = BufferedImage(
+                blockArea.sizeX,
+                blockArea.sizeZ,
+                BufferedImage.TYPE_INT_ARGB
+            )
+//            val graphics = image.createGraphics()
+            val raster = image.raster
+
+            rendered.forEach { (tile, region) ->
+                region?.let {
+                    region.writeInto(
+                        raster,
+                        blockArea.start.x - tile.getStart().x,
+                        blockArea.start.z - tile.getStart().z
+                    )
+                }
+            }
+            call.respondOutputStream(contentType = ContentType.Image.JPEG) {
+                encodeJPEG(image)
+            }
+//            call.respondOutputStream(contentType = ContentType.Image.PNG) {
+//                encodePNG(image)
+//            }
         }
         post("/waypoint") {
             val waypoint = call.receive<OnlineWaypoint>()
