@@ -12,6 +12,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import io.ktor.http.*
@@ -325,7 +326,7 @@ object WhyServer {
             val image = BufferedImage(
                 regionArea.blockArea().sizeX,
                 regionArea.blockArea().sizeZ,
-                BufferedImage.TYPE_INT_ARGB
+                BufferedImage.TYPE_INT_RGB
             )
             val raster = image.raster
             if (rendered.values.none { it != null }) return@get call.respondText("No data available out of ${rendered.size} regions!")
@@ -358,9 +359,9 @@ object WhyServer {
 //                image.data = it
 //            }
 
-            call.respondOutputStream(contentType = ContentType.Image.PNG) {
+            call.respondOutputStream(contentType = ContentType.Image.JPEG) {
                 withContext(WhyDispatchers.Encoding) {
-                    encodePNG(image)
+                    encodeJPEG(image)
                 }
             }
 //            call.respondOutputStream(contentType = ContentType.Image.PNG) {
