@@ -52,6 +52,7 @@ class WhyTiledImage(
     }
 
     fun writeInto(raster: WritableRaster, offsetX: Int, offsetY: Int) {
+        println("Writing into raster at $offsetX, $offsetY")
         for (y in 0 until yTiles) {
             val line = data[y]
             for (x in 0 until xTiles) {

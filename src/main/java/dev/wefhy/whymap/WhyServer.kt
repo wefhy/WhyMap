@@ -12,7 +12,6 @@ import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
-import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import io.ktor.http.*
@@ -306,14 +305,16 @@ object WhyServer {
         get("/forceWipeCache") {
             forceWipeCache()
         }
-        get("/exportArea/{x1}/{x2}/{z1}/{z2}") {
+        get("/exportArea/{x1}/{z1}/{x2}/{z2}") {
             //TODO add option to export jpeg, png, select scale
 //            return@get call.respondText("hello world")
-            val (x1, x2, z1, z2) = getParams("x1", "x2", "z1", "z2") ?: return@get call.respondText(parsingError)
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
                 LocalTile.Block(x2, z2)
             )
+            println("Exporting $blockArea")
+            println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             if (regionArea.size > 100) return@get call.respondText("Too big area!")
             val rendered = regionArea.list().associateWith { regionTile ->
@@ -327,27 +328,29 @@ object WhyServer {
                 BufferedImage.TYPE_INT_ARGB
             )
             val raster = image.raster
-
+            if (rendered.values.none { it != null }) return@get call.respondText("No data available out of ${rendered.size} regions!")
+            println("Rendering ${rendered.values.count { it != null }} out of ${rendered.size} regions")
             for ((tile, region) in rendered) {
+                println("Rendering $tile, $region")
                 region?.let {
                     region.writeInto(
                         raster,
-                        blockArea.start.x - tile.getStart().x,
-                        blockArea.start.z - tile.getStart().z
+                         tile.getStart().x - regionArea.blockArea().start.x,
+                         tile.getStart().z - regionArea.blockArea().start.z
                     )
                 }
             }
-            raster.createWritableChild(
-                blockArea.start.x - regionArea.start.x,
-                blockArea.start.z - regionArea.start.z,
-                blockArea.sizeX,
-                blockArea.sizeZ,
-                0,
-                0,
-                null
-            ).let {
-                image.data = it
-            }
+//            raster.createWritableChild(
+//                blockArea.start.x - regionArea.blockArea().start.x,
+//                blockArea.start.z - regionArea.blockArea().start.z,
+//                blockArea.sizeX,
+//                blockArea.sizeZ,
+//                0,
+//                0,
+//                null
+//            ).let {
+//                image.data = it
+//            }
 //            raster.createTranslatedChild(
 //                -blockArea.start.x,
 //                -blockArea.start.z
@@ -355,8 +358,10 @@ object WhyServer {
 //                image.data = it
 //            }
 
-            call.respondOutputStream(contentType = ContentType.Image.JPEG) {
-                encodeJPEG(image)
+            call.respondOutputStream(contentType = ContentType.Image.PNG) {
+                withContext(WhyDispatchers.Encoding) {
+                    encodePNG(image)
+                }
             }
 //            call.respondOutputStream(contentType = ContentType.Image.PNG) {
 //                encodePNG(image)
