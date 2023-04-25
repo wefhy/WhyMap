@@ -306,8 +306,9 @@ object WhyServer {
         get("/forceWipeCache") {
             forceWipeCache()
         }
-        get("/exportArea/x1/x2/z1/z2") {
+        get("/exportArea/{x1}/{x2}/{z1}/{z2}") {
             //TODO add option to export jpeg, png, select scale
+//            return@get call.respondText("hello world")
             val (x1, x2, z1, z2) = getParams("x1", "x2", "z1", "z2") ?: return@get call.respondText(parsingError)
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
@@ -321,14 +322,13 @@ object WhyServer {
                 }
             }
             val image = BufferedImage(
-                blockArea.sizeX,
-                blockArea.sizeZ,
+                regionArea.blockArea().sizeX,
+                regionArea.blockArea().sizeZ,
                 BufferedImage.TYPE_INT_ARGB
             )
-//            val graphics = image.createGraphics()
             val raster = image.raster
 
-            rendered.forEach { (tile, region) ->
+            for ((tile, region) in rendered) {
                 region?.let {
                     region.writeInto(
                         raster,
@@ -337,6 +337,24 @@ object WhyServer {
                     )
                 }
             }
+            raster.createWritableChild(
+                blockArea.start.x - regionArea.start.x,
+                blockArea.start.z - regionArea.start.z,
+                blockArea.sizeX,
+                blockArea.sizeZ,
+                0,
+                0,
+                null
+            ).let {
+                image.data = it
+            }
+//            raster.createTranslatedChild(
+//                -blockArea.start.x,
+//                -blockArea.start.z
+//            ).let {
+//                image.data = it
+//            }
+
             call.respondOutputStream(contentType = ContentType.Image.JPEG) {
                 encodeJPEG(image)
             }
