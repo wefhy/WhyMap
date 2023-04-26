@@ -30,6 +30,7 @@ import io.ktor.util.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
@@ -316,66 +317,76 @@ object WhyServer {
         get("/forceWipeCache") {
             forceWipeCache()
         }
+        get("/reloadTileWithBlock/{x}/{z}") {
+            val (x, z) = getParams("x", "z") ?: return@get call.respondText(parsingError)
+            val tile = MapTile(x, z, TileZoom.BlockZoom).toLocalTile().parent(TileZoom.RegionZoom)
+            //todo reload zoomed in tile?
+            activeWorld?.mapRegionManager?.apply {
+                unloadRegion(tile)
+            }
+            RegionUpdateQueue.addUpdate(tile)
+
+            /*?.getRegionForTilesRendering(tile) {
+                getRendered()
+            } ?: return@get call.respondText("Region unavailable")*/
+        }
+        val activeRenders = Semaphore(2)
+
+
         get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}") {
-            //TODO add option to export jpeg, png, select scale
-//            return@get call.respondText("hello world")
-            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
-            val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
-            val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
-            val blockArea = RectArea(
-                LocalTile.Block(x1, z1),
-                LocalTile.Block(x2, z2)
-            )
-            println("Exporting $blockArea")
-            println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
-            val regionArea = blockArea.parent(TileZoom.RegionZoom)
-            if (regionArea.size > 100) return@get call.respondText("Too big area!")
-            val image = BufferedImage(
-                regionArea.blockArea().sizeX,
-                regionArea.blockArea().sizeZ,
-                BufferedImage.TYPE_INT_RGB
-            )
-            val raster = image.raster
-            val renderJobs = regionArea.list().map { regionTile ->
-                launch(WhyDispatchers.Render) {
-                    println("Rendering $regionTile, " +
-                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                        renderWhyImageNow().writeInto(
-                            raster,
-                            regionTile.getStart().x - regionArea.blockArea().start.x,
-                            regionTile.getStart().z - regionArea.blockArea().start.z
-                        )
-                    })
+            activeRenders.tryAcquire {
+                val limit = 200
+                //TODO add option to select scale
+                val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+                val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
+                val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
+                val blockArea = RectArea(
+                    LocalTile.Block(x1, z1),
+                    LocalTile.Block(x2, z2)
+                )
+                println("Exporting $blockArea")
+                println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
+                val regionArea = blockArea.parent(TileZoom.RegionZoom)
+                if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
+                val image = BufferedImage(
+                    regionArea.blockArea().sizeX,
+                    regionArea.blockArea().sizeZ,
+                    BufferedImage.TYPE_INT_RGB
+                )
+                val raster = image.raster
+                val renderJobs = regionArea.list().map { regionTile ->
+                    launch(WhyDispatchers.Render) {
+                        println("Rendering $regionTile, " +
+                                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                    renderWhyImageNow().writeInto(
+                                        raster,
+                                        regionTile.getStart().x - regionArea.blockArea().start.x,
+                                        regionTile.getStart().z - regionArea.blockArea().start.z
+                                    )
+                                })
+                    }
                 }
-            }
-            renderJobs.joinAll()
-            val cropped = raster.createWritableChild(
-                blockArea.start.x - regionArea.blockArea().start.x,
-                blockArea.start.z - regionArea.blockArea().start.z,
-                blockArea.sizeX,
-                blockArea.sizeZ,
-                0,
-                0,
-                null
-            ).run {
-                BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
-            }
-
-//            raster.createTranslatedChild(
-//                -blockArea.start.x,
-//                -blockArea.start.z
-//            ).let {
-//                image.data = it
-//            }
-
-            call.respondOutputStream(contentType = format.contentType) {
-                withContext(WhyDispatchers.Encoding) {
-                    encode(cropped, format)
+                renderJobs.joinAll()
+                val cropped = raster.createWritableChild(
+                    blockArea.start.x - regionArea.blockArea().start.x,
+                    blockArea.start.z - regionArea.blockArea().start.z,
+                    blockArea.sizeX,
+                    blockArea.sizeZ,
+                    0,
+                    0,
+                    null
+                ).run {
+                    BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
                 }
-            }
-//            call.respondOutputStream(contentType = ContentType.Image.PNG) {
-//                encodePNG(image)
-//            }
+
+
+                call.respondOutputStream(contentType = format.contentType) {
+                    withContext(WhyDispatchers.Encoding) {
+                        encode(cropped, format)
+                    }
+                }
+            } ?: return@get call.respondText("Too many renders in progress")
+
         }
         post("/waypoint") {
             val waypoint = call.receive<OnlineWaypoint>()

@@ -77,7 +77,7 @@ class MapSettingsCategory: WhySettingsCategory("Map") {
 }
 
 class ServerSettingsCategory: WhySettingsCategory("Server") {
-    var exposeHttpApi by SettingsEntry(UserSettings.ExposeHttpApi.LOCALHOST_ONLY).addToggle("Expose HTTP API")
+    var exposeHttpApi by SettingsEntry(UserSettings.ExposeHttpApi.LOCALHOST_ONLY).addToggle("Expose HTTP API (RESTART REQUIRED)")
 }
 
 class HudEntrySettings(

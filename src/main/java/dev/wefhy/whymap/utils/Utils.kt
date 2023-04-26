@@ -8,6 +8,7 @@ package dev.wefhy.whymap.utils
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
+import kotlinx.coroutines.sync.Semaphore
 import net.minecraft.text.Text
 import java.awt.image.*
 import java.io.Closeable
@@ -208,5 +209,17 @@ fun WritableRaster.fillWithColor2(color: Int) {
         for (x in 0 until width) {
             setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
         }
+    }
+}
+
+inline fun<T> Semaphore.tryAcquire(block: () -> T): T? {
+    return if (tryAcquire()) {
+        try {
+            block()
+        } finally {
+            release()
+        }
+    } else {
+        null
     }
 }

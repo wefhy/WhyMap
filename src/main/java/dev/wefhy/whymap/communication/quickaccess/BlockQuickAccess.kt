@@ -16,6 +16,10 @@ import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 
 object BlockQuickAccess { //todo should be a class per world
+    //TODO rehash all the maps until most common blocks have unique buckets!
+    //Maybe use ImmutableMap from guava?
+    //TODO use truth tables instead of sets
+    //TODO bruteforce best map capacity for vanilla block sets
     internal val minecraftBlocks = Block.STATE_IDS.map { it.block.translationKey }.toSet().toTypedArray().sortedArray() //TODO get them from the world
     private val blockNameMap = Block.STATE_IDS.map { it.block.defaultState }.associateBy { it.block.translationKey }
     private val forceOverlayLookup = Block.STATE_IDS.filter { RenderConfig.isOverlayForced(it.block.translationKey) }.toSet()

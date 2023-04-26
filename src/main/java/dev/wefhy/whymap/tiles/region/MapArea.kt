@@ -390,7 +390,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         @OptIn(DelicateCoroutinesApi::class) //We want the thumbnail to be saved anyway
         GlobalScope.launch {
-            RegionUpdateQueue.addUpdate(location.x, location.z)
+            RegionUpdateQueue.addUpdate(location)
             ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
             //reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
             val thumbnail = location.parent(TileZoom.ThumbnailZoom)
