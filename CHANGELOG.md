@@ -1,5 +1,11 @@
 # WhyMap changelog
 
+## [1.6.3]
+ - Drag on the map with right mouse button to select area
+ - Export area to png or jpeg (will open in new tab)
+
+   (Currently limited to about 50M block areas (7000x7000 if square) and only with default zoom of 1 block = 1 pixel)
+
 ## [1.6.2]
  - Configurable hud color
  - Improved minimap rendering (still experimental, don't use)
@@ -167,6 +173,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.6.3]: https://github.com/wefhy/WhyMap/compare/1.6.3..1.6.2
 [1.6.2]: https://github.com/wefhy/WhyMap/compare/1.6.2..1.6.1
 [1.6.1]: https://github.com/wefhy/WhyMap/compare/1.6.1..1.6.0
 [1.6.0]: https://github.com/wefhy/WhyMap/compare/1.6.0..1.5.0
