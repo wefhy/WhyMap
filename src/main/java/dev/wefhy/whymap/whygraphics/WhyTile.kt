@@ -76,6 +76,7 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
 
     fun writeInto(raster: WritableRaster, xOffset: Int, yOffset: Int) {
         var i = 0
+//        println("Writing tile at $xOffset, $yOffset")
         for (y in yOffset until yOffset + chunkSize) {
             for (x in xOffset until xOffset + chunkSize) {
                 val color = data[i++]

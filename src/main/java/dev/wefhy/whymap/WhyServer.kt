@@ -12,7 +12,7 @@ import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.utils.*
-import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
+import dev.wefhy.whymap.utils.ImageWriter.encode
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import io.ktor.http.*
@@ -26,6 +26,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -102,7 +103,14 @@ object WhyServer {
 
     @Suppress("SameParameterValue")
     private fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
-        return paramName.map { call.parameters[it]?.toInt() ?: return null }.toIntArray()
+        return paramName.map { call.parameters[it]?.toInt() ?: return null.also {
+            println(
+                call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
+                    ", ",
+                    "Failed to parse request: "
+                )
+            )
+        } }.toIntArray()
     }
 
     inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
@@ -306,10 +314,12 @@ object WhyServer {
         get("/forceWipeCache") {
             forceWipeCache()
         }
-        get("/exportArea/{x1}/{z1}/{x2}/{z2}") {
+        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}") {
             //TODO add option to export jpeg, png, select scale
 //            return@get call.respondText("hello world")
             val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
+            val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
                 LocalTile.Block(x2, z2)
@@ -329,8 +339,9 @@ object WhyServer {
                 BufferedImage.TYPE_INT_RGB
             )
             val raster = image.raster
+//            raster.fillWithColor2(0xA37C5B)
             if (rendered.values.none { it != null }) return@get call.respondText("No data available out of ${rendered.size} regions!")
-            println("Rendering ${rendered.values.count { it != null }} out of ${rendered.size} regions")
+//            println("Rendering ${rendered.values.count { it != null }} out of ${rendered.size} regions")
             for ((tile, region) in rendered) {
                 println("Rendering $tile, $region")
                 region?.let {
@@ -341,17 +352,18 @@ object WhyServer {
                     )
                 }
             }
-//            raster.createWritableChild(
-//                blockArea.start.x - regionArea.blockArea().start.x,
-//                blockArea.start.z - regionArea.blockArea().start.z,
-//                blockArea.sizeX,
-//                blockArea.sizeZ,
-//                0,
-//                0,
-//                null
-//            ).let {
-//                image.data = it
-//            }
+            val cropped = raster.createWritableChild(
+                blockArea.start.x - regionArea.blockArea().start.x,
+                blockArea.start.z - regionArea.blockArea().start.z,
+                blockArea.sizeX,
+                blockArea.sizeZ,
+                0,
+                0,
+                null
+            ).run {
+                BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+            }
+
 //            raster.createTranslatedChild(
 //                -blockArea.start.x,
 //                -blockArea.start.z
@@ -359,9 +371,9 @@ object WhyServer {
 //                image.data = it
 //            }
 
-            call.respondOutputStream(contentType = ContentType.Image.JPEG) {
+            call.respondOutputStream(contentType = format.contentType) {
                 withContext(WhyDispatchers.Encoding) {
-                    encodeJPEG(image)
+                    encode(cropped, format)
                 }
             }
 //            call.respondOutputStream(contentType = ContentType.Image.PNG) {

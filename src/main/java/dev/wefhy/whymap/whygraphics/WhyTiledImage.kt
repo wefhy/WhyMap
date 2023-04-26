@@ -52,12 +52,14 @@ class WhyTiledImage(
     }
 
     fun writeInto(raster: WritableRaster, offsetX: Int, offsetY: Int) {
-        println("Writing into raster at $offsetX, $offsetY")
+//        println("Writing into raster at $offsetX, $offsetY")
+        raster.setPixel(offsetX, offsetY, intArrayOf(255, 0, 0))
         for (y in 0 until yTiles) {
             val line = data[y]
             for (x in 0 until xTiles) {
                 val tile = line[x] ?: continue
-                tile.writeInto(raster, x shl WhyTile.lineShl + offsetX, y shl WhyTile.lineShl + offsetY)
+//                println("Writing tile at $x, $y")
+                tile.writeInto(raster, (x shl WhyTile.lineShl) + offsetX, (y shl WhyTile.lineShl) + offsetY)
             }
         }
     }
