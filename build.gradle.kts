@@ -253,7 +253,7 @@ val createDiscordMessage = task("createDiscordMessage") {
 	val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
 	val message = """
 New version: $latestVersion
-$latestChangelog
+${latestChangelog.trimIndent()}
 :github: $githubUrl$latestVersion
 :modrinth: $modrinthUrl$latestVersion
 :curseforge: $curseforgeUrl

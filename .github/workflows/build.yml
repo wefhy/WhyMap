@@ -42,13 +42,17 @@ jobs:
         run: ./gradlew build
       - name: "Get Version"
         id: version
-        run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
+        run: echo "version=$(git describe --tags)" >> "$GITHUB_ENV"
       - name: Build Changelog
         id: changelog
         run: |
           chmod +x ./scripts/build_changelog.sh
           changelog=$(sh ./scripts/build_changelog.sh ${{steps.version.outputs.version}})
-          echo "changelog=${changelog}" >> $GITHUB_ENV
+          echo "changelog=${changelog}" >> "$GITHUB_ENV"
+      - name: print version and changelog
+        run: |
+          echo "Version: ${{steps.version.outputs.version}}"
+          echo "Changelog: ${{steps.changelog.outputs.changelog}}"
       - name: capture build artifacts
         if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
         uses: actions/upload-artifact@v3
