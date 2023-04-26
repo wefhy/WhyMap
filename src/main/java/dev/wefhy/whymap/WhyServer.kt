@@ -28,6 +28,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
@@ -328,11 +329,14 @@ object WhyServer {
             println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             if (regionArea.size > 100) return@get call.respondText("Too big area!")
-            val rendered = regionArea.list().associateWith { regionTile ->
-                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                    renderWhyImageNow() //todo paralellize
+            val renderedDeferred = regionArea.list().associateWith { regionTile ->
+                async {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        renderWhyImageNow() //todo paralellize
+                    }
                 }
             }
+            val rendered = renderedDeferred.mapValues { it.value.await() }
             val image = BufferedImage(
                 regionArea.blockArea().sizeX,
                 regionArea.blockArea().sizeZ,
