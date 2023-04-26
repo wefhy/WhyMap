@@ -390,7 +390,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
         @OptIn(DelicateCoroutinesApi::class) //We want the thumbnail to be saved anyway
         GlobalScope.launch {
-            RegionUpdateQueue.addUpdate(location.x, location.z)
+            RegionUpdateQueue.addUpdate(location)
             ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
             //reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
             val thumbnail = location.parent(TileZoom.ThumbnailZoom)
@@ -473,14 +473,15 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-//    fun renderWhyImage(): WhyTiledImage {
-//        return if (::renderedWhyImage.isInitialized && !nativeShouldBeReRendered())
-//            renderedWhyImage
-//        else {
-//            nativeRenderInProgress = true
-//            _renderWhyImage().also { nativeRenderInProgress = false }
-//        }
-//    }
+    fun renderWhyImageNow(): WhyTiledImage {
+        return if (::renderedWhyImage.isInitialized)
+            renderedWhyImage
+        else {
+//            nativeUpdateChunks() TODO maybe uncomment? Depends on the usecase
+            nativeRenderInProgress = true
+            _renderWhyImage().also { nativeRenderInProgress = false }
+        }
+    }
 
     fun renderWhyImageBuffered(): WhyTiledImage? {
         return if (!::renderedWhyImage.isInitialized) {
@@ -488,7 +489,9 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            valStatPrintLog("waiting")
             null
         } else {
-            nativeUpdateChunks()
+            mapAreaScope.launch {
+                nativeUpdateChunks()
+            }
 //            valStatPrintLog("success")
             renderedWhyImage
         }

@@ -8,9 +8,9 @@ package dev.wefhy.whymap.utils
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
+import kotlinx.coroutines.sync.Semaphore
 import net.minecraft.text.Text
-import java.awt.image.BufferedImage
-import java.awt.image.DataBufferByte
+import java.awt.image.*
 import java.io.Closeable
 import java.io.File
 import java.time.LocalDateTime
@@ -21,6 +21,7 @@ import kotlin.internal.InlineOnly
 import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
@@ -190,4 +191,35 @@ inline fun<reified T : Enum<T>> Enum<T>.nextValue(): Enum<T> {
 fun<A,B> memoize(block: (A) -> B): (A) -> B {
     val cache = mutableMapOf<A, B>()
     return { cache.getOrPut(it) { block(it) } }
+}
+
+fun Raster.fillWithColor(color: Int) {
+    val data = dataBuffer as DataBufferInt
+    val pixels = data.data
+    for (i in pixels.indices) {
+        pixels[i] = color
+    }
+}
+
+val R = Random(0)
+
+fun WritableRaster.fillWithColor2(color: Int) {
+    println("${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}, ${minX} ${minY} ${width} ${height}")
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
+        }
+    }
+}
+
+inline fun<T> Semaphore.tryAcquire(block: () -> T): T? {
+    return if (tryAcquire()) {
+        try {
+            block()
+        } finally {
+            release()
+        }
+    } else {
+        null
+    }
 }

@@ -90,6 +90,14 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
         )
     }
 
+    fun getEnd(): LocalTileBlock {
+        val diff = BlockZoom.zoom - zoom.zoom
+        return Block(
+            ((x+1) shl diff) - 1,
+            ((z+1) shl diff) - 1
+        )
+    }
+
     fun getCenter(): LocalTileBlock {
         val diff = BlockZoom.zoom - zoom.zoom
         val half = 1 shl diff shr 1 // can't be 1 shl (diff-1) because 1 shl -1
@@ -101,7 +109,7 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
 
     fun <X : TileZoom> parent(newZoom: X): LocalTile<X> {
         val diff = zoom.zoom - newZoom.zoom
-        assert(diff > 0)
+        require(diff >= 0)
         return LocalTile(
             x shr diff,
             z shr diff,

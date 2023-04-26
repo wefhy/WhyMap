@@ -34,7 +34,12 @@ object ImageWriter {
 //        compressionMode = ImageWriteParam.MODE_EXPLICIT
 //        compressionQuality = 1f // 0.95 is good for texture view; 1f for regular zoom
 //    }
-
+    fun OutputStream.encode(bitmap: BufferedImage, type: ImageFormat) {
+        when (type) {
+            ImageFormat.PNG -> encodePNG(bitmap)
+            ImageFormat.JPEG -> encodeJPEG(bitmap)
+        }
+    }
 
     fun OutputStream.encodeJPEG(bitmap: BufferedImage) {
 //        val writer = jpegWriter.next()
@@ -53,11 +58,4 @@ object ImageWriter {
         writer.write(null, IIOImage(bitmap, null, null), pngParam)
         writer.dispose()
     }
-
-    enum class ImageType {
-        PNG,
-        JPEG
-    }
-
-
 }

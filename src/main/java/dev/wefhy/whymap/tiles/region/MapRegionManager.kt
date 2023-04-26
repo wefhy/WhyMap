@@ -91,6 +91,13 @@ class MapRegionManager {
         }
     }
 
+    fun unloadRegion(position: LocalTileRegion) {
+        runBlocking {
+            regionLoaders[position]?.unload()
+            regionLoaders.remove(position)
+        }
+    }
+
     fun getRegionLoaderForThumbnailRendering(position: LocalTileRegion): RenderedThumbnailProvider {
         return regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return EmptyThumbnailProvider }
         //TODO use optionals?
