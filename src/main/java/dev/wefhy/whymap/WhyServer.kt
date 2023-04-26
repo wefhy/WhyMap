@@ -28,7 +28,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
-import kotlinx.coroutines.async
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
@@ -329,33 +330,25 @@ object WhyServer {
             println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             if (regionArea.size > 100) return@get call.respondText("Too big area!")
-            val renderedDeferred = regionArea.list().associateWith { regionTile ->
-                async {
-                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                        renderWhyImageNow() //todo paralellize
-                    }
-                }
-            }
-            val rendered = renderedDeferred.mapValues { it.value.await() }
             val image = BufferedImage(
                 regionArea.blockArea().sizeX,
                 regionArea.blockArea().sizeZ,
                 BufferedImage.TYPE_INT_RGB
             )
             val raster = image.raster
-//            raster.fillWithColor2(0xA37C5B)
-            if (rendered.values.none { it != null }) return@get call.respondText("No data available out of ${rendered.size} regions!")
-//            println("Rendering ${rendered.values.count { it != null }} out of ${rendered.size} regions")
-            for ((tile, region) in rendered) {
-                println("Rendering $tile, $region")
-                region?.let {
-                    region.writeInto(
-                        raster,
-                         tile.getStart().x - regionArea.blockArea().start.x,
-                         tile.getStart().z - regionArea.blockArea().start.z
-                    )
+            val renderJobs = regionArea.list().map { regionTile ->
+                launch(WhyDispatchers.Render) {
+                    println("Rendering $regionTile, " +
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        renderWhyImageNow().writeInto(
+                            raster,
+                            regionTile.getStart().x - regionArea.blockArea().start.x,
+                            regionTile.getStart().z - regionArea.blockArea().start.z
+                        )
+                    })
                 }
             }
+            renderJobs.joinAll()
             val cropped = raster.createWritableChild(
                 blockArea.start.x - regionArea.blockArea().start.x,
                 blockArea.start.z - regionArea.blockArea().start.z,

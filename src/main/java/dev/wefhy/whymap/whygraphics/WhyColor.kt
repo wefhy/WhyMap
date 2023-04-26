@@ -12,6 +12,35 @@ abstract class WhyIntARGB {
     abstract val intARGB: Int
 }
 
+typealias FastWhyColor = FloatArray
+
+
+
+val FastWhyColor.a: Float
+    inline get() = this[0]
+val FastWhyColor.r: Float
+    inline get() = this[1]
+val FastWhyColor.g: Float
+    inline get() = this[2]
+val FastWhyColor.b: Float
+    inline get() = this[3]
+
+val FastWhyColor.intA
+    inline get() = (a * 255).toInt()
+val FastWhyColor.intR
+    inline get() = (r * 255).toInt()
+val FastWhyColor.intG
+    inline get() = (g * 255).toInt()
+val FastWhyColor.intB
+    inline get() = (b * 255).toInt()
+
+val FastWhyColor.intARGB
+    inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
+
+fun FastWhyColor.toWhyColor(): WhyColor = WhyColor(r, g, b, a)
+
+inline fun WhyColor.toFastWhyColor(): FastWhyColor = floatArrayOf(a, r, g, b)
+
 class WhyColor(
     @JvmField val r: Float,
     @JvmField val g: Float,
