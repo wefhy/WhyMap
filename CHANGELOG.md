@@ -1,4 +1,6 @@
 # WhyMap changelog
+## [1.6.4]
+ - Add 16x scale rendering (block texture level)
 
 ## [1.6.3]
  - Drag on the map with right mouse button to select area
@@ -173,6 +175,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.6.4]: https://github.com/wefhy/WhyMap/compare/1.6.4..1.6.3
 [1.6.3]: https://github.com/wefhy/WhyMap/compare/1.6.3..1.6.2
 [1.6.2]: https://github.com/wefhy/WhyMap/compare/1.6.2..1.6.1
 [1.6.1]: https://github.com/wefhy/WhyMap/compare/1.6.1..1.6.0

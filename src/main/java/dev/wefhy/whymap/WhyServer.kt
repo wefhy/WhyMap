@@ -337,7 +337,6 @@ object WhyServer {
             activeRenders.tryAcquire {
                 val regionLimit = 200
                 val chunkLimit = 400
-                //TODO add option to select scale
                 val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
                 val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
                 val scale = call.parameters["scale"]?.toIntOrNull() ?: 1
