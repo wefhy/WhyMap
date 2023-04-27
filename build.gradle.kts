@@ -78,6 +78,8 @@ dependencies {
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
 	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.4.0"))
+//	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
+//	extraLibs(implementation("ai.hypergraph", "kotlingrad", "0.4.7"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
 	testImplementation(platform("org.junit:junit-bom:5.9.2"))

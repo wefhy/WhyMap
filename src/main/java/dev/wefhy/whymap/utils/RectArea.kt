@@ -9,15 +9,16 @@ class RectArea<T : TileZoom>(
     _start: LocalTile<T>,
     _end: LocalTile<T>,
 ) {
+    val zoom = _start.zoom
     val start = LocalTile(
         min(_start.x, _end.x),
         min(_start.z, _end.z),
-        _start.zoom
+        zoom
     )
     val end = LocalTile(
         max(_start.x, _end.x),
         max(_start.z, _end.z),
-        _start.zoom
+        zoom
     )
     val sizeX = end.x - start.x + 1
     val sizeZ = end.z - start.z + 1
@@ -78,6 +79,11 @@ class RectArea<T : TileZoom>(
                 area.end.z >= start.z
     }
 
+    infix fun<R: TileZoom> intersect(tile: LocalTile<R>): RectArea<T>? {
+        require(tile.zoom.zoom <= zoom.zoom) { "Tile zoom must be less or equal to area zoom" }
+        val tileArea = tile.areaAt(zoom)
+        return intersect(tileArea)
+    }
 
     infix fun intersect(area: RectArea<T>): RectArea<T>? {
         if (area.start.x > end.x || area.end.x < start.x) return null
@@ -123,6 +129,10 @@ class RectArea<T : TileZoom>(
     override fun toString(): String {
         return "RectArea${start.zoom}({${start.x}, ${start.z}} to {${end.x}, ${end.z}})"
     }
+}
+
+fun<T: TileZoom, R: TileZoom> LocalTile<R>.areaAt(zoom: T): RectArea<T> {
+    return RectArea(this.getStart(zoom), this.getEnd(zoom))
 }
 
 infix fun <T : TileZoom> LocalTile<T>.to(end: LocalTile<T>): RectArea<T> {
