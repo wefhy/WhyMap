@@ -40,9 +40,11 @@ class ExperimentalTileGenerator {
 
     suspend fun MapArea.renderIntersection(g2d: Graphics2D, area: RectArea<TileZoom.ChunkZoom>, offsetX: Int, offsetY: Int) {
         val chunks = ((area intersect location) ?: return).list()
+        println("rendering ${chunks.size} chunks at $location, offset: $offsetX, $offsetY")
         chunks.map { chunk ->
             val chunkOffset = chunk relativeTo location
             mapAreaScope.launch {
+                println("rendering chunk ${chunk.chunkPos} at ${chunkOffset.x}, ${chunkOffset.z}, final offset: ${offsetX + chunkOffset.x * 16 * 16}, ${offsetY + chunkOffset.z * 16 * 16}")
                 renderAt(
                     g2d,
                     chunk.chunkPos,

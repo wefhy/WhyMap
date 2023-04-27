@@ -333,9 +333,10 @@ object WhyServer {
         val activeRenders = Semaphore(2)
 
 
-        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/scale") {
+        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/{scale}") {
             activeRenders.tryAcquire {
-                val limit = 200
+                val regionLimit = 200
+                val chunkLimit = 1000
                 //TODO add option to select scale
                 val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
                 val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
@@ -351,7 +352,7 @@ object WhyServer {
                 val cropped = when(scale) {
                     1 -> {
                         val regionArea = blockArea.parent(TileZoom.RegionZoom)
-                        if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
+                        if (regionArea.size > regionLimit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $regionLimit regions.")
                         val image = BufferedImage(
                             regionArea.blockArea().sizeX,
                             regionArea.blockArea().sizeZ,
@@ -386,7 +387,7 @@ object WhyServer {
                     16 -> {
                         val regionArea = blockArea.parent(TileZoom.RegionZoom)
                         val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
-                        if (chunkArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $limit chunks.")
+                        if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $regionLimit chunks.")
                         val image = BufferedImage(
                             chunkArea.blockArea().sizeX * 16,
                             chunkArea.blockArea().sizeZ * 16,
@@ -400,25 +401,26 @@ object WhyServer {
                                         renderIntersection(
                                             g2d,
                                             chunkArea,
-                                            (regionTile.getStart().x - regionArea.blockArea().start.x) * 16,
-                                            (regionTile.getStart().z - regionArea.blockArea().start.z) * 16
+                                            (regionTile.getStart().x - blockArea.start.x) * 16,
+                                            (regionTile.getStart().z - blockArea.start.z) * 16
                                         )
                                     }
                                 }
                             }
                         }
                         renderJobs.joinAll()
-                        image.raster.createWritableChild(
-                            (blockArea.start.x - regionArea.blockArea().start.x) * 16,
-                            (blockArea.start.z - regionArea.blockArea().start.z) * 16,
-                            blockArea.sizeX * 16,
-                            blockArea.sizeZ * 16,
-                            0,
-                            0,
-                            null
-                        ).run {
-                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
-                        }
+                        image
+//                        image.raster.createWritableChild(
+//                            (blockArea.start.x - regionArea.blockArea().start.x) * 16,
+//                            (blockArea.start.z - regionArea.blockArea().start.z) * 16,
+//                            blockArea.sizeX * 16,
+//                            blockArea.sizeZ * 16,
+//                            0,
+//                            0,
+//                            null
+//                        ).run {
+//                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+//                        }
                     }
                     else -> return@get
                 }
