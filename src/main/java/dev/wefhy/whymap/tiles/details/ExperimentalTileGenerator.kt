@@ -11,10 +11,16 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterLoggedBl
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider.waterTexture
 import dev.wefhy.whymap.tiles.region.MapArea
 import dev.wefhy.whymap.utils.LocalTile
+import dev.wefhy.whymap.utils.RectArea
+import dev.wefhy.whymap.utils.TileZoom
+import dev.wefhy.whymap.utils.chunkPos
 import dev.wefhy.whymap.whygraphics.*
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
 import java.awt.Color
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.awt.image.RescaleOp
 import java.util.*
@@ -31,19 +37,34 @@ class ExperimentalTileGenerator {
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
 
-    private fun MapArea.renderAt(position: ChunkPos): BufferedImage? {
-        val chunk = getChunk(position) ?: return null
-        val chunkOverlay = getChunkOverlay(position) ?: return null
-        val biomeFoliage = getChunkBiomeFoliageAndWater(position) ?: return null
-        val depthmap = getChunkDepthmap(position) ?: return null
-        val normalmap = getChunkNormals(position) ?: return null
-        val bufferedImage = BufferedImage(16 * 16, 16 * 16, BufferedImage.TYPE_INT_RGB)
-        val g2d = bufferedImage.createGraphics()
+    private suspend fun MapArea.renderIntersection(g2d: Graphics2D, area: RectArea<TileZoom.ChunkZoom>, offsetX: Int, offsetY: Int) {
+        val chunks = ((area intersect location) ?: return).list()
+        chunks.map { chunk ->
+            val chunkOffset = chunk relativeTo location
+            mapAreaScope.launch {
+                renderAt(
+                    g2d,
+                    chunk.chunkPos,
+                    offsetX + chunkOffset.x * 16 * 16,
+                    offsetY + chunkOffset.z * 16 * 16
+                )
+            }
+        }.joinAll()
+    }
+
+    private fun MapArea.renderAt(g2d: Graphics2D, position: ChunkPos, offsetX: Int = 0, offsetY: Int = 0) {
+        val chunk = getChunk(position) ?: return
+        val chunkOverlay = getChunkOverlay(position) ?: return
+        val biomeFoliage = getChunkBiomeFoliageAndWater(position) ?: return
+        val depthmap = getChunkDepthmap(position) ?: return
+        val normalmap = getChunkNormals(position) ?: return
         //                    val originalComposite = g2d.composite
         //                    val alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f)
 
         for (y in 0 until 16) {
             for (x in 0 until 16) {
+                val drawPosX = offsetX + x * 16
+                val drawPosY = offsetY + y * 16
                 val block = chunk[y][x]
                 val (foliageColor, oceanColor) = biomeFoliage[y][x]
                 val blockOverlay = chunkOverlay[y][x]
@@ -63,12 +84,12 @@ class ExperimentalTileGenerator {
                     g2d.drawImage( //TODO java.lang.IllegalArgumentException: Rescaling cannot be performed on an indexed image
                         source,
                         RescaleOp(blockColorFilter, FloatArray(4), null),
-                        x * 16,
-                        y * 16
+                        drawPosX,
+                        drawPosY
                     )
                 } else {
                     g2d.color = Color(block.material.color.color)
-                    g2d.fillRect(x * 16, y * 16, 16, 16)
+                    g2d.fillRect(drawPosX, drawPosY, 16, 16)
                 }
                 if (depth == 0) continue
                 val sourceOverlay = ExperimentalTextureProvider.getBitmap(blockOverlay.block)
@@ -86,26 +107,25 @@ class ExperimentalTileGenerator {
 
                 val newRop = if (waterLoggedBlocks.contains(blockOverlay)) {
                     val waterRop = RescaleOp(oceanColor.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null)
-                    g2d.drawImage(waterTexture, waterRop, x * 16, y * 16)
+                    g2d.drawImage(waterTexture, waterRop, drawPosX, drawPosY)
                     RescaleOp(c.floatArray, FloatArray(4), null)
                 } else {
                     RescaleOp(c.floatArray.apply { this[3] = alpha * 1.6f }, darkenArray, null) //TODO don't change alpha for non-water!
                 }
 
                 if (sourceOverlay != null) {
-                    g2d.drawImage(sourceOverlay, newRop, x * 16, y * 16)
+                    g2d.drawImage(sourceOverlay, newRop, drawPosX, drawPosY)
                 } else {
                     g2d.color = Color(
                         (c + (-depth * 4)).intRGB or ((alpha * 255).toInt() shl 24), //TODO use proper alpha!
                         true
                     )
-                    g2d.fillRect(x * 16, y * 16, 16, 16)
+                    g2d.fillRect(drawPosX, drawPosY, 16, 16)
                 }
 
                 //TODO refactor this rendering finally
             }
         }
-        return bufferedImage
     }
 
     private suspend fun renderTile(position: ChunkPos): BufferedImage? {
@@ -117,7 +137,9 @@ class ExperimentalTileGenerator {
                 )
             ) {
                 withContext(areaCoroutineContext) {
-                    renderAt(position)
+                    BufferedImage(16 * 16, 16 * 16, BufferedImage.TYPE_INT_RGB).also {
+                        renderAt(it.createGraphics(), position)
+                    }
                 }
             }
         } catch (e: IndexOutOfBoundsException) {
