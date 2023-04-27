@@ -333,12 +333,14 @@ object WhyServer {
         val activeRenders = Semaphore(2)
 
 
-        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}") {
+        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/scale") {
             activeRenders.tryAcquire {
                 val limit = 200
                 //TODO add option to select scale
                 val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
                 val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
+                val scale = call.parameters["scale"]?.toIntOrNull() ?: 1
+                if (scale != 1 && scale != 16) return@get call.respondText("Unsupported scale!")
                 val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
                 val blockArea = RectArea(
                     LocalTile.Block(x1, z1),
@@ -346,39 +348,77 @@ object WhyServer {
                 )
                 println("Exporting $blockArea")
                 println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
-                val regionArea = blockArea.parent(TileZoom.RegionZoom)
-                if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
-                val image = BufferedImage(
-                    regionArea.blockArea().sizeX,
-                    regionArea.blockArea().sizeZ,
-                    BufferedImage.TYPE_INT_RGB
-                )
-                val raster = image.raster
-                val renderJobs = regionArea.list().map { regionTile ->
-                    launch(WhyDispatchers.Render) {
-                        println("Rendering $regionTile, " +
-                                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                                    renderWhyImageNow().writeInto(
-                                        raster,
-                                        regionTile.getStart().x - regionArea.blockArea().start.x,
-                                        regionTile.getStart().z - regionArea.blockArea().start.z
-                                    )
-                                })
+                val cropped = when(scale) {
+                    1 -> {
+                        val regionArea = blockArea.parent(TileZoom.RegionZoom)
+                        if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
+                        val image = BufferedImage(
+                            regionArea.blockArea().sizeX,
+                            regionArea.blockArea().sizeZ,
+                            BufferedImage.TYPE_INT_RGB
+                        )
+                        val raster = image.raster
+                        val renderJobs = regionArea.list().map { regionTile ->
+                            launch(WhyDispatchers.Render) {
+                                println("Rendering $regionTile, " +
+                                        activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                            renderWhyImageNow().writeInto(
+                                                raster,
+                                                regionTile.getStart().x - regionArea.blockArea().start.x,
+                                                regionTile.getStart().z - regionArea.blockArea().start.z
+                                            )
+                                        })
+                            }
+                        }
+                        renderJobs.joinAll()
+                        raster.createWritableChild(
+                            blockArea.start.x - regionArea.blockArea().start.x,
+                            blockArea.start.z - regionArea.blockArea().start.z,
+                            blockArea.sizeX,
+                            blockArea.sizeZ,
+                            0,
+                            0,
+                            null
+                        ).run {
+                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+                        }
                     }
+                    16 -> {
+                        val regionArea = blockArea.parent(TileZoom.RegionZoom)
+                        if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
+                        val image = BufferedImage(
+                            regionArea.blockArea().sizeX * 16,
+                            regionArea.blockArea().sizeZ * 16,
+                            BufferedImage.TYPE_INT_RGB
+                        )
+                        val raster = image.raster
+                        val renderJobs = regionArea.list().map { regionTile ->
+                            launch(WhyDispatchers.Render) {
+                                println("Rendering $regionTile, " +
+                                        activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                            renderWhyImageNow().writeInto(
+                                                raster,
+                                                (regionTile.getStart().x - regionArea.blockArea().start.x) * 16,
+                                                (regionTile.getStart().z - regionArea.blockArea().start.z) * 16
+                                            )
+                                        })
+                            }
+                        }
+                        renderJobs.joinAll()
+                        raster.createWritableChild(
+                            (blockArea.start.x - regionArea.blockArea().start.x) * 16,
+                            (blockArea.start.z - regionArea.blockArea().start.z) * 16,
+                            blockArea.sizeX * 16,
+                            blockArea.sizeZ * 16,
+                            0,
+                            0,
+                            null
+                        ).run {
+                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+                        }
+                    }
+                    else -> return@get
                 }
-                renderJobs.joinAll()
-                val cropped = raster.createWritableChild(
-                    blockArea.start.x - regionArea.blockArea().start.x,
-                    blockArea.start.z - regionArea.blockArea().start.z,
-                    blockArea.sizeX,
-                    blockArea.sizeZ,
-                    0,
-                    0,
-                    null
-                ).run {
-                    BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
-                }
-
 
                 call.respondOutputStream(contentType = format.contentType) {
                     withContext(WhyDispatchers.Encoding) {
