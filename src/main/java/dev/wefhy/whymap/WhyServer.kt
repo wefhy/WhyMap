@@ -385,27 +385,30 @@ object WhyServer {
                     }
                     16 -> {
                         val regionArea = blockArea.parent(TileZoom.RegionZoom)
-                        if (regionArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $limit regions.")
+                        val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+                        if (chunkArea.size > limit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $limit chunks.")
                         val image = BufferedImage(
-                            regionArea.blockArea().sizeX * 16,
-                            regionArea.blockArea().sizeZ * 16,
+                            chunkArea.blockArea().sizeX * 16,
+                            chunkArea.blockArea().sizeZ * 16,
                             BufferedImage.TYPE_INT_RGB
                         )
-                        val raster = image.raster
+                        val g2d = image.createGraphics()
                         val renderJobs = regionArea.list().map { regionTile ->
                             launch(WhyDispatchers.Render) {
-                                println("Rendering $regionTile, " +
-                                        activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                                            renderWhyImageNow().writeInto(
-                                                raster,
-                                                (regionTile.getStart().x - regionArea.blockArea().start.x) * 16,
-                                                (regionTile.getStart().z - regionArea.blockArea().start.z) * 16
-                                            )
-                                        })
+                                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                    activeWorld?.experimentalTileGenerator?.apply {
+                                        renderIntersection(
+                                            g2d,
+                                            chunkArea,
+                                            (regionTile.getStart().x - regionArea.blockArea().start.x) * 16,
+                                            (regionTile.getStart().z - regionArea.blockArea().start.z) * 16
+                                        )
+                                    }
+                                }
                             }
                         }
                         renderJobs.joinAll()
-                        raster.createWritableChild(
+                        image.raster.createWritableChild(
                             (blockArea.start.x - regionArea.blockArea().start.x) * 16,
                             (blockArea.start.z - regionArea.blockArea().start.z) * 16,
                             blockArea.sizeX * 16,

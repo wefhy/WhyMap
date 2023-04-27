@@ -30,6 +30,7 @@ context(CurrentWorldProvider<WhyWorld>)
 class ExperimentalTileGenerator {
 
     val renderedTiles = mutableMapOf<ChunkPos, Optional<BufferedImage>>()
+    //TODO this map is never freed?!
 
     @OptIn(ExperimentalStdlibApi::class)
     suspend fun getTile(position: ChunkPos): BufferedImage? = renderedTiles.getOrPut(position) {
@@ -37,7 +38,7 @@ class ExperimentalTileGenerator {
         Optional.ofNullable(renderTile(position))
     }.getOrNull()
 
-    private suspend fun MapArea.renderIntersection(g2d: Graphics2D, area: RectArea<TileZoom.ChunkZoom>, offsetX: Int, offsetY: Int) {
+    suspend fun MapArea.renderIntersection(g2d: Graphics2D, area: RectArea<TileZoom.ChunkZoom>, offsetX: Int, offsetY: Int) {
         val chunks = ((area intersect location) ?: return).list()
         chunks.map { chunk ->
             val chunkOffset = chunk relativeTo location
