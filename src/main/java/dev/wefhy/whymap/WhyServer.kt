@@ -387,7 +387,7 @@ object WhyServer {
                     16 -> {
                         val regionArea = blockArea.parent(TileZoom.RegionZoom)
                         val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
-                        if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $regionLimit chunks.")
+                        if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
                         val image = BufferedImage(
                             chunkArea.blockArea().sizeX * 16,
                             chunkArea.blockArea().sizeZ * 16,
@@ -409,18 +409,17 @@ object WhyServer {
                             }
                         }
                         renderJobs.joinAll()
-                        image
-//                        image.raster.createWritableChild(
-//                            (blockArea.start.x - regionArea.blockArea().start.x) * 16,
-//                            (blockArea.start.z - regionArea.blockArea().start.z) * 16,
-//                            blockArea.sizeX * 16,
-//                            blockArea.sizeZ * 16,
-//                            0,
-//                            0,
-//                            null
-//                        ).run {
-//                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
-//                        }
+                        image.raster.createWritableChild(
+                            (blockArea.start.x - chunkArea.blockArea().start.x) * 16,
+                            (blockArea.start.z - chunkArea.blockArea().start.z) * 16,
+                            blockArea.sizeX * 16,
+                            blockArea.sizeZ * 16,
+                            0,
+                            0,
+                            null
+                        ).run {
+                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+                        }
                     }
                     else -> return@get
                 }
