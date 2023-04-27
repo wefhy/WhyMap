@@ -336,7 +336,7 @@ object WhyServer {
         get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/{scale}") {
             activeRenders.tryAcquire {
                 val regionLimit = 200
-                val chunkLimit = 1000
+                val chunkLimit = 400
                 //TODO add option to select scale
                 val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
                 val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
@@ -395,7 +395,7 @@ object WhyServer {
                         )
                         val g2d = image.createGraphics()
                         val renderJobs = regionArea.list().map { regionTile ->
-                            launch(WhyDispatchers.Render) {
+                            withContext(WhyDispatchers.Render) {
                                 activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                                     activeWorld?.experimentalTileGenerator?.apply {
                                         renderIntersection(
@@ -408,7 +408,7 @@ object WhyServer {
                                 }
                             }
                         }
-                        renderJobs.joinAll()
+//                        renderJobs.joinAll()
                         image.raster.createWritableChild(
                             (blockArea.start.x - chunkArea.blockArea().start.x) * 16,
                             (blockArea.start.z - chunkArea.blockArea().start.z) * 16,

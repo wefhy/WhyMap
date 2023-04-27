@@ -15,8 +15,6 @@ import dev.wefhy.whymap.utils.RectArea
 import dev.wefhy.whymap.utils.TileZoom
 import dev.wefhy.whymap.utils.chunkPos
 import dev.wefhy.whymap.whygraphics.*
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.minecraft.util.math.ChunkPos
 import java.awt.Color
@@ -43,7 +41,7 @@ class ExperimentalTileGenerator {
         println("rendering ${chunks.size} chunks at $location, offset: $offsetX, $offsetY")
         chunks.map { chunk ->
             val chunkOffset = chunk relativeTo location
-            mapAreaScope.launch {
+//            mapAreaScope.launch {
                 println("rendering chunk ${chunk.chunkPos} at ${chunkOffset.x}, ${chunkOffset.z}, final offset: ${offsetX + chunkOffset.x * 16 * 16}, ${offsetY + chunkOffset.z * 16 * 16}")
                 renderAt(
                     g2d,
@@ -51,8 +49,8 @@ class ExperimentalTileGenerator {
                     offsetX + chunkOffset.x * 16 * 16,
                     offsetY + chunkOffset.z * 16 * 16
                 )
-            }
-        }.joinAll()
+//            }
+        }//.joinAll()
     }
 
     private fun MapArea.renderAt(g2d: Graphics2D, position: ChunkPos, offsetX: Int = 0, offsetY: Int = 0) {
