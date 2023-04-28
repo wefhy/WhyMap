@@ -65,7 +65,7 @@ jobs:
         with:
           files: build/libs/*.jar
 #          name: ${{github.ref}}
-          draft: true
+#          draft: true
           body: ${{ env.changelog }}
       - name: Curseforge and Modrinth Release
         uses: wefhy/mc-publish@master
