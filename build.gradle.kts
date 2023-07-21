@@ -125,7 +125,13 @@ tasks.withType<Jar> {
 	from("LICENSE") {
 		rename { "${it}_${mod_id}"}
 	}
-	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
+//	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
+//	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
+//	from(extraLibs.runtimeClasspath { it.resolve().map { if (it.isDirectory) it else zipTree(it) } })
+//	from {
+//		configurations.runtimeClasspath.flatMap { it.resolve().isDirectory() ? it : zipTree(it) }
+//	}
+	configurations.named("extraLibs").map { it.resolve().map { if (it.isDirectory) it else zipTree(it) } }
 	//TODO can be improved?
 	// https://stackoverflow.com/a/36404235/7438147
 	// https://stackoverflow.com/a/9359588/7438147

@@ -5,6 +5,7 @@ package dev.wefhy.whymap.hud
 import dev.wefhy.whymap.hud.lines.DynamicLine
 import dev.wefhy.whymap.hud.lines.StaticLine
 import dev.wefhy.whymap.whygraphics.WhyColor
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.util.math.MatrixStack
 
 open class Hud {
@@ -36,6 +37,7 @@ open class Hud {
     }
 
     class HudContext(
+        val drawContext: DrawContext,
         val matrixStack: MatrixStack,
         val defaultColor: WhyColor
     )

@@ -15,7 +15,8 @@ abstract class HudLine {
             val textRenderer = minecraft.textRenderer
             matrixStack.push()
             matrixStack.scale(scale, scale, scale)
-            textRenderer.drawWithShadow(matrixStack, text, 0f, 0f, (color ?: defaultColor).intARGB)
+            drawContext.drawTextWithShadow(textRenderer, text, 0, 0, (color ?: defaultColor).intARGB)
+//            textRenderer.drawWithShadow(matrixStack, text, 0f, 0f, (color ?: defaultColor).intARGB)
             matrixStack.pop()
             height
         } else 0f
