@@ -1,4 +1,7 @@
 # WhyMap changelog
+## [1.6.5]
+ - Update to 1.20.1
+
 ## [1.6.4]
  - Add 16x scale rendering (block texture level)
 
@@ -175,6 +178,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.6.5]: https://github.com/wefhy/WhyMap/compare/1.6.5..1.6.4
 [1.6.4]: https://github.com/wefhy/WhyMap/compare/1.6.4..1.6.3
 [1.6.3]: https://github.com/wefhy/WhyMap/compare/1.6.3..1.6.2
 [1.6.2]: https://github.com/wefhy/WhyMap/compare/1.6.2..1.6.1
