@@ -1,7 +1,7 @@
 # WhyMap changelog
 ## [1.6.6]
  - Update to 1.20.1
- - Fix 1.6.5 which was not opening
+ - Fixed dependencies
 
 ## [1.6.5]
  - Update to 1.20.1
