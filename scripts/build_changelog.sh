@@ -5,7 +5,7 @@
 #TAG=$(git describe --tags)
 TAG=$1
 CHANGELOG=$(awk -v tag="$TAG" '
-  /^\#\# \[/ {
+  /^## \[/ {
     if(match($0, "\\["tag"\\]")) {
       found=1
       next
