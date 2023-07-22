@@ -89,7 +89,7 @@ class ExperimentalTileGenerator {
                         drawPosY
                     )
                 } else {
-                    g2d.color = Color(block.material.color.color)
+                    g2d.color = Color(block.getMapColor(null, null).color)
                     g2d.fillRect(drawPosX, drawPosY, 16, 16)
                 }
                 if (depth == 0) continue

@@ -24,7 +24,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.DrawableHelper
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.render.Tessellator
@@ -88,23 +88,24 @@ class WhyMapClient : ClientModInitializer {
         val mc = MinecraftClient.getInstance()
         val hud = WhyHud(mc)
 
-        fun drawHud(matrixStack: MatrixStack) {
+        fun drawHud(drawContext: DrawContext) {
             if (!WhyUserSettings.generalSettings.displayHud) return
-            with(matrixStack) {
+            with(drawContext.matrices) {
                 push()
                 if (WhyUserSettings.mapSettings.minimapMode.visible && WhyUserSettings.mapSettings.minimapPosition == MinimapPosition.TOP_LEFT && WhyUserSettings.mapSettings.forceExperimentalMinmap) {
                     translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
                 } else {
                     translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
                 }
-                with(Hud.HudContext(matrixStack, WhyUserSettings.generalSettings.hudColor)) {
+                with(Hud.HudContext(drawContext, drawContext.matrices, WhyUserSettings.generalSettings.hudColor)) {
                     hud.draw()
                 }
                 pop()
             }
         }
 
-        fun drawMiniMap(matrixStack: MatrixStack) {
+        fun drawMiniMap(drawContext: DrawContext) {
+            val matrixStack = drawContext.matrices
             val mapMode = WhyUserSettings.mapSettings.minimapMode
             val mapPosition = WhyUserSettings.mapSettings.minimapPosition
 
@@ -161,7 +162,7 @@ class WhyMapClient : ClientModInitializer {
                     (cropXsize * scaleX).toInt(),
                     (cropYsize * scaleY).toInt()
                 )
-                DrawableHelper.fill(matrixStack, 0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
+                drawContext.fill(0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
             }
 
             matrixStack.push()
@@ -215,9 +216,9 @@ class WhyMapClient : ClientModInitializer {
 //            matrixStack.pop()
         }
 
-        HudRenderCallback.EVENT.register { matrixStack: MatrixStack, tickDelta: Float ->
-            drawMiniMap(matrixStack)
-            drawHud(matrixStack)
+        HudRenderCallback.EVENT.register { drawContext: DrawContext, tickDelta: Float ->
+            drawMiniMap(drawContext)
+            drawHud(drawContext)
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { mc ->

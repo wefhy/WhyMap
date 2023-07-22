@@ -37,7 +37,7 @@ object BlockQuickAccess { //todo should be a class per world
                 alphaInvariantAverage()//for leaves
             else
                 average()//for regular blocks
-        } ?: WhyColor.fromRGB(it.material.color.color)
+        } ?: WhyColor.fromRGB(it.getMapColor(null, null).color)
     }.toTypedArray().also { WhyMapMod.LOGGER.warn("MISSING TEXTURES: ${ExperimentalTextureProvider.missingTextures}") }
 
     internal inline fun encodeBlock(blockState: BlockState): Short {
@@ -45,7 +45,7 @@ object BlockQuickAccess { //todo should be a class per world
         return minecraftBlocks.binarySearch(defaultState).toShort()
     }
 
-    internal inline fun isSolid(blockState: BlockState) = (blockState.material.isSolid  || blockState in forceSolidLookup) && (blockState !in forceOverlayLookup)
+    internal inline fun isSolid(blockState: BlockState) = (blockState.isSolid || blockState in forceSolidLookup) && (blockState !in forceOverlayLookup)
 
     internal inline fun isOverlay(blockState: BlockState) = !isSolid(blockState)
 
