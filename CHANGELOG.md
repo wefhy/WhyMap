@@ -1,4 +1,8 @@
 # WhyMap changelog
+## [1.6.6]
+ - Update to 1.20.1
+ - Fix 1.6.5 which was not opening
+
 ## [1.6.5]
  - Update to 1.20.1
 
@@ -178,6 +182,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.6.6]: https://github.com/wefhy/WhyMap/compare/1.6.6..1.6.5
 [1.6.5]: https://github.com/wefhy/WhyMap/compare/1.6.5..1.6.4
 [1.6.4]: https://github.com/wefhy/WhyMap/compare/1.6.4..1.6.3
 [1.6.3]: https://github.com/wefhy/WhyMap/compare/1.6.3..1.6.2
