@@ -104,7 +104,8 @@ class WhyMapClient : ClientModInitializer {
             }
         }
 
-        fun drawMiniMap(matrixStack: MatrixStack) {
+        fun drawMiniMap(drawContext: DrawContext) {
+            val matrixStack = drawContext.matrices
             val mapMode = WhyUserSettings.mapSettings.minimapMode
             val mapPosition = WhyUserSettings.mapSettings.minimapPosition
 
@@ -161,7 +162,7 @@ class WhyMapClient : ClientModInitializer {
                     (cropXsize * scaleX).toInt(),
                     (cropYsize * scaleY).toInt()
                 )
-//                DrawableHelper.fill(matrixStack, 0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
+                drawContext.fill(0, 0, mc.window.scaledWidth, mc.window.scaledHeight, 0xFF000000.toInt())
             }
 
             matrixStack.push()
@@ -216,7 +217,7 @@ class WhyMapClient : ClientModInitializer {
         }
 
         HudRenderCallback.EVENT.register { drawContext: DrawContext, tickDelta: Float ->
-            drawMiniMap(drawContext.matrices)
+            drawMiniMap(drawContext)
             drawHud(drawContext)
         }
 
