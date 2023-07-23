@@ -39,6 +39,7 @@ object RenderConfig {
         "barrier",
         "amethyst_bud",
         "lantern", //todo don't match sea lantern!
+        "sniffer_egg",
 //        "ice", TODO can be enabled if I take into account how transparent is every texture. Otherwise it's too transparent on zoom-out. On detail view it's perfect.
     )
 
@@ -83,7 +84,7 @@ object RenderConfig {
 
     internal inline fun isWaterBlock(name: String) = name.contains("water")
 
-    internal inline fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) }
+    internal inline fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) && !name.contains("cherry")}
 
     internal inline fun shouldBlockOverlayBeIgnored(name: String) = ignoredOverlayBlocks.any { name.contains(it) }
 

@@ -58,6 +58,7 @@ object ExperimentalTextureProvider {
                         .replace("stripped_", "")
                         .replace("wall_", "") //this handles coral wall fans
                         .replace("waxed_", "")
+//                        .replace("hanging_sign", "sign")
                     getTopTexture(shortName)
                         ?: getRegularTexture(shortName)
                         ?: getTopTexture(shortName + 's')
@@ -77,7 +78,18 @@ object ExperimentalTextureProvider {
                 }
 //            LOGGER.info("Drawing $name")
             Optional.of(ImageIO.read(file))
-        }?.getOrNull()
+        }?.getOrNull()?.run {
+            when (type) {
+                BufferedImage.TYPE_INT_ARGB -> this
+                else -> {
+                    val newImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+                    val g2d = newImage.createGraphics()
+                    g2d.drawImage(this, 0, 0, null)
+                    g2d.dispose()
+                    newImage
+                }
+            }
+        }
     }
     // TODO Source: https://discord.com/channels/507304429255393322/507982478276034570/976891500657008640
 //    fun experimentalGetTexture() {
