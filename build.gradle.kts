@@ -16,8 +16,8 @@ val fabric_version: String by project
 plugins {
 	id ("fabric-loom") version "1.3.8"
 	id ("maven-publish")
-	kotlin("jvm") version "1.8.22"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
+	kotlin("jvm") version "1.9.0"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
 loom {
@@ -62,29 +62,30 @@ dependencies {
 	mappings("net.fabricmc:yarn:$yarn_mappings:v2")
 	modImplementation("net.fabricmc", "fabric-loader", loader_version)
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
-	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.9.6+kotlin.1.8.22")
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.10.8+kotlin.1.9.0")
 
 	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
 		exclude (group = "net.fabricmc.fabric-api")
 	}
 	modCompileOnlyApi("com.terraformersmc", "modmenu", "6.2.0")
 
-	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-serialization-kotlinx-json", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-html-builder", "2.2.2"))
-	extraLibs(implementation("io.ktor", "ktor-server-cors", "2.2.2"))
+	val ktorVersion = "2.3.2"
+	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
+	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", ktorVersion))
+	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", ktorVersion))
+	extraLibs(implementation("io.ktor", "ktor-serialization-kotlinx-json", ktorVersion))
+	extraLibs(implementation("io.ktor", "ktor-server-html-builder", ktorVersion))
+	extraLibs(implementation("io.ktor", "ktor-server-cors", ktorVersion))
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
-	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.4.0"))
+	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.5.0"))
 //	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
 //	extraLibs(implementation("ai.hypergraph", "kotlingrad", "0.4.7"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
-	testImplementation(platform("org.junit:junit-bom:5.9.2"))
+	testImplementation(platform("org.junit:junit-bom:5.9.3"))
 	testImplementation("org.junit.jupiter:junit-jupiter")
-	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.7.0")
+	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.9.1")
 	testImplementation("ar.com.hjg", "pngj", "2.1.0")
     implementation(kotlin("stdlib-jdk8"))
 }
@@ -125,8 +126,8 @@ tasks.withType<Jar> {
 	from("LICENSE") {
 		rename { "${it}_${mod_id}"}
 	}
-	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-//	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
+//	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
+	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
 //	from(extraLibs.runtimeClasspath { it.resolve().map { if (it.isDirectory) it else zipTree(it) } })
 //	from {
 //		configurations.runtimeClasspath.flatMap { it.resolve().isDirectory() ? it : zipTree(it) }

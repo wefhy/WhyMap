@@ -65,7 +65,7 @@ class WhyMapClient : ClientModInitializer {
         NORTH_LOCKED(true),
         ROTATED(true);
 
-        fun next() = values()[(ordinal + 1) % values().size]
+        fun next() = entries[(ordinal + 1) % entries.size]
     }
 
     private val Int.optimisticSign
@@ -230,7 +230,7 @@ class WhyMapClient : ClientModInitializer {
                         WhyInputScreen("Adding new waypoint", "Do you want to add a new waypoint at $coords?") { answer, input ->
                             if (!answer) return@WhyInputScreen
                             val waypoint = LocalWaypoint(input, coords)
-                            WhyMapMod.activeWorld?.waypoints?.add(waypoint) ?: println("Failed to add waypoint!")
+                            activeWorld?.waypoints?.add(waypoint) ?: println("Failed to add waypoint!")
                             FeatureUpdateQueue.addUpdate(waypoint.asOnlineWaypoint())
                         }.show()
                     }
