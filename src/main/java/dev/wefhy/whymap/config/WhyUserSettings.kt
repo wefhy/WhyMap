@@ -28,8 +28,9 @@ object WhyUserSettings: WhySettings() {
         mapSettings.minimapPosition = userSettings.minimapPosition
         mapSettings.minimapMode = userSettings.minimapMode
         serverSettings.exposeHttpApi = userSettings.exposeHttpApi
-        mapSettings.forceExperimentalMinmap = userSettings.forceExperimentalMinmap
+        mapSettings.forceExperimentalMinmap = userSettings.forceExperimentalMinimap
         generalSettings.hudColor = WhyColor.fromARGB(userSettings.hudColor)
+        generalSettings.trackPlayer = userSettings.trackPlayer
     }
 
     fun save(): UserSettings {
@@ -39,8 +40,9 @@ object WhyUserSettings: WhySettings() {
             minimapPosition = mapSettings.minimapPosition,
             minimapMode = mapSettings.minimapMode,
             exposeHttpApi = serverSettings.exposeHttpApi,
-            forceExperimentalMinmap = mapSettings.forceExperimentalMinmap,
-            hudColor = generalSettings.hudColor.intARGB
+            forceExperimentalMinimap = mapSettings.forceExperimentalMinmap,
+            hudColor = generalSettings.hudColor.intARGB,
+            trackPlayer = generalSettings.trackPlayer,
         )
     }
 }
@@ -48,6 +50,7 @@ object WhyUserSettings: WhySettings() {
 class GeneralSettingsCategory : WhySettingsCategory("General") {
     var displayHud by SettingsEntry(true).addToggle("Display HUD")
     var hudColor by SettingsEntry(WhyColor.White).addColorPicker("HUD color")
+    var trackPlayer by SettingsEntry(true).addToggle("Track player")
 }
 
 class MapSettingsCategory: WhySettingsCategory("Map") {

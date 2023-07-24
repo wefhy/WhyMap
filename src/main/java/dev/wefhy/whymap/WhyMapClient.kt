@@ -11,6 +11,7 @@ import dev.wefhy.whymap.events.FeatureUpdateQueue
 import dev.wefhy.whymap.gui.WhyInputScreen
 import dev.wefhy.whymap.hud.Hud
 import dev.wefhy.whymap.hud.WhyHud
+import dev.wefhy.whymap.playerpath.PlayerTracking
 import dev.wefhy.whymap.utils.LocalTile.Companion.Block
 import dev.wefhy.whymap.utils.LocalTile.Companion.Region
 import dev.wefhy.whymap.utils.TileZoom
@@ -87,6 +88,12 @@ class WhyMapClient : ClientModInitializer {
         val playerIcon = loadPngIntoNativeImage()
         val mc = MinecraftClient.getInstance()
         val hud = WhyHud(mc)
+
+        fun trackPlayer(mc: MinecraftClient) {
+            if (!WhyUserSettings.generalSettings.trackPlayer) return
+            val playerPos = mc.player?.pos ?: return
+            PlayerTracking.addEntry(playerPos)
+        }
 
         fun drawHud(drawContext: DrawContext) {
             if (!WhyUserSettings.generalSettings.displayHud) return
@@ -242,6 +249,8 @@ class WhyMapClient : ClientModInitializer {
             if (kbModSettings.wasPressed()) {
                 mc.setScreen(getConfigScreen(null))
             }
+
+            trackPlayer(mc)
 
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
 

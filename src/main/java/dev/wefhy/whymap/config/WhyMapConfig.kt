@@ -79,4 +79,7 @@ object WhyMapConfig {
     var port = defaultPort
     val mapLink
         get() = "http://localhost:$port"
+
+    const val playerPathExtension = "whypath"
+    val playerPathPath = modPath.resolve("playerpath")
 }
