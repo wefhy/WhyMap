@@ -1,6 +1,6 @@
 // Copyright (c) 2022 wefhy
 
-package dev.wefhy.whymap.quickaccess
+package dev.wefhy.whymap.communication.quickaccess
 
 import dev.wefhy.whymap.CurrentWorld
 import dev.wefhy.whymap.CurrentWorldProvider

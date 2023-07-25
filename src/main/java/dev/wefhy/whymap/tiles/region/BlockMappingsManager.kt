@@ -3,7 +3,7 @@ package dev.wefhy.whymap.tiles.region
 import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
 import dev.wefhy.whymap.config.WhyMapConfig.mappingsExportDir
 import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion
-import dev.wefhy.whymap.quickaccess.BlockQuickAccess.minecraftBlocks
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.minecraftBlocks
 import dev.wefhy.whymap.utils.mkDirsIfNecessary
 
 object BlockMappingsManager {

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 wefhy
 
 @file:Suppress("NOTHING_TO_INLINE")
-package dev.wefhy.whymap.quickaccess
+package dev.wefhy.whymap.communication.quickaccess
 
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.config.RenderConfig

@@ -6,9 +6,9 @@ import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
-import dev.wefhy.whymap.quickaccess.BiomeCurrentWorldManager
-import dev.wefhy.whymap.quickaccess.BiomeManager
-import dev.wefhy.whymap.quickaccess.BiomeOfflineManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeCurrentWorldManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeOfflineManager
 import dev.wefhy.whymap.tiles.details.ExperimentalTileGenerator
 import dev.wefhy.whymap.tiles.region.MapRegionManager
 import dev.wefhy.whymap.tiles.thumbnails.RegionThumbnailer
