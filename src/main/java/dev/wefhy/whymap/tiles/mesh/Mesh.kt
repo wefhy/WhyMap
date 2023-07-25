@@ -26,4 +26,12 @@ class Mesh : PythonObject {
             uvs = [${uvStorage.joinToString { it.toPython() }}]
         """.trimIndent()
     }
+
+    fun toThreeJs(): ThreeJsMesh {
+        return ThreeJsMesh(
+            vertices = vertexStorage.flatMap { it.toThreeJs() },
+            faces = faceStorage.flatMap { it.toThreeJs() },
+            uvs = uvStorage.flatMap { it.toThreeJs() }
+        )
+    }
 }

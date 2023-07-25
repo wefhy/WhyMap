@@ -40,6 +40,25 @@ object MeshGenerator {
     """.trimIndent()
 
     context(MapArea)
+    fun getThreeJsMesh(): ThreeJsMesh {
+        val centerChunk = location.getCenter().parent(TileZoom.ChunkZoom)
+
+        val chunkOffsets = (0 until 3).map { z ->
+            (0 until 8).map { x ->
+                x to z
+            }
+        }.flatten()
+
+        val allFaces = chunkOffsets.map { offset ->
+            getChunkMesh(LocalTile.Chunk(centerChunk.x + offset.first, centerChunk.z + offset.second), offset)
+        }
+
+        val mesh = Mesh()
+        mesh.addFaces(allFaces.flatten().flatten().flatten())
+        return mesh.toThreeJs()
+    }
+
+    context(MapArea)
     fun getBlenderPythonMesh(): String {
         val centerChunk = location.getCenter().parent(TileZoom.ChunkZoom)
 
@@ -69,6 +88,12 @@ object MeshGenerator {
     private fun getChunkMesh(chunk: LocalTileChunk, offset: Pair<Int, Int> = 0 to 0): List<List<List<Face>>> {
         val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!
         val chunkBlocks = getChunk(chunk.chunkPos)!!
+//        val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!.zip(getChunkDepthmap(chunk.chunkPos)!!) { a, b ->
+//            a.zip(b.toTypedArray()) { c, d ->
+//                (c + d).toShort()
+//            }
+//        }
+//        val chunkBlocks = getChunkOverlay(chunk.chunkPos)!!
         return chunkHeightMap.mapIndexed { zz, lines ->
             lines.mapIndexed { xx, height ->
                 (getSideFaces(xx + 16 * offset.first, zz + 16 * offset.second, height)).onEach {

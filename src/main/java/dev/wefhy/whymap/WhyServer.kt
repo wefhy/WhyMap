@@ -207,6 +207,20 @@ object WhyServer {
 //
 //
 //        }
+        get("three/tiles/{s}/{x}/{z}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            if ((s != 17) && (s != -17)) return@get call.respondText("unsupportedZoomLevel")
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val result = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                MeshGenerator.getThreeJsMesh()
+            } ?: return@get call.respondText("Chunk unavailable")
+            call.respond(result)
+        }
+
         get("/3d/tiles/{s}/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
@@ -219,9 +233,8 @@ object WhyServer {
                 MeshGenerator.getBlenderPythonMesh()
             } ?: return@get call.respondText("Chunk unavailable")
             call.respondText(result)
-
-
         }
+
         get("/regionheight/{x}/{z}/{s}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
@@ -235,15 +248,6 @@ object WhyServer {
 //            val region = activeWorld?.mapRegionManager?.getLoadedRegionForRead(LocalTile.Region(x, z)) ?: return@get call.respondText("Region unavailable")
 //            call.respondText { region.heightMap.joinToString(","){it.joinToString(",")} }
         }
-
-
-
-
-
-
-
-
-
 
 
         get("/featureUpdates/{threshold}") {
@@ -399,6 +403,19 @@ object WhyServer {
             } ?: return@get call.respondText("Region unavailable")*/
         }
         val activeRenders = Semaphore(2)
+
+        get("/3darea/{x1}/{z1}/{x2}/{z2}") {
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val chunkLimit = 100
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+
+        }
 
 
         get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/{scale}") {
