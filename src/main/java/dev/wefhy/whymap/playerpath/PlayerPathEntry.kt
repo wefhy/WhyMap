@@ -2,8 +2,11 @@
 
 package dev.wefhy.whymap.playerpath
 
+import kotlinx.serialization.Serializable
 import java.nio.ByteBuffer
 
+
+@Serializable
 data class PlayerPathEntry(val time: Long, val x: Double, val y: Double, val z: Double) {
 //    fun serialize(): ByteArray {
 //        val byteBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8)

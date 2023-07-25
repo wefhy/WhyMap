@@ -11,6 +11,7 @@ import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
+import dev.wefhy.whymap.playerpath.PlayerTracking
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encode
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -181,6 +182,10 @@ object WhyServer {
         get("/featureUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L //TODO this is not error handling for NumberFormatException!
             call.respond(FeatureUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/playerPath") {
+            val path = PlayerTracking.currentPath ?: return@get call.respondText("No path")
+            call.respond(path)
         }
         //TODO all tile requests should be cancellable
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension

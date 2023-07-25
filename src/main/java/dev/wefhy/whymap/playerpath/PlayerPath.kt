@@ -4,9 +4,11 @@ package dev.wefhy.whymap.playerpath
 
 import dev.wefhy.whymap.config.WhyMapConfig.playerPathExtension
 import dev.wefhy.whymap.config.WhyMapConfig.playerPathPath
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.nio.channels.FileChannel
 
+@Serializable
 class PlayerPath private constructor(
     val playerName: String,
 //    val time: Long,
