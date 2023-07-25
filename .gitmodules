@@ -1,3 +1,6 @@
 [submodule "src-vue"]
 	path = src-vue
 	url = https://github.com/wefhy/WhyMap-frontend.git
+[submodule "src-threejs"]
+	path = src-threejs
+	url = https://github.com/wefhy/WhyMap-ThreeJS.git
