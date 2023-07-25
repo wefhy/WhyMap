@@ -150,6 +150,10 @@ object ExperimentalTextureProvider {
      * - {material}_fence
      * - {material}_fence_gate
      * - waxed_{material}
+     * - {material}_sign
+     * - {material}_hanging_sign
+     *
+     * Should also find the best _stage texture for crops
      */
     private inline fun tryGenerateCustomTexture(name: String): URL? {
         return null

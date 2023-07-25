@@ -74,6 +74,8 @@ object RenderConfig {
         "kelp",
         "coral", //tbh coral blocks shouldn't be waterlogged but... who cares
         "sea_pickle", //TODO fix sea pickle texture
+        "bubble",
+        "conduit",
     )
 
     internal inline fun isWaterlogged(name: String) = waterloggedBlocks.any { name.contains(it) }
@@ -82,7 +84,7 @@ object RenderConfig {
 
     internal inline fun shouldIgnoreDepthTint(name: String) = ignoreDepthTint.any { name.contains(it) }
 
-    internal inline fun isWaterBlock(name: String) = name.contains("water")
+    internal inline fun isWaterBlock(name: String) = name.contains("water")// || name.contains("bubble")
 
     internal inline fun isFoliageBlock(name: String) = foliageBlocks.any { name.contains(it) && !name.contains("cherry")}
 
