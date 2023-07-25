@@ -6,11 +6,13 @@ import dev.wefhy.whymap.CurrentWorld
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
-import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.LOAD_AND_PEEK
-import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.PEEK_IF_LOADED
+import dev.wefhy.whymap.tiles.region.MapAreaAccess.LoadPriority.*
+import dev.wefhy.whymap.tiles.thumbnails.EmptyThumbnailProvider
+import dev.wefhy.whymap.tiles.thumbnails.RenderedThumbnailProvider
 import dev.wefhy.whymap.utils.LocalTileRegion
-import kotlinx.coroutines.Dispatchers
+import dev.wefhy.whymap.utils.WhyDispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -19,6 +21,7 @@ context(CurrentWorldProvider<WhyWorld>)
 class MapRegionManager {
 
     private val regionLoaders = ConcurrentHashMap<LocalTileRegion, MapAreaAccess>()
+//    private val lock = getLockForName(activeWorld!!.name + activeWorld!!.dimensionName)
 
     /**
     This is copy of library function but as it uses ConcurrentHashMap, it correctly solves nullability
@@ -52,10 +55,10 @@ class MapRegionManager {
         cleanupEmptyWeakRefs()
     }
 
-    private suspend fun cleanupRegions() = withContext(Dispatchers.Default) {
+    private suspend fun cleanupRegions() = withContext(WhyDispatchers.LowPriority) {
         // TODO make sure this runs on correct dispatcher to avoid context switching
         val playerPos = (currentWorld as? CurrentWorld)?.player?.pos
-        regionLoaders.values.map { async { it.clean(playerPos) } }.forEach { it.await() }
+        regionLoaders.values.map { launch { it.clean(playerPos) } }.forEach { it.join() }
     }
 
     private fun cleanupEmptyWeakRefs() {
@@ -72,6 +75,13 @@ class MapRegionManager {
         }
     }
 
+    internal suspend inline fun <T> getRegionForMinimapRendering(position: LocalTileRegion, block: MapArea.() -> T): T? {
+        val regionLoader = regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return null }
+        return regionLoader.withLoaded(LOAD_AND_KEEP) {
+            block()
+        }
+    }
+
     fun saveAllAndClear() {
         runBlocking {
             regionLoaders.values.map { async { it.unload() } }.forEach { it.await() }
@@ -81,8 +91,25 @@ class MapRegionManager {
         }
     }
 
-    fun getRegionLoaderForThumbnailRendering(position: LocalTileRegion): MapAreaAccess {
-        return regionLoaders.getOrPut(position) { MapAreaAccess.GetForWrite(position) }
+    fun unloadRegion(position: LocalTileRegion) {
+        runBlocking {
+            regionLoaders[position]?.unload()
+            regionLoaders.remove(position)
+        }
     }
+
+    fun getRegionLoaderForThumbnailRendering(position: LocalTileRegion): RenderedThumbnailProvider {
+        return regionLoaders.getOrPut(position) { MapAreaAccess.GetIfExists(position) ?: return EmptyThumbnailProvider }
+        //TODO use optionals?
+    }
+//
+//    companion object {
+//        private val locks = mutableSetOf<String>()
+//
+//        fun getLockForName(name: String): Any {
+//            locks.add(name)
+//            return locks.find { it == name }!!
+//        }
+//    }
 
 }

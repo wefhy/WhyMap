@@ -23,11 +23,23 @@ object ImageWriter {
         compressionQuality = 1f // 0.95 is good for texture view; 1f for regular zoom
     }
 
+    val pngParam: ImageWriteParam = pngWriter.defaultWriteParam.apply {
+        compressionMode = ImageWriteParam.MODE_EXPLICIT
+        compressionQuality = 0.2f
+//            tilingMode = ImageWriteParam.MODE_EXPLICIT this would be epic for TIFF
+//            setTiling(16, 16, 0, 0)
+    }
+
 //    val pngParams = PNGImageWriteParam(null).apply {
 //        compressionMode = ImageWriteParam.MODE_EXPLICIT
 //        compressionQuality = 1f // 0.95 is good for texture view; 1f for regular zoom
 //    }
-
+    fun OutputStream.encode(bitmap: BufferedImage, type: ImageFormat) {
+        when (type) {
+            ImageFormat.PNG -> encodePNG(bitmap)
+            ImageFormat.JPEG -> encodeJPEG(bitmap)
+        }
+    }
 
     fun OutputStream.encodeJPEG(bitmap: BufferedImage) {
 //        val writer = jpegWriter.next()
@@ -42,17 +54,8 @@ object ImageWriter {
 //        val writer = pngWriter.next()
         val writer = pngWriter
         writer.reset()
-        val param: ImageWriteParam = writer.defaultWriteParam.apply {
-            compressionMode = ImageWriteParam.MODE_EXPLICIT
-            compressionQuality = 0.0f
-        }
         writer.output = ImageIO.createImageOutputStream(this)
-        writer.write(null, IIOImage(bitmap, null, null), param)
+        writer.write(null, IIOImage(bitmap, null, null), pngParam)
         writer.dispose()
-    }
-
-    enum class ImageType {
-        PNG,
-        JPEG
     }
 }

@@ -4,16 +4,19 @@
   "version": "${version}",
 
   "name": "WhyMap",
-  "description": "WhyMap is a fairplay worldmap mod created by wefhy",
+  "description": "WhyMap is a fairplay worldmap mod created by wefhy. The map can be accessed in your browser at http://localhost:7542",
   "authors": [
     "wefhy"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/whymap",
+    "sources": "https://github.com/wefhy/WhyMap",
+    "issues": "https://discord.gg/swfXTSvEVC",
+    "discord": "https://discord.gg/swfXTSvEVC",
+    "map": "http://localhost:7542"
   },
 
-  "license": "Apache-2.0",
+  "license": "GPLv3",
   "icon": "assets/whymap/icon.png",
 
   "environment": "*",
@@ -23,7 +26,14 @@
         "adapter": "kotlin",
         "value": "dev.wefhy.whymap.WhyMapMod"
       }
-    ]
+    ],
+    "client" : [
+      {
+        "adapter": "kotlin",
+        "value": "dev.wefhy.whymap.WhyMapClient"
+      }
+    ],
+    "modmenu" : [ "dev.wefhy.whymap.clothconfig.ModMenuEntryPoint" ]
   },
   "mixins": [
     "whymap.mixins.json"
@@ -31,12 +41,29 @@
 
   "depends": {
     "fabricloader": ">=0.14.9",
-    "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0",
+    "fabric-language-kotlin": ">=1.10.8+kotlin.1.9.0",
     "fabric": "*",
-    "minecraft": "1.19.3",
-    "java": ">=17"
+    "minecraft": "1.20.1",
+    "java": ">=17",
+    "fabric-key-binding-api-v1": "*"
+  },
+  "recommends": {
+    "cloth-config": "^10.0"
   },
   "suggests": {
-    "another-mod": "*"
+    "modmenu": "^6.0"
+  },
+  "custom": {
+    "modupdater": {
+      "strategy": "curseforge",
+      "projectID": 815690,
+      "strict": false
+    },
+    "modmenu": {
+      "links": {
+        "See your map here": "http://localhost:7542",
+        "modmenu.discord": "https://discord.gg/swfXTSvEVC"
+      }
+    }
   }
 }

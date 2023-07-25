@@ -6,32 +6,36 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.BlockData
-import dev.wefhy.whymap.config.WhyMapConfig.latestFileVersion
-import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
-import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
-import dev.wefhy.whymap.config.WhyMapConfig.tileMetadataSize
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getRemapLookup
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapFileVersion.Companion.recognizeVersion
-import dev.wefhy.whymap.tiles.region.FileVersionManager.WhyMapMetadata
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlock
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.decodeBlockColor
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.encodeBlock
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.fastIgnoreLookup
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocksSet
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
-import dev.wefhy.whymap.events.TileUpdateQueue
+import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
+import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
+import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
+import dev.wefhy.whymap.config.WhyMapConfig.reRenderInterval
+import dev.wefhy.whymap.config.WhyMapConfig.regionThumbnailScaleLog
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocksSquared
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileChunks
+import dev.wefhy.whymap.events.ChunkUpdateQueue
+import dev.wefhy.whymap.events.RegionUpdateQueue
+import dev.wefhy.whymap.events.ThumbnailUpdateQueue
+import dev.wefhy.whymap.migrations.BiomeMapping
+import dev.wefhy.whymap.migrations.BlockMapping
+import dev.wefhy.whymap.migrations.FileMetadataManager.decodeMetadata
+import dev.wefhy.whymap.migrations.MappingsManager
+import dev.wefhy.whymap.migrations.MappingsManager.Companion.recognizeLegacyVersion
+import dev.wefhy.whymap.migrations.MappingsManager.WhyMapLegacyMetadata
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ObfuscatedLogHelper.obfuscateObjectWithCommand
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import dev.wefhy.whymap.whygraphics.*
+import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
-import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
@@ -44,10 +48,11 @@ import org.tukaani.xz.XZOutputStream
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.EOFException
+import java.io.PushbackInputStream
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.imageio.ImageIO
 import kotlin.math.atan
-import kotlin.random.Random
 
 context(CurrentWorldProvider<WhyWorld>)
 class MapArea private constructor(val location: LocalTileRegion) {
@@ -62,7 +67,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val biomeMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 7 bits, possibly 8
     val lightMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 4 bits
     val depthMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 8 bits
-    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
+//    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
 
     val file = currentWorld.getFile(location)
     val thumbnailFile = currentWorld.getThumbnailFile(location)
@@ -70,9 +75,17 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
     val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
     lateinit var rendered: BufferedImage
+    lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
     var lastUpdate = 0L
+//    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
+    var nativeRenderInProgress = false //TODO atomic(false)
+    var regionRelativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
+
+    val areaCoroutineContext = SupervisorJob() + WhyDispatchers.Render
+    val mapAreaScope = CoroutineScope(SupervisorJob() + WhyDispatchers.Render) //TODO create scope from parent
+//    val mapAreaScope = CoroutineScope(Job()) //TODO create scope from parent
 
     init {
         currentWorld.writeToLog("Initialized ${obfuscateObjectWithCommand(location, "init")}, file exists: ${file.exists()}")
@@ -82,135 +95,139 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //            UpdateQueue.addUpdate(location.x, location.z)
     }
 
-    fun getChunk(position: ChunkPos): Array<List<BlockState>>? {
+    private inline fun<reified T> returnArrayFragment(position: ChunkPos, block: (startX: Int, z: Int) -> T): Array<T>? {
         //TODO load only if in exists array; save exists array to file
         if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
         val startX = position.regionRelativeX shl 4
         val startZ = position.regionRelativeZ shl 4
         return Array(16) { z ->
-            blockIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+            block(startX, startZ + z)
         }
     }
 
-    fun getChunkOverlay(position: ChunkPos): Array<List<BlockState>>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            blockOverlayIdMap[startZ + z].slice(startX until (startX + 16)).map {
-                decodeBlock(it)
-            }
+    private inline fun<reified T> Array<ShortArray>.getChunk(position: ChunkPos, block: (ShortArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkBiomeFoliageAndWater(position: ChunkPos): Array<List<Pair<FloatColor, Color>>>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            biomeMap[startZ + z].slice(startX until (startX + 16)).map {
-                Pair(biomeManager.decodeBiomeFoliage(it), biomeManager.decodeBiomeWaterColor(it))
-            }
+    private inline fun<reified T> Array<ByteArray>.getChunk(position: ChunkPos, block: (ByteArray) -> T): Array<T>? {
+        return returnArrayFragment(position) { startX, z ->
+            block(get(z).sliceArray(startX until (startX + 16)))
         }
     }
 
-    fun getChunkHeightmap(position: ChunkPos): Array<ShortArray>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            heightMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkDepthmap(position: ChunkPos): Array<ByteArray>? {
-        //TODO load only if in exists array; save exists array to file
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
-            depthMap[startZ + z].sliceArray(startX until (startX + 16))
-        }
-    }
-
-    fun getChunkNormals(position: ChunkPos): Array<Array<Normal>>? {
-        if ((position.regionX != location.x) || (position.regionZ != location.z)) return null
-        val startX = position.regionRelativeX shl 4
-        val startZ = position.regionRelativeZ shl 4
-        return Array(16) { z ->
+    private inline fun <reified T> generateChunk(position: ChunkPos, block: (x: Int, z: Int) -> T): Array<Array<T>>? {
+        return returnArrayFragment(position) { startX, z ->
             Array(16) { x ->
-                getNormalSharp(startX + x, startZ + z)
+                block(startX + x, z)
             }
         }
     }
 
+    fun getChunk(position: ChunkPos) = blockIdMap.getChunk(position) { it.map{ decodeBlock(it)} }
 
-    val random = Random(0)
+    fun getChunkOverlay(position: ChunkPos) = blockOverlayIdMap.getChunk(position) { it.map { decodeBlock(it) } }
 
-    suspend fun save() = withContext(Dispatchers.IO) {
+    fun getChunkBiomeFoliageAndWater(position: ChunkPos) = biomeMap.getChunk(position) { it.map {
+        biomeManager.decodeBiomeFoliage(it) to biomeManager.decodeBiomeWaterColor(it)
+    } }
+
+    fun getChunkHeightmap(position: ChunkPos) = heightMap.getChunk(position) { it }
+
+    fun getChunkLightmap(position: ChunkPos) = lightMap.getChunk(position) { it }
+
+    fun getChunkDepthmap(position: ChunkPos) = depthMap.getChunk(position) { it }
+
+    fun getChunkNormals(position: ChunkPos) = generateChunk(position) { x, z ->
+        getNormalSharp(x, z)
+    }
+
+    suspend fun save() = withContext(WhyDispatchers.IO) {
         currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
             return@withContext
-        //TODO write file versions and support migrations
         if (!file.exists()) {
             file.parentFile.mkdirs()
             file.createNewFile()
         }
         file.outputStream().use {
-            val compressed = withContext(Dispatchers.Default) {
-                val data = ByteArray(storageTileBlocksSquared * 9)
-                val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6)
-                val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
-                val shortShortBuffer = shortBuffer.asShortBuffer()
-                for (y in 0 until storageTileBlocks) {
-                    shortShortBuffer.put(blockIdMap[y])       //2
-                    shortShortBuffer.put(blockOverlayIdMap[y])//2
-                    shortShortBuffer.put(heightMap[y])        //2
-                    byteBuffer.put(biomeMap[y])        //1
-                    byteBuffer.put(lightMap[y])        //1
-                    byteBuffer.put(depthMap[y])        //1
-                }
-                shortShortBuffer.flip()
-                byteBuffer.flip()
-                val xzOutupt = ByteArrayOutputStream()
-                XZOutputStream(xzOutupt, LZMA2Options(3)).use { xz ->
-                    xz.write(latestFileVersion.getMetadataArray())
-                    xz.write(data)
-                    xz.close()
-                }
-                xzOutupt.toByteArray() // TODO compression and saving can be multithreaded
-            }
-            it.write(compressed)
+            it.write(currentWorld.mappingsManager.metadata)
+            val compressed = withContext(WhyDispatchers.LowPriority) {
+                packData().compress().writeTo(it)
+            }//.toByteArray()
+//            it.write(compressed)
         }
-
+        reRenderAndSaveThumbnail()
         LOGGER.debug("SAVED: ${file.absolutePath}")
 //        MinecraftClient.getInstance().textureManager.getTexture()
         modifiedSinceSave = false
     }
 
+    private fun packData(): ByteArray {
+        val data = ByteArray(storageTileBlocksSquared * 9)
+        val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
+        val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
+        for (y in 0 until storageTileBlocks) {
+            shortBuffer.put(blockIdMap[y])       //2
+            shortBuffer.put(blockOverlayIdMap[y])//2
+            shortBuffer.put(heightMap[y])        //2
+            byteBuffer.put(biomeMap[y])        //1
+            byteBuffer.put(lightMap[y])        //1
+            byteBuffer.put(depthMap[y])        //1
+        }
+        shortBuffer.flip()
+        byteBuffer.flip()
+        return data
+    }
+
+    private fun ByteArray.compress(): ByteArrayOutputStream {
+        val xzOutput = ByteArrayOutputStream()
+        XZOutputStream(xzOutput, LZMA2Options(3)).use { xz ->
+            xz.write(this)
+            xz.close()
+        }
+        return xzOutput
+    }
+
     private fun load() {
         currentWorld.writeToLog("Loading ${obfuscateObjectWithCommand(location, "load")}, file existed: ${file.exists()}")
         try {
-            file.inputStream().use {
-                val data = ByteArray(storageTileBlocksSquared * 9)
-                val version = XZInputStream(it).use { xz ->
-                    val metadata = ByteArray(tileMetadataSize)
-                    xz.read(metadata)
-                    val version = recognizeVersion(WhyMapMetadata(metadata))
-                    if (version.isUnknown) {
-                        metadata.copyInto(data)
-                        xz.read(data, metadata.size, data.size - metadata.size)
-                    } else {
-                        xz.read(data)
-                    }
-                    xz.close()
-                    version
+            PushbackInputStream(file.inputStream(), metadataSize).use {
+                val metabytes = ByteArray(metadataSize)
+                it.read(metabytes)
+                val metadata = decodeMetadata(metabytes)
+                if (metadata == null) {
+                    it.unread(metabytes)
                 }
+
+                val data = ByteArray(storageTileBlocksSquared * 9)
+                val mappingsSet = if (metadata != null) {
+                    XZInputStream(it).use { xz ->
+                        xz.read(data)
+                        xz.close()
+                    }
+                    currentWorld.mappingsManager.getMappings(metadata)
+                } else {
+                    MappingsManager.MappingsSet(
+                        XZInputStream(it).use { xz ->
+                            val legacyMetadata = ByteArray(legacyMetadataSize)
+                            xz.read(legacyMetadata)
+                            val version = recognizeLegacyVersion(WhyMapLegacyMetadata(legacyMetadata)) ?: BlockMapping.WhyMapBeta
+                            if (version == BlockMapping.WhyMapBeta) { // Support WhyMap versions before 0.9.2 which didn't carry legacyMetadata
+                                legacyMetadata.copyInto(data)
+                                xz.read(data, legacyMetadata.size, data.size - legacyMetadata.size)
+                            } else {
+                                xz.read(data)
+                            }
+                            xz.close()
+                            version
+                        },
+                        BiomeMapping.LegacyBiomeMapping
+                    )
+                }
+                val blockMapping = mappingsSet.blockMappings
+                val biomeMapping = mappingsSet.biomeMappings
 
                 val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
                 val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
@@ -223,20 +240,30 @@ class MapArea private constructor(val location: LocalTileRegion) {
                     byteBuffer.get(lightMap[y])
                     byteBuffer.get(depthMap[y])
                 }
-
-                if (!version.isCurrent) {
-                    val remapLookup = getRemapLookup(version, latestFileVersion)
-                    blockIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
-                    blockOverlayIdMap.mapInPlace { i -> remapLookup[i.toInt()] }
+                if (blockMapping == null || !blockMapping.isCurrent) {
+                    val remapLookup = if (blockMapping != null)
+                        currentWorld.mappingsManager.getCurrentRemapLookup(blockMapping)
+                    else
+                        currentWorld.mappingsManager.unsupportedAntiNPEBlockRemapLookup
+                    blockOverlayIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
+                    blockIdMap.mapInPlace { i -> remapLookup.getOrElse(i.toInt()) { 0 } }
+                    modifiedSinceSave = true
                 }
-
+                if (biomeMapping == null || !biomeMapping.isCurrent) {
+                    val remapLookup = if (biomeMapping != null)
+                        currentWorld.mappingsManager.getCurrentRemapLookup(biomeMapping)
+                    else
+                        currentWorld.mappingsManager.unsupportedAntiNPEBiomeRemapLookup
+                    biomeMap.mapInPlace { i -> remapLookup.getOrElse(i.toUByte().toInt()) { 0 }.toByte() }
+                    modifiedSinceSave = true
+                }
             }
         } catch (e: EOFException) {
             currentWorld.writeToLog("ERROR Loading ${obfuscateObjectWithCommand(location, "error")}")
             LOGGER.error("ERROR LOADING TILE: ${file.absolutePath}")
         } catch (e: IndexOutOfBoundsException) {
             currentWorld.writeToLog("ERROR Upgrading ${obfuscateObjectWithCommand(location, "error")}")
-            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}")
+            LOGGER.error("ERROR UPGRADING TILE: ${file.absolutePath}\n ${e.message}\n ${e.stackTraceToString()}")
         }
     }
 
@@ -287,13 +314,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
             return
         }
         modifiedSinceSave = true
-        exists[chunk.pos.regionRelativeZ][chunk.pos.regionRelativeX] = true
 
         val worldLightView = lightingProvider[LightType.BLOCK]
 //        val surface = chunkGetSurface(chunk, Heightmap.Type.OCEAN_FLOOR)
 //        val heightmapFloor = chunk.getHeightmap(Heightmap.Type.OCEAN_FLOOR)
         val heightmapFloorTmp = chunk.getOceanFloorHeightMapHotFix() // TODO this should be replaced by heightmapFloor when it works
-        val heightmapSurface = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE)
+        val heightmapSurface =
+            chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE) //TODO I should generate heightmap myself so I can ignore certain blocks completely (like vines, string etc) and not have them as overlays
         val absoluteBlockPos = BlockPos.Mutable()
         val chunkBlockPos = BlockPos.Mutable()
         val chunkOverlayBlockPos = BlockPos.Mutable()
@@ -347,6 +374,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
         modifiedSinceSave = true
         modifiedSinceRender = true
+        regionRelativeChunkUpdateQueue.add(LocalTile.Chunk(chunk.pos.regionRelativeX, chunk.pos.regionRelativeZ))
 
 //        CoroutineScope(Job()).launch {
 //
@@ -360,11 +388,47 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //
 //        }
 
+        @OptIn(DelicateCoroutinesApi::class) //We want the thumbnail to be saved anyway
         GlobalScope.launch {
-            reRenderAndSaveThumbnail()
-            TileUpdateQueue.addUpdate(location.x, location.z)
+            RegionUpdateQueue.addUpdate(location)
+            ChunkUpdateQueue.addUpdate(chunk.pos.x, chunk.pos.z)
+            //reRenderAndSaveThumbnail() //TODO also uncache it somehow TODO IT ALSO SHOULDN'T BE CALLED EVERY TIME A CHUNK IS UPDATED
+            val thumbnail = location.parent(TileZoom.ThumbnailZoom)
+            ThumbnailUpdateQueue.addUpdate(thumbnail.x, thumbnail.z)
         }
     }
+
+    private fun nativeUpdateChunks() {
+        var chunk: LocalTile<TileZoom.ChunkZoom>
+        while(true) {
+            chunk = regionRelativeChunkUpdateQueue.poll() ?: break
+            nativeUpdateChunk(chunk)
+        }
+    }
+
+    private fun nativeUpdateChunk(localTileChunk: LocalTileChunk) {
+        val regionRelativeChunk = LocalTile.Chunk(
+            localTileChunk.x and (storageTileChunks - 1),
+            localTileChunk.z and (storageTileChunks - 1)
+        )
+
+        val startBlockX = regionRelativeChunk.x shl blocksInChunkLog
+        val startBlockZ = regionRelativeChunk.z shl blocksInChunkLog
+
+        val renderedChunk = WhyTile { y, x ->
+            calculateColor(
+                startBlockZ + y,
+                startBlockX + x,
+                ::getNormalSharpChunk
+            )
+        }
+        renderedWhyImage.data[regionRelativeChunk.z][regionRelativeChunk.x] = renderedChunk
+    }
+
+//    private fun nativeShouldBeReRendered(): Boolean {
+//        val elapsed = currentMillis() - lastNativeUpdate
+//        return (elapsed >= nativeReRenderInterval) && modifiedSinceNativeRender
+//    }
 
     private fun shouldBeReRendered(scaleLog: Int): Boolean {
         return when (scaleLog) {
@@ -392,7 +456,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private suspend fun reRenderAndSaveThumbnail(): BufferedImage {
         return _render(regionThumbnailScaleLog).also {
-            withContext(Dispatchers.IO) {
+            withContext(WhyDispatchers.LowPriority) {
                 if (!thumbnailFile.parentFile.exists())
                     thumbnailFile.parentFile.mkdirs()
                 ImageIO.write(it, "png", thumbnailFile) //TODO only save if not saved!!!!
@@ -404,50 +468,90 @@ class MapArea private constructor(val location: LocalTileRegion) {
         return if (::rendered.isInitialized && !shouldBeReRendered(0))
             rendered
         else _render(0)
-        //TODO if it's rendered but long time ago then maybe return previous result instantly and then update it? Return though callback twice?
+        //TODO if it's rendered but long time ago then maybe return previous result instantly and then update it? Return though callback twice? Maybe stateflow?
     }
 
     suspend fun getCustomRender(scaleLog: Int): BufferedImage = _render(scaleLog)
 
-    private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(Dispatchers.Default) {
-        val bitmap =
-            BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
+    fun renderWhyImageNow(): WhyTiledImage {
+        return if (::renderedWhyImage.isInitialized)
+            renderedWhyImage
+        else {
+//            nativeUpdateChunks() TODO maybe uncomment? Depends on the usecase
+            nativeRenderInProgress = true
+            _renderWhyImage().also { nativeRenderInProgress = false }
+        }
+    }
+
+    fun renderWhyImageBuffered(): WhyTiledImage? {
+        return if (!::renderedWhyImage.isInitialized) {
+            launchWhyRender()
+//            valStatPrintLog("waiting")
+            null
+        } else {
+            mapAreaScope.launch {
+                nativeUpdateChunks()
+            }
+//            valStatPrintLog("success")
+            renderedWhyImage
+        }
+    }
+
+    private fun launchWhyRender() {
+        if (!nativeRenderInProgress) {
+            nativeRenderInProgress = true
+            mapAreaScope.launch {
+                _renderWhyImage()
+                nativeRenderInProgress = false
+            }
+        }
+    }
+
+    private fun _renderWhyImage(): WhyTiledImage {
+        var failCounter = 0
+        val image = WhyTiledImage.BuildForRegion { y, x ->
+            try {
+                calculateColor(y, x, ::getNormalSharp)
+            } catch (_: IndexOutOfBoundsException) {
+                failCounter++
+                WhyColor.Transparent
+            }
+        }
+        if (failCounter > 0)
+            println("Failed to render $failCounter pixels in native map area (${location.x}, ${location.z})")
+//        lastNativeUpdate = currentMillis()
+        renderedWhyImage = image
+        return image
+    }
+
+    private suspend fun _render(scaleLog: Int = 0): BufferedImage = withContext(areaCoroutineContext) {
+        val bitmap = BufferedImage(storageTileBlocks shr scaleLog, storageTileBlocks shr scaleLog, BufferedImage.TYPE_3BYTE_BGR)
+        val raster = bitmap.raster!!
         val scale = 1 shl scaleLog
+        var failCounter = 0
 
         for (z in 0 until storageTileBlocks step scale) {
+            ensureActive()
             for (x in 0 until storageTileBlocks step scale) {
-                try {
-
-                    val block = decodeBlock(blockIdMap[z][x])
-                    val foliageColor = biomeManager.decodeBiomeFoliage(biomeMap[z][x])
-                    val baseBlockColor = Color(decodeBlockColor(blockIdMap[z][x]))
-                    val overlayBlock = decodeBlock(blockOverlayIdMap[z][x])
-                    val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
-                        biomeManager.decodeBiomeWaterColor(biomeMap[z][x])
-                    else
-                        Color(decodeBlockColor(blockOverlayIdMap[z][x]))
-
-                    val normal = getNormalSharp(x, z)
-                    val depth = depthMap[z][x]
-
-                    var color = (if (foliageBlocksSet.contains(block)) {
-                        baseBlockColor * foliageColor
-                    } else baseBlockColor) * normal.shade
-
-                    if (depth > 0 && !fastIgnoreLookup[blockOverlayIdMap[z][x].toInt()]) {
-                        var waterColor = overlayBlockColor + -depth.toInt() * 4
-                        waterColor = if (foliageBlocksSet.contains(overlayBlock))
-                            waterColor * foliageColor
-                        else
-                            waterColor
-                        color = waterColor.mixWeight(color, getDepthShade(depth))
-                    }
-                    bitmap.setRGB(x shr scaleLog, z shr scaleLog, color.toInt())
+                try { //TODO try block disables JVM optimizations, check whether it's worth using inside loop
+                    val color = calculateColor(z, x, ::getNormalSharp)
+                    val bitmapX = x shr scaleLog
+                    val bitmapY = z shr scaleLog
+//                    bitmap.setRGB(bitmapX, bitmapY, color.intRGB)
+                    raster.setPixel(bitmapX, bitmapY, color.intArrayRGB)
+//                    raster.setSample(bitmapX, bitmapY, 0, color.intR)
+//                    raster.setSample(bitmapX, bitmapY, 1, color.intG)
+//                    raster.setSample(bitmapX, bitmapY, 2, color.intB)
+//                    raster.setSample(bitmapX, bitmapY, 3, color.intA)
                 } catch (_: IndexOutOfBoundsException) {
-                        print("Failed to render map area (${location.x}, ${location.z})")
+                    failCounter++
+//                    print("Failed to render web map area (${location.x}, ${location.z}), s: $scaleLog")
+//                    OccurenceCounter.addAndPrintEvery100("rendering with scale $scaleLog")
                 }
             }
         }
+        if (failCounter > 0)
+            println("Failed to render $failCounter pixels in web map area (${location.x}, ${location.z}), s: $scaleLog")
 
         if (scaleLog == 0) {
             rendered = bitmap
@@ -459,7 +563,46 @@ class MapArea private constructor(val location: LocalTileRegion) {
         bitmap
     }
 
+    private fun calculateColor(z: Int, x: Int, normalFinder: (z: Int, x: Int) -> Normal): WhyColor {
+        val blockId = blockIdMap[z][x]
+        val overlayId = blockOverlayIdMap[z][x]
+        if (blockId == 0.toShort() && overlayId == 0.toShort()) return WhyColor.Transparent
+        val biomeId = biomeMap[z][x]
+
+        val block = decodeBlock(blockId)
+        val foliageColor = biomeManager.decodeBiomeFoliage(biomeId)
+        val baseBlockColor = decodeBlockColor(blockId)
+        val overlayBlock = decodeBlock(overlayId)
+        val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
+            biomeManager.decodeBiomeWaterColor(biomeId)
+        else
+            decodeBlockColor(overlayId) //TODO overlays should use correct alpha - it's not handled at all for now :(
+
+        val normal = normalFinder(x, z)
+        val depth = depthMap[z][x].toUByte()
+
+        var color = (if (foliageBlocksSet.contains(block)) {
+            baseBlockColor * foliageColor
+        } else baseBlockColor) * normal.shade
+
+        if (depth > 0u && !fastIgnoreLookup[overlayId.toInt()]) {
+            val depthTint = if (!ignoreDepthTint.contains(overlayBlock)) {
+                -depth.toInt() * 4
+            } else 0
+
+            var waterColor = overlayBlockColor + depthTint
+            waterColor = if (foliageBlocksSet.contains(overlayBlock))
+                waterColor * foliageColor
+            else
+                waterColor
+            color = waterColor.mixWeight(color, getDepthShade(depth))
+        }
+        return color
+    }
+
+
     private fun currentTime() = Clock.System.now().epochSeconds
+    private fun currentMillis() = Clock.System.now().toEpochMilliseconds()
 
     fun getNormalSmooth(x: Int, z: Int) = Normal(
         when (z) {
@@ -471,6 +614,17 @@ class MapArea private constructor(val location: LocalTileRegion) {
             0 -> (heightMap[z][1] - heightMap[z][0]) * 2
             storageTileBlocks - 1 -> (heightMap[z][storageTileBlocks - 1] - heightMap[z][storageTileBlocks - 2]) * 2
             else -> heightMap[z][x + 1] - heightMap[z][x - 1]
+        }
+    )
+
+    fun getNormalSharpChunk(x: Int, z: Int) = Normal(
+        when (z and 0xF) {
+            0 -> (heightMap[z + 1][x] - heightMap[z][x]) * 2
+            else -> (heightMap[z][x] - heightMap[z - 1][x]) * 2
+        },
+        when (x and 0xF) {
+            0 -> (heightMap[z][x + 1] - heightMap[z][x]) * 2
+            else -> (heightMap[z][x] - heightMap[z][x - 1]) * 2
         }
     )
 
@@ -500,13 +654,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
 
     class Normal(val i: Int, val j: Int) {
-        val shade: FloatColor
+        val shade: WhyColor
             get() {
                 val iShade = atanLookupTable[i + maxHeight]
                 val jShade = atanLookupTable[j + maxHeight]
 //                val iShade = atanLookupTable.getOrElse(i + maxHeight) { atanLookupTable[maxHeight] }
 //                val jShade = atanLookupTable.getOrElse(j + maxHeight) { atanLookupTable[maxHeight] }
-                return FloatColor(
+                return WhyColor(
                     r = 1 + iShade * ri + jShade * rj,
                     g = 1 + iShade * gi + jShade * gj,
                     b = 1 + iShade * bi + jShade * bj

@@ -14,6 +14,6 @@ class ThumbnailsManager {
 
     suspend fun getThumbnail(position: LocalTileThumbnail): ByteArrayOutputStream? =
         thumbnailMergers.getOrPut(position) {
-            ThumbnailMerger(position)
+            ThumbnailMerger(position) //TODO use optionals?
         }.render()
 }

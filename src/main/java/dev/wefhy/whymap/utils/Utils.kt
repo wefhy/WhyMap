@@ -1,24 +1,42 @@
 // Copyright (c) 2023 wefhy
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@file:OptIn(ExperimentalStdlibApi::class, ExperimentalContracts::class)
 
 package dev.wefhy.whymap.utils
 
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
-import dev.wefhy.whymap.utils.ObfuscatedLogHelper.i
+import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
+import kotlinx.coroutines.sync.Semaphore
 import net.minecraft.text.Text
-import java.awt.image.BufferedImage
-import java.awt.image.DataBufferByte
+import java.awt.image.*
+import java.io.Closeable
 import java.io.File
 import java.time.LocalDateTime
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
+import kotlin.internal.InlineOnly
+import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
+const val _1_2 = 1f / 2
+
+inline fun Double.roundToString(places: Int) = String.format("%.${places}f", this)
+inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
 
 inline fun Double.roundTo(places: Int) = (this * 10.0.pow(places)).roundToInt() * 0.1.pow(places)
+
+private inline fun Double._significant(places: Int) = (places - log10(this)).toInt().coerceAtLeast(0)
+
+internal inline fun Double.significant(places: Int) = String.format("%.${_significant(places)}f", this)
+
+internal inline fun Double.significantBy(max: Double, places: Int) = String.format("%.${max._significant(places)}f", this)
 
 fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x128 textures without integer overflow!!!
     val bytes = (data.dataBuffer as DataBufferByte).data
@@ -27,7 +45,7 @@ fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x12
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte() * _a
@@ -51,7 +69,7 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
     var r = 0u
     var g = 0u
     var b = 0u
-    for (i in 0 until length step 4) {
+    for (i in 0..<length step 4) {
         val _a = bytes[i + 0].toUByte()
         a += _a
         r += bytes[i + 3].toUByte()
@@ -68,10 +86,10 @@ fun BufferedImage.getAverageLeavesColor(): Int { // This can only average up to 
     )
 }
 
-val currentDateString
+inline val currentDateString
     get() = LocalDateTime.now().format(logsDateFormatter)
 
-val currentLogEntryTimeString
+inline val currentLogEntryTimeString
     get() = LocalDateTime.now().format(logsEntryTimeFormatter)
 
 inline fun bytesToInt(r: UInt, g: UInt, b: UInt, a: UInt): Int {
@@ -87,14 +105,14 @@ inline fun bytesToInt(r: Byte, g: Byte, b: Byte, a: Byte): Int {
     return (a.toInt() shl 24) or (r.toInt() shl 16) or (g.toInt() shl 8) or b.toInt()
 }
 
-inline fun File.mkDirsIfNecessary() {
+inline fun File.mkDirsIfNecessary(): File {
     if (!parentFile.exists())
         parentFile.mkdirs()
+    return this
 }
 
-
-inline fun getDepthShade(depth: Byte): Float { //TODO use lookup table
-    val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
+inline fun getDepthShade(depth: UByte): Float { //TODO use lookup table
+    val tmp1 = (1 - depth.toInt() * 0.02f).coerceAtLeast(0f)
     return 1 - tmp1 * tmp1 * _1_3
 }
 
@@ -105,7 +123,13 @@ inline fun UInt.coerceIn0255() = coerceIn(0u, 255u)
 inline operator fun Text.plus(other: Text): Text = copy().append(other)
 
 inline fun ShortArray.mapInPlace(transform: (Short) -> Short) {
-    for (i in this.indices) {
+    for (i in indices) {
+        this[i] = transform(this[i])
+    }
+}
+
+inline fun ByteArray.mapInPlace(transform: (Byte) -> Byte) {
+    for (i in indices) {
         this[i] = transform(this[i])
     }
 }
@@ -116,7 +140,16 @@ inline fun Array<ShortArray>.mapInPlace(transform: (Short) -> Short) {
     }
 }
 
+inline fun Array<ByteArray>.mapInPlace(transform: (Byte) -> Byte) {
+    for (subArray in this) {
+        subArray.mapInPlace(transform)
+    }
+}
+
 inline fun unixTime() = System.currentTimeMillis() / 1000
+
+val String.sanitizedPath
+    get() = filter { it !in pathForbiddenCharacters }.trim()
 //
 //@JvmInline
 //value class OverflowArray<T>(val array: ArrayList<T>) {
@@ -126,3 +159,67 @@ inline fun unixTime() = System.currentTimeMillis() / 1000
 //    }
 //}
 
+@Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@InlineOnly
+inline fun <T : Closeable?, R> T.useWith(block: T.() -> R): R {
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    return use { it.block() }
+}
+
+@RequiresOptIn("This call might be expensive, consider using direct array access")
+annotation class ExpensiveCall
+
+fun String.parseHex() = chunked(2).map { Integer.valueOf(it, 16).toByte() }.toByteArray()
+
+private val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
+
+fun ByteArray.toHex(): String {
+    val hexChars = CharArray(size * 2)
+    for (j in indices) {
+        val v = get(j).toInt() and 0xFF
+        hexChars[j * 2] = HEX_ARRAY[v ushr 4]
+        hexChars[j * 2 + 1] = HEX_ARRAY[v and 0x0F]
+    }
+    return String(hexChars)
+}
+
+inline fun<reified T : Enum<T>> Enum<T>.nextValue(): Enum<T> {
+    val values = javaClass.enumConstants
+    return values[(this.ordinal + 1) % values.size]
+}
+
+fun<A,B> memoize(block: (A) -> B): (A) -> B {
+    val cache = mutableMapOf<A, B>()
+    return { cache.getOrPut(it) { block(it) } }
+}
+
+fun Raster.fillWithColor(color: Int) {
+    val data = dataBuffer as DataBufferInt
+    val pixels = data.data
+    for (i in pixels.indices) {
+        pixels[i] = color
+    }
+}
+
+val R = Random(0)
+
+fun WritableRaster.fillWithColor2(color: Int) {
+    println("${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}, ${minX} ${minY} ${width} ${height}")
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
+        }
+    }
+}
+
+inline fun<T> Semaphore.tryAcquire(block: () -> T): T? {
+    return if (tryAcquire()) {
+        try {
+            block()
+        } finally {
+            release()
+        }
+    } else {
+        null
+    }
+}

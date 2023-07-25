@@ -82,18 +82,40 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
         }
     }
 
+    fun<T: TileZoom> getStart(newZoom: T): LocalTile<T> {
+        val diff = newZoom.zoom - zoom.zoom
+        return LocalTile(
+            x shl diff,
+            z shl diff,
+            newZoom
+        )
+    }
+
+    fun <T: TileZoom> getEnd(newZoom: T): LocalTile<T> {
+        val diff = newZoom.zoom - zoom.zoom
+        return LocalTile(
+            ((x+1) shl diff) - 1,
+            ((z+1) shl diff) - 1,
+            newZoom
+        )
+    }
+
+    fun getStart(): LocalTileBlock = getStart(BlockZoom)
+
+    fun getEnd(): LocalTileBlock = getEnd(BlockZoom)
+
     fun getCenter(): LocalTileBlock {
         val diff = BlockZoom.zoom - zoom.zoom
         val half = 1 shl diff shr 1 // can't be 1 shl (diff-1) because 1 shl -1
         return Block(
-            x shl diff - half,
-            z shl diff - half
+            (x shl diff) + half,
+            (z shl diff) + half
         )
     }
 
     fun <X : TileZoom> parent(newZoom: X): LocalTile<X> {
         val diff = zoom.zoom - newZoom.zoom
-        assert(diff > 0)
+        require(diff >= 0)
         return LocalTile(
             x shr diff,
             z shr diff,
@@ -112,6 +134,15 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
         if (zoom != other.zoom) return false
 
         return true
+    }
+
+    infix fun<X: TileZoom> relativeTo(other: LocalTile<X>): LocalTile<Z> {
+        val otherStart = other.getStart(zoom)
+        return LocalTile(
+            x - otherStart.x,
+            z - otherStart.z,
+            zoom
+        )
     }
 
     override fun hashCode(): Int {

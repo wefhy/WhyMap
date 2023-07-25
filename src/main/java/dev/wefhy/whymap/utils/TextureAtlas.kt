@@ -4,7 +4,7 @@ package dev.wefhy.whymap.utils
 
 import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyWorld
-import dev.wefhy.whymap.quickaccess.BlockQuickAccess
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
 import dev.wefhy.whymap.tiles.mesh.Uv
 import dev.wefhy.whymap.tiles.mesh.UvCoordinate
@@ -80,7 +80,7 @@ object TextureAtlas {
                     println("Indexed image! ${block.translationKey}")
                 }
             } else {
-                g2d.color = java.awt.Color(block.defaultState.material.color.color)
+                g2d.color = java.awt.Color(block.defaultState.getMapColor(null, null).color)
                 g2d.fillRect(pos, 0, 16, 16)
             }
         }

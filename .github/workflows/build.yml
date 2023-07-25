@@ -20,6 +20,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+          fetch-depth: 50
+      - name: Get tags
+        run: git fetch --tags origin
+      - name: Extract version number
+        id: version_number
+        shell: bash
+        run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/heads/})"
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: setup jdk ${{ matrix.java }}
@@ -31,10 +38,73 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         run: chmod +x ./gradlew
       - name: build
+        id: build
         run: ./gradlew build
+      - name: "Get Version"
+        id: version
+        run: echo "version=$(git describe --tags)" >> "$GITHUB_ENV"
+      - name: Build Changelog
+        id: changelog
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/build_changelog.sh
+          changelog=$(sh ./scripts/build_changelog.sh ${{ env.version }})
+          echo "changelog=${changelog}" >> "$GITHUB_ENV"
+      - name: print version and changelog
+        run: |
+          echo "Version: ${{ env.version }}"
+          echo "Changelog: ${{ env.changelog }}"
       - name: capture build artifacts
         if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
         uses: actions/upload-artifact@v3
         with:
           name: Artifacts
           path: build/libs/*.jar
+      - name: Github Release
+        uses: wefhy/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: build/libs/*.jar
+#          name: ${{github.ref}}
+#          draft: true
+          body: ${{ env.changelog }}
+      - name: Curseforge and Modrinth Release
+        uses: wefhy/mc-publish@master
+        if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        with:
+          name: WhyMap  ${{ env.version }}
+          modrinth-id: g9qdEhvu
+          modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
+          curseforge-id: 815690
+          curseforge-token: ${{ secrets.CF_API_TOKEN }}
+          version-type: release
+          changelog: ${{ env.changelog }}
+#          changelog-file: CHANGELOG.md
+          game-versions: |
+            1.20.1
+          files-primary: build/libs/*.jar
+          loaders: fabric
+          fail-mode: warn
+          retry-attempts: 3
+          retry-delay: 30000 # milliseconds
+          dependencies: |
+            fabric-api | depends
+            fabric-language-kotlin | depends
+            cloth-config | recommends
+            modmenu | suggests
+#            distant-horizons | conflicts
+
+
+#      - name: "Upload to CurseForge"
+#        uses: wefhy/curseforge-upload@master
+#        if: startsWith(github.ref, 'refs/tags/')
+#        continue-on-error: true
+#        with:
+#          file_path: "build/libs/whymap-${{ steps.version_number.version }}.jar"
+#          game_endpoint: "minecraft"
+#          release_type: "release"
+#          relations: "fabric-api:requiredDependency,fabric-language-kotlin:requiredDependency"
+#          game_versions: "Minecraft 1.19:1.19.3:fabric:client"
+#          project_id: "815690"
+#          token: "${{ secrets.CF_API_TOKEN }}"

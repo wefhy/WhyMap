@@ -9,18 +9,24 @@ import dev.wefhy.whymap.utils.mkDirsIfNecessary
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import net.minecraft.util.math.GlobalPos
 
 context(CurrentWorldProvider<WhyWorld>)
 class Waypoints {
     private val file = currentWorld.worldPath.resolve("waypoints.txt")
     private val waypoints: MutableList<LocalWaypoint> = try {
-        Json.decodeFromString(file.readText())
+        if (file.exists())
+            Json.decodeFromString(file.readText())
+        else mutableListOf()
     } catch (e: Throwable) {
         e.printStackTrace()
         mutableListOf()
     }
     val onlineWaypoints: List<OnlineWaypoint>
         get() = waypoints.map { it.asOnlineWaypointWithOffset() }
+
+    val onlineWaypointsWithoutDeaths: List<OnlineWaypoint>
+        get() = waypoints.filter { it.isDeath == null || !it.isDeath }.map { it.asOnlineWaypointWithOffset() }
 
     fun save() {
         file.mkDirsIfNecessary()
@@ -66,6 +72,22 @@ class Waypoints {
         waypoints += waypoint.asLocalWaypoint()
     }
 
+    fun add(waypoint: LocalWaypoint) {
+        waypoints += waypoint
+    }
+
+    fun remove(waypoint: OnlineWaypoint) {
+        waypoints.removeIf { it.name == waypoint.name && it.location == waypoint.pos }
+    }
+
+    fun addDeathPoint(globalPos: GlobalPos) {
+//        println("adding death pos hehe; before: ${waypoints.joinToString { it.name }}")
+        //TODO check dimension!
+        val pos = CoordXYZ(globalPos.pos.x, globalPos.pos.y, globalPos.pos.z)
+        if (waypoints.any { it.isDeath == true && it.location == pos }) return
+        waypoints += LocalWaypoint("Death", pos, isDeath = true, color = "black")
+//        println("death pos added; after: ${waypoints.joinToString { it.name }}")
+    }
 
     companion object {
         val xaeroColors = arrayOf(

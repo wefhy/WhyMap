@@ -19,7 +19,7 @@ import kotlin.math.hypot
 context (CurrentWorldProvider<WhyWorld>)
 class MapAreaAccess private constructor(val position: LocalTileRegion) : RenderedThumbnailProvider {
 
-    override var wasUpdated: Boolean = false
+    override var wasUpdated: Boolean = false //TODO use it or delete it
 
     private var loadedRegion: MapArea? = null
 
@@ -33,10 +33,10 @@ class MapAreaAccess private constructor(val position: LocalTileRegion) : Rendere
     private val file
         get() = currentWorld.getFile(position)
 
-    val fileExists
+    private val fileExists
         get() = file.exists()
 
-    val isLoaded
+    private val isLoaded
         get() = loadedRegion != null || cachedRegion.get() != null
 
     private suspend inline fun <T> withLock(block: () -> T): T {

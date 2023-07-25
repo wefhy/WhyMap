@@ -2,7 +2,6 @@
 
 package dev.wefhy.whymap.config
 
-import dev.wefhy.whymap.tiles.region.FileVersionManager
 import java.io.File
 import java.time.format.DateTimeFormatter
 
@@ -32,7 +31,7 @@ object WhyMapConfig {
     val blocksInChunkLog = 4
     val storageTileLog = 9
     val regionThumbnailScaleLog = 2
-    val chunksPerRegionLog = storageTileLog - blocksInChunkLog
+    val chunksPerRegionLog = storageTileLog - blocksInChunkLog // 5
     val chunkZoom = blockZoom - blocksInChunkLog // 22
     val regionZoom = blockZoom - storageTileLog // 17
     val thumbnailZoom = regionZoom - regionThumbnailScaleLog // 15
@@ -44,6 +43,7 @@ object WhyMapConfig {
     val chunk_per_quadrant = 1 shl (chunkZoom - 1) //2M
     val regionsPerQuadrant = 1 shl (regionZoom - 1) //65k
 
+    val blocksPerChunk = 1 shl blocksInChunkLog //16
     val storageTileBlocks = 1 shl storageTileLog //512
     val storageTileBlocksSquared = storageTileBlocks * storageTileBlocks //512*512 = 262k
     val storageTileChunks = storageTileBlocks shr blocksInChunkLog // 32
@@ -52,21 +52,31 @@ object WhyMapConfig {
     val tileResolution = storageTileBlocks //512
     val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
 
-    val tileMetadataSize = 16 // bytes
-    val latestFileVersion = FileVersionManager.WhyMapFileVersion.latest
+    val legacyMetadataSize = 16 // bytes
+    val metadataSize = 64 // bytes
 
+    val nativeReRenderInterval = 250 // ms
     val reRenderInterval = 1 // seconds
     val cleanupInterval = 60 // seconds
     val unloadDistance = 1024 //blocks
 
+    val pathForbiddenCharacters = "|?*<>:/\\\""
+
     val minecraftPath = File("")
     val modPath = minecraftPath.resolve("WhyMap")
+    val configFile = modPath.resolve("config.toml")
     val mappingsExportDir = modPath.resolve("mappings-export")
+    val customMappingsDir = modPath.resolve("mappings-custom")
     val logsPath = modPath.resolve("logs")
     val logsDateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     val logsEntryTimeFormatter = DateTimeFormatter.ofPattern("HHmmss.SSS")
 
     val webExportDirectory = modPath.resolve("WebExport")
     val currentWorldName = "CurrentWorldName"
-    val mapLink = "http://localhost:7542"
+    val defaultPort = 7542
+    val maxPort = defaultPort + 11
+    val portRange = defaultPort..maxPort
+    var port = defaultPort
+    val mapLink
+        get() = "http://localhost:$port"
 }

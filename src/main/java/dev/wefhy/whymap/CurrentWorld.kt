@@ -2,13 +2,14 @@
 
 package dev.wefhy.whymap
 
+import dev.wefhy.whymap.communication.quickaccess.BiomeCurrentWorldManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeManager
+import dev.wefhy.whymap.communication.quickaccess.BiomeOfflineManager
 import dev.wefhy.whymap.config.WhyMapConfig.cleanupInterval
 import dev.wefhy.whymap.config.WhyMapConfig.logsPath
 import dev.wefhy.whymap.config.WhyMapConfig.modPath
 import dev.wefhy.whymap.config.WhyMapConfig.thumbnailZoom
-import dev.wefhy.whymap.communication.quickaccess.BiomeCurrentWorldManager
-import dev.wefhy.whymap.communication.quickaccess.BiomeManager
-import dev.wefhy.whymap.communication.quickaccess.BiomeOfflineManager
+import dev.wefhy.whymap.migrations.MappingsManager
 import dev.wefhy.whymap.tiles.details.ExperimentalTileGenerator
 import dev.wefhy.whymap.tiles.region.MapRegionManager
 import dev.wefhy.whymap.tiles.thumbnails.RegionThumbnailer
@@ -20,7 +21,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WorldSavePath
-import net.minecraft.world.dimension.DimensionType
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.BufferedWriter
@@ -28,32 +28,28 @@ import java.io.Closeable
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
-class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
-    //    val mc: MinecraftClient = MinecraftClient.getInstance()
-    val session = mc.game.currentSession!!
+class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
     val world = mc.world!!
     val player = mc.player!!
-    val dimension = world.dimension
+    private val dimension = world.dimension!!
+    override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
+    override val mappingsManager = MappingsManager(biomeMappings = biomeManager.biomeNameList)
 
     override val name: String =
-        if (session.isRemoteServer) "Multiplayer_" + mc.currentServerEntry!!.address else mc.server!!.getSavePath(
+        if (!mc.isConnectedToLocalServer) "Multiplayer_" + mc.currentServerEntry!!.address.sanitizedPath else mc.server!!.getSavePath(
             WorldSavePath.ROOT
         ).parent.fileName.toString()
 
     //    val alternativeName: String = mc.server!!.saveProperties.levelName
     val dimensionCoordinateScale = world.dimension.coordinateScale
 
-    override val dimensionName = when {
-        dimension.bedWorks -> "Overworld"
-        dimension.respawnAnchorWorks -> "Nether"
-        else -> customDimensionName(dimension)
-    }
+    override val dimensionName = dimension.serialize()
 
     val waypoints = with(provider) { Waypoints() }
 
-    val periodicCleanupJob = GlobalScope.launch {
+    private val periodicCleanupJob = GlobalScope.launch {//TODO this definitely shouldn't be launched from GlobalScope...
         while (true) {
             delay(cleanupInterval * 1000L)
             mapRegionManager.periodicCleanup()
@@ -64,24 +60,9 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
         waypoints.load()
     }
 
-    fun saveAll() {
+    private fun saveAll() {
         waypoints.save()
         mapRegionManager.saveAllAndClear()
-    }
-
-    companion object {
-        val instance: CurrentWorld? = null
-
-        fun customDimensionName(dimension: DimensionType): String {
-            val values = booleanArrayOf(
-                dimension.bedWorks,
-                dimension.ultrawarm,
-                dimension.natural,
-                dimension.piglinSafe(),
-                dimension.respawnAnchorWorks,
-            )
-            return "CustomDimension-${values.joinToString("") { if (it) "1" else "0" }}-${dimension.coordinateScale}-${dimension.height}-${dimension.logicalHeight}"
-        }
     }
 
     override fun close() {
@@ -94,6 +75,8 @@ class CurrentWorld(val mc: MinecraftClient) : WhyWorld(), Closeable {
 class OfflineWorld(override val name: String, override val dimensionName: String) : WhyWorld() {
     override val provider = CurrentWorldProvider(this)
     override val biomeManager = BiomeOfflineManager()
+    override val dimensionScale = TODO("Not yet implemented")
+    override val mappingsManager = TODO("Needs another type of mapping manager")
 
     override fun close() {
         super.close()
@@ -105,6 +88,8 @@ abstract class WhyWorld : Closeable {
     abstract val dimensionName: String
     abstract val provider: CurrentWorldProvider<WhyWorld>
     abstract val biomeManager: BiomeManager
+    abstract val dimensionScale: Double
+    abstract val mappingsManager: MappingsManager
 
     val worldPath by lazy { modPath.resolve(name).resolve(dimensionName) }
     val mapTilesPath by lazy { worldPath.resolve("tiles") }

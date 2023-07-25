@@ -3,15 +3,17 @@
 package dev.wefhy.whymap
 
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.WhyMapMod.Companion.forceWipeCache
 import dev.wefhy.whymap.WhyServer.serverRouting
 import dev.wefhy.whymap.communication.OnlinePlayer
+import dev.wefhy.whymap.config.UserSettings.ExposeHttpApi
 import dev.wefhy.whymap.config.WhyMapConfig
-import dev.wefhy.whymap.events.TileUpdateQueue
-import dev.wefhy.whymap.events.WorldEventQueue
+import dev.wefhy.whymap.config.WhyMapConfig.portRange
+import dev.wefhy.whymap.config.WhyUserSettings
+import dev.wefhy.whymap.events.*
 import dev.wefhy.whymap.tiles.mesh.MeshGenerator
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.exportBlockMappings
-import dev.wefhy.whymap.tiles.region.BlockMappingsManager.getMappings
 import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.ImageWriter.encode
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import io.ktor.http.*
@@ -25,8 +27,11 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import io.ktor.util.pipeline.*
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.minecraft.block.Block
@@ -34,6 +39,10 @@ import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
 
 fun Application.myApplicationModule() {
+
+    val exposeHttpApiSetting = WhyUserSettings.serverSettings.exposeHttpApi
+    if (exposeHttpApiSetting == ExposeHttpApi.DISABLED)
+        return
     install(ContentNegotiation) {
         json(Json {
 //                        prettyPrint = true
@@ -41,20 +50,35 @@ fun Application.myApplicationModule() {
             ignoreUnknownKeys = true
         })
     }
-    install(CORS) {//TODO CORS is only for quick frontend testing, it isn't needed on production build
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowHeader(HttpHeaders.AccessControlAllowHeaders)
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.AccessControlAllowOrigin)
-        exposeHeader(HttpHeaders.AccessControlAllowHeaders)
-        exposeHeader(HttpHeaders.ContentType)
-        exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+    install(CORS) {
         allowCredentials = true
-        anyHost()
+        when (exposeHttpApiSetting) {
+            ExposeHttpApi.LOCALHOST_ONLY -> {
+                allowHost("localhost")
+                allowHost("127.0.0.1")
+            }
+            ExposeHttpApi.EVERYWHERE -> {
+                anyHost()
+            }
+            ExposeHttpApi.DEBUG -> {
+                anyHost()
+                allowMethod(HttpMethod.Get)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Delete)
+                allowHeader(HttpHeaders.AccessControlAllowHeaders)
+                allowHeader(HttpHeaders.ContentType)
+                allowHeader(HttpHeaders.AccessControlAllowOrigin)
+                exposeHeader(HttpHeaders.AccessControlAllowHeaders)
+                exposeHeader(HttpHeaders.ContentType)
+                exposeHeader(HttpHeaders.AccessControlAllowOrigin)
+            }
+            ExposeHttpApi.DISABLED -> println("Dear Kotlin Devs, this branch is unreachable, why do I need it?")
+        }
     }
     routing {
-        serverRouting()
+        serverRouting(
+
+        )
     }
 }
 
@@ -62,11 +86,35 @@ object WhyServer {
     private const val parsingError: String = "Can't parse request"
 
     fun host() {
-        embeddedServer(CIO, port = 7542, module = Application::myApplicationModule).start(wait = true)
+        for (p in portRange) {
+            try {
+                WhyMapConfig.port = p
+                println("Trynig to run WhyMap server on port $p...")
+                val host = when(WhyUserSettings.serverSettings.exposeHttpApi) {
+                    ExposeHttpApi.DISABLED -> return
+                    ExposeHttpApi.LOCALHOST_ONLY -> "localhost"
+                    ExposeHttpApi.EVERYWHERE -> "0.0.0.0"
+                    ExposeHttpApi.DEBUG -> "0.0.0.0"
+                }
+
+                embeddedServer(CIO, port = p, module = Application::myApplicationModule, host = host).start(wait = true)
+                break
+            } catch (e: Throwable) {
+                println("Failed to run server on port $p. Trying on next one.")
+            }
+        }
     }
 
-    fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
-        return paramName.map { call.parameters[it]?.toInt() ?: return null }.toIntArray()
+    @Suppress("SameParameterValue")
+    private fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
+        return paramName.map { call.parameters[it]?.toInt() ?: return null.also {
+            println(
+                call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
+                    ", ",
+                    "Failed to parse request: "
+                )
+            )
+        } }.toIntArray()
     }
 
     inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
@@ -103,9 +151,9 @@ object WhyServer {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
             activeWorld?.mapRegionManager?.getRegionForTilesRendering(LocalTile.Region(x, z)) {
-                val bitmap = withContext(Dispatchers.IO) { getCustomRender(s) }
+                val bitmap = getCustomRender(s)
                 call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                    withContext(Dispatchers.IO) {
+                    withContext(WhyDispatchers.Encoding) {
                         encodePNG(bitmap) //TODO test other formats performance and quality
                     }
                 }
@@ -113,14 +161,19 @@ object WhyServer {
 
         }
         get("/blockMappings") {
-            call.respondText(getMappings())
+            call.respondText(activeWorld?.mappingsManager?.blockMappingsJoined.toString())
         }
-        get("/exportBlockMappings") {
-            call.respondText(exportBlockMappings())
-        }
-        get("/lastUpdates/{threshold}") {
+        get("/lastRegionUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
-            call.respond(TileUpdateQueue.getLatestUpdates(threshold))
+            call.respond(RegionUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/lastChunkUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(ChunkUpdateQueue.getLatestUpdates(threshold))
+        }
+        get("/lastThumbnailUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L
+            call.respond(ThumbnailUpdateQueue.getLatestUpdates(threshold))
         }
         get("/worldEvents/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
@@ -129,10 +182,10 @@ object WhyServer {
         get("/textureAtlas") {
             val bitmap = with(activeWorld?.provider) {
                 if (this == null) return@get call.respondText("World not loaded!")
-                withContext(Dispatchers.Default) { TextureAtlas.textureAtlas }
+                withContext(WhyDispatchers.LowPriority) { TextureAtlas.textureAtlas }
             }
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                withContext(Dispatchers.IO) {
+                withContext(WhyDispatchers.LowPriority) {
                     encodePNG(bitmap)
                 }
             }
@@ -193,6 +246,10 @@ object WhyServer {
 
 
 
+        get("/featureUpdates/{threshold}") {
+            val threshold = call.parameters["threshold"]?.toLong() ?: 0L //TODO this is not error handling for NumberFormatException!
+            call.respond(FeatureUpdateQueue.getLatestUpdates(threshold))
+        }
         //TODO all tile requests should be cancellable
         get("/tiles/{s}/{x}/{z}") {//TODO parse dimension
             activeWorld ?: return@get call.respondText("World not loaded!")
@@ -209,7 +266,7 @@ object WhyServer {
                         "Requested tile: ${Pair(x, z)}, scale: $s, region: $regionTile"
                     )
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
-                        withContext(Dispatchers.IO) { getRendered() }
+                        getRendered()
                     } ?: return@get call.respondText("Region unavailable")
 
                 }
@@ -223,7 +280,7 @@ object WhyServer {
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
                         "Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile"
                     )
-                    withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
+                    activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos)
                         ?: return@get call.respondText("Chunk unavailable")
                 }
 
@@ -236,21 +293,20 @@ object WhyServer {
                     if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
                         "Requested tile: ${Pair(x, z)}, scale: $s, thumbnail: $thumbnailTile"
                     )
-//                                withContext(Dispatchers.IO) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
+//                                withContext(WhyDispatchers.Render) { RegionThumbnailer.getTile(MapTile(x, z, TileZoom.ThumbnailZoom)) } ?: return@get call.respondText("Thumbnail unavailable")
                     val byteOutputStream = activeWorld?.thumbnailsManager?.getThumbnail(thumbnailTile)
                         ?: return@get call.respondText("Thumbnail unavailable")
-                    call.respondOutputStream(contentType = ContentType.Image.JPEG) {
-                        withContext(Dispatchers.IO) {
+                    return@get call.respondOutputStream(contentType = ContentType.Image.JPEG) {
+                        withContext(WhyDispatchers.IO) {
                             write(byteOutputStream.toByteArray())
                         }
                     }
-                    return@get
                 }
 
                 else -> return@get call.respondText("Unsupported scale!")
             }
             call.respondOutputStream(contentType = WhyMapMod.contentType) {
-                withContext(Dispatchers.IO) {
+                withContext(WhyDispatchers.Encoding) {
                     encodePNG(bitmap) //TODO test other formats performance and quality
                     /**
                      * Weird error can happen very rarely. Is it like out of memory?
@@ -288,8 +344,12 @@ object WhyServer {
             resources(".")
         }
         get("/waypoints") {
+
+            val deaths = call.request.queryParameters["deaths"].toBoolean()
             call.respond(
-                activeWorld?.waypoints?.onlineWaypoints ?: listOf()
+                activeWorld?.waypoints?.let {
+                    if (deaths) it.onlineWaypoints else it.onlineWaypointsWithoutDeaths
+                } ?: listOf()
             )
         }
         get("/player") {
@@ -322,10 +382,135 @@ object WhyServer {
         get("/hello") {
             call.respondText("hello world")
         }
+        get("/forceWipeCache") {
+            forceWipeCache()
+        }
+        get("/reloadTileWithBlock/{x}/{z}") {
+            val (x, z) = getParams("x", "z") ?: return@get call.respondText(parsingError)
+            val tile = MapTile(x, z, TileZoom.BlockZoom).toLocalTile().parent(TileZoom.RegionZoom)
+            //todo reload zoomed in tile?
+            activeWorld?.mapRegionManager?.apply {
+                unloadRegion(tile)
+            }
+            RegionUpdateQueue.addUpdate(tile)
+
+            /*?.getRegionForTilesRendering(tile) {
+                getRendered()
+            } ?: return@get call.respondText("Region unavailable")*/
+        }
+        val activeRenders = Semaphore(2)
+
+
+        get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/{scale}") {
+            activeRenders.tryAcquire {
+                val regionLimit = 200
+                val chunkLimit = 400
+                val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+                val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
+                val scale = call.parameters["scale"]?.toIntOrNull() ?: 1
+                if (scale != 1 && scale != 16) return@get call.respondText("Unsupported scale!")
+                val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
+                val blockArea = RectArea(
+                    LocalTile.Block(x1, z1),
+                    LocalTile.Block(x2, z2)
+                )
+                println("Exporting $blockArea")
+                println("Regions: ${blockArea.parent(TileZoom.RegionZoom).list()}")
+                val cropped = when(scale) {
+                    1 -> {
+                        val regionArea = blockArea.parent(TileZoom.RegionZoom)
+                        if (regionArea.size > regionLimit) return@get call.respondText("Too big area! Area would need to render ${regionArea.size} regions, limit is $regionLimit regions.")
+                        val image = BufferedImage(
+                            regionArea.blockArea().sizeX,
+                            regionArea.blockArea().sizeZ,
+                            BufferedImage.TYPE_INT_RGB
+                        )
+                        val raster = image.raster
+                        val renderJobs = regionArea.list().map { regionTile ->
+                            launch(WhyDispatchers.Render) {
+                                println("Rendering $regionTile, " +
+                                        activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                            renderWhyImageNow().writeInto(
+                                                raster,
+                                                regionTile.getStart().x - regionArea.blockArea().start.x,
+                                                regionTile.getStart().z - regionArea.blockArea().start.z
+                                            )
+                                        })
+                            }
+                        }
+                        renderJobs.joinAll()
+                        raster.createWritableChild(
+                            blockArea.start.x - regionArea.blockArea().start.x,
+                            blockArea.start.z - regionArea.blockArea().start.z,
+                            blockArea.sizeX,
+                            blockArea.sizeZ,
+                            0,
+                            0,
+                            null
+                        ).run {
+                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+                        }
+                    }
+                    16 -> {
+                        val regionArea = blockArea.parent(TileZoom.RegionZoom)
+                        val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+                        if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+                        val image = BufferedImage(
+                            chunkArea.blockArea().sizeX * 16,
+                            chunkArea.blockArea().sizeZ * 16,
+                            BufferedImage.TYPE_INT_RGB
+                        )
+                        val g2d = image.createGraphics()
+                        val renderJobs = regionArea.list().map { regionTile ->
+                            withContext(WhyDispatchers.Render) {
+                                activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                                    activeWorld?.experimentalTileGenerator?.apply {
+                                        renderIntersection(
+                                            g2d,
+                                            chunkArea,
+                                            (regionTile.getStart().x - blockArea.start.x) * 16,
+                                            (regionTile.getStart().z - blockArea.start.z) * 16
+                                        )
+                                    }
+                                }
+                            }
+                        }
+//                        renderJobs.joinAll()
+                        image.raster.createWritableChild(
+                            (blockArea.start.x - chunkArea.blockArea().start.x) * 16,
+                            (blockArea.start.z - chunkArea.blockArea().start.z) * 16,
+                            blockArea.sizeX * 16,
+                            blockArea.sizeZ * 16,
+                            0,
+                            0,
+                            null
+                        ).run {
+                            BufferedImage(image.colorModel, this, image.isAlphaPremultiplied, null)
+                        }
+                    }
+                    else -> return@get
+                }
+
+                call.respondOutputStream(contentType = format.contentType) {
+                    withContext(WhyDispatchers.Encoding) {
+                        encode(cropped, format)
+                    }
+                }
+            } ?: return@get call.respondText("Too many renders in progress")
+
+        }
         post("/waypoint") {
             val waypoint = call.receive<OnlineWaypoint>()
             WhyMapMod.LOGGER.debug("Received waypoint: ${waypoint.name}, ${waypoint.pos}")
             activeWorld?.waypoints?.add(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)
+            call.respond(HttpStatusCode.OK)
+        }
+        delete("/waypoint") {
+            println("deleting waypoint")
+//            println(call.receive<String>())
+            val waypoint = call.receive<OnlineWaypoint>()
+            WhyMapMod.LOGGER.debug("Deleting waypoint: ${waypoint.name}, ${waypoint.pos}")
+            activeWorld?.waypoints?.remove(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)
             call.respond(HttpStatusCode.OK)
         }
         post("/importWaypoints") {
