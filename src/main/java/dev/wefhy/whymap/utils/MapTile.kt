@@ -123,6 +123,22 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
         )
     }
 
+    operator fun plus(other: LocalTile<Z>): LocalTile<Z> {
+        return LocalTile(
+            x + other.x,
+            z + other.z,
+            zoom
+        )
+    }
+
+    operator fun minus(other: LocalTile<Z>): LocalTile<Z> {
+        return LocalTile(
+            x - other.x,
+            z - other.z,
+            zoom
+        )
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

@@ -6,9 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class ThreeJsMesh(
-//    val x: Float,
-//    val y: Float,
     val vertices: List<Float>,
-    val faces: List<Int>,
-    val uvs: List<Float>
-)
+    val indices: List<Int>,
+    val uvs: List<Float>,
+): ThreeJsObject()

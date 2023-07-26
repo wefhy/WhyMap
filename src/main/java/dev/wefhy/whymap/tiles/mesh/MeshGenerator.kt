@@ -6,7 +6,7 @@ import dev.wefhy.whymap.tiles.region.MapArea
 import dev.wefhy.whymap.utils.*
 
 object MeshGenerator {
-    private const val faceSize: Float = 0.1f
+    private const val faceSize: Float = 1f
 
     private val head = """
     import bpy, math, mathutils   
@@ -38,6 +38,20 @@ object MeshGenerator {
     else:
         o.data.materials.append(mat)
     """.trimIndent()
+
+    context(MapArea)
+    fun getThreeJsChunkMeshes(area: RectArea<TileZoom.BlockZoom>): List<ThreeJsMesh> {
+        val intersection = (area intersect location) ?: return emptyList()
+        val chunks = intersection.parent(TileZoom.ChunkZoom).list()
+        return chunks.map {
+            Mesh().apply{
+                addFaces(getChunkMesh(it).flatten().flatten())
+            }.toThreeJs().apply {
+                posX = it.x * 16f - location.getStart().x
+                posY = it.z * 16f - location.getStart().z
+            }
+        }
+    }
 
     context(MapArea)
     fun getThreeJsMesh(): ThreeJsMesh {

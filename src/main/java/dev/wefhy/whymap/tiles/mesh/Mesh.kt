@@ -30,7 +30,7 @@ class Mesh : PythonObject {
     fun toThreeJs(): ThreeJsMesh {
         return ThreeJsMesh(
             vertices = vertexStorage.flatMap { it.toThreeJs() },
-            faces = faceStorage.flatMap { it.toThreeJs() },
+            indices = faceStorage.flatMap { it.toThreeJs() },
             uvs = uvStorage.flatMap { it.toThreeJs() }
         )
     }
