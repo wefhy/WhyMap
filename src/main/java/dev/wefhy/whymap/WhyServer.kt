@@ -49,10 +49,10 @@ fun Application.myApplicationModule() {
         return
     install(ContentNegotiation) {
         json(Json {
-//                        prettyPrint = true
+//            prettyPrint = true
             isLenient = true
             ignoreUnknownKeys = true
-            encodeDefaults = true
+//            encodeDefaults = true
             serializersModule = SerializersModule {
                 polymorphic(ThreeJsObject::class) {
                     subclass(ThreeJsMesh::class)
