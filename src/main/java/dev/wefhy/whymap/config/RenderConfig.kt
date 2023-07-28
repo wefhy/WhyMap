@@ -69,7 +69,7 @@ object RenderConfig {
     )
 
     private val waterloggedBlocks = listOf(
-        "lily",
+        "lily_pad",
         "seagrass",
         "kelp",
         "coral", //tbh coral blocks shouldn't be waterlogged but... who cares

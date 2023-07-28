@@ -6,6 +6,7 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess
 import dev.wefhy.whymap.tiles.details.ExperimentalTextureProvider
+import dev.wefhy.whymap.tiles.mesh.MeshGenerator
 import dev.wefhy.whymap.tiles.mesh.Uv
 import dev.wefhy.whymap.tiles.mesh.UvCoordinate
 import net.minecraft.block.Block
@@ -23,7 +24,15 @@ object TextureAtlas {
         get() = createTextureAtlas()
 
     private val blocks by lazy { Block.STATE_IDS.map { it.block }.toSet().sortedBy { it.translationKey } }
-    private val atlasSize by lazy { blocks.size }
+//    private val atlasSize by lazy { blocks.size }
+    private val atlasSize by lazy {
+//        1 shl (32 - Integer.numberOfLeadingZeros(blocks.size - 1))
+        var size = 1
+        while (size < blocks.size) {
+            size *= 2
+        }
+        size
+    }
 
     fun getBlockUV(block: Block): Uv {
         val i = blocks.indexOf(block)
@@ -37,12 +46,13 @@ object TextureAtlas {
     }
 
     fun getBlockSideUv(block: Block, height: Short): Uv {
+        val repeats = height - MeshGenerator.bottomFaceHeight
         val i = blocks.indexOf(block)
         val aS = (1.0 / atlasSize)
         return Uv(
             UvCoordinate((i + 0) * aS, 0.0),
-            UvCoordinate((i + 0) * aS, height.toDouble()),
-            UvCoordinate((i + 1) * aS, height.toDouble()),
+            UvCoordinate((i + 0) * aS, repeats.toDouble()),
+            UvCoordinate((i + 1) * aS, repeats.toDouble()),
             UvCoordinate((i + 1) * aS, 0.0),
         )
     }

@@ -128,6 +128,18 @@ object WhyServer {
         } }.toIntArray()
     }
 
+    @Suppress("SameParameterValue")
+    private fun PipelineContext<Unit, ApplicationCall>.getQueryParams(vararg paramName: String): IntArray? {
+        return paramName.map { call.request.queryParameters[it]?.toFloat()?.toInt() ?: return null.also {
+            println(
+                call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
+                    ", ",
+                    "Failed to parse request: "
+                )
+            )
+        } }.toIntArray()
+    }
+
     inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
         return activeWorld?.also {
             block(it)
@@ -221,9 +233,27 @@ object WhyServer {
 //
 //
 //        }
+        get("/three/browseSmall") {
+            val radius = 3
+            val (x, z) = getQueryParams("x", "z") ?: return@get call.respondText(parsingError)
+            val block = LocalTile.Block(x, z)
+            val chunk = block.parent(TileZoom.ChunkZoom)
+            val start = LocalTile.Chunk(chunk.x - radius, chunk.z - radius).getStart()
+            val end = LocalTile.Chunk(chunk.x + radius, chunk.z + radius).getEnd()
+            call.respondRedirect("/three/index.html?x1=${start.x}&z1=${start.z}&x2=${end.x}&z2=${end.z}")
+        }
+        get("/three/browseBig") {
+            val radius = 7
+            val (x, z) = getQueryParams("x", "z") ?: return@get call.respondText(parsingError)
+            val block = LocalTile.Block(x, z)
+            val chunk = block.parent(TileZoom.ChunkZoom)
+            val start = LocalTile.Chunk(chunk.x - radius, chunk.z - radius).getStart()
+            val end = LocalTile.Chunk(chunk.x + radius, chunk.z + radius).getEnd()
+            call.respondRedirect("/three/index.html?x1=${start.x}&z1=${start.z}&x2=${end.x}&z2=${end.z}")
+        }
         get("/three/area/{x1}/{z1}/{x2}/{z2}") {
             val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
-            val chunkLimit = 200
+            val chunkLimit = 225
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
                 LocalTile.Block(x2, z2)

@@ -6,6 +6,7 @@ import dev.wefhy.whymap.tiles.region.MapArea
 import dev.wefhy.whymap.utils.*
 
 object MeshGenerator {
+    const val bottomFaceHeight = -64f
     private const val faceSize: Float = 1f
 
     private val head = """
@@ -131,10 +132,10 @@ object MeshGenerator {
 
     private fun getBottomFace(x: Int, z: Int): Face {
         return Face(
-            Vertex((x + 0) * faceSize, (z + 0) * faceSize, 0f),
-            Vertex((x + 1) * faceSize, (z + 0) * faceSize, 0f),
-            Vertex((x + 1) * faceSize, (z + 1) * faceSize, 0f),
-            Vertex((x + 0) * faceSize, (z + 1) * faceSize, 0f),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottomFaceHeight),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, bottomFaceHeight),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottomFaceHeight),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottomFaceHeight),
         )
     }
 
