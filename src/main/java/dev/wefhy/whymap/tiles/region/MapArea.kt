@@ -299,7 +299,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             biome = currentWorld.biomeManager.biomeGetName(currentWorld.biomeManager.decodeBiome(biomeMap[z][x])),
             height = heightMap[z][x],
             depth = depthMap[z][x].toUByte(),
-            light = lightMap[z][x]
+            light = lightMap[z][x].toUByte()
         )
     }
 
