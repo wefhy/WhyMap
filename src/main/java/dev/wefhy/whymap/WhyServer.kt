@@ -24,6 +24,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.html.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -34,6 +35,7 @@ import io.ktor.util.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.html.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -216,23 +218,26 @@ object WhyServer {
                 }
             }
         }
-//        get("/3d/tiles/15/{x}/{z}") {
-//            activeWorld ?: return@get call.respondText("World not loaded!")
-//            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
-//            val chunkTile = if (s >= 0)
-//                MapTile(x, z, TileZoom.ChunkZoom).toLocalTile()
-//            else
-//                LocalTile(x, z, TileZoom.ChunkZoom)
-//
-//            if (WhyMapConfig.DEV_VERSION) WhyMapMod.LOGGER.info(
-//                "Requested tile: ${Pair(x, z)}, scale: $s, chunk: $chunkTile"
-//            )
-//            val bitmap: BufferedImage = withContext(Dispatchers.IO) { activeWorld?.experimentalTileGenerator?.getTile(chunkTile.chunkPos) }
-//                ?: return@get call.respondText("Chunk unavailable")
-//
-//
-//
-//        }
+        get("/diagnostics") {
+            call.respondRedirect("/diagnostics.html")
+        }
+        get("/diagnostics.html") {
+            call.respondHtml {
+                head {
+                    title { +"Whymap Diagnostics" }
+                }
+                body {
+                    h1 { +"Whymap Diagnostics" }
+                    h2 { +"Player Data" }
+                    val player = MinecraftClient.getInstance()?.player
+
+                    img {
+                        src = "/tiles/0/0/0.png"
+                    }
+                }
+            }
+        }
+
         get("/three/browseSmall") {
             val radius = 3
             val (x, z) = getQueryParams("x", "z") ?: return@get call.respondText(parsingError)
