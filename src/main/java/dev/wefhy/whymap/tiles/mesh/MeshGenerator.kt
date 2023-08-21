@@ -4,6 +4,7 @@ package dev.wefhy.whymap.tiles.mesh
 
 import dev.wefhy.whymap.tiles.region.MapArea
 import dev.wefhy.whymap.utils.*
+import net.minecraft.fluid.Fluids
 
 object MeshGenerator {
     const val bottomFaceHeight = -64f
@@ -46,7 +47,8 @@ object MeshGenerator {
         val chunks = intersection.parent(TileZoom.ChunkZoom).list()
         return chunks.map {
             Mesh().apply{
-                addFaces(getChunkMesh(it).flatten().flatten())
+                addFaces(getChunkMesh(it))
+                addFaces(getChunkWaterMesh(it))
             }.toThreeJs().apply {
                 posX = it.x * 16f - location.getStart().x
                 posY = it.z * 16f - location.getStart().z
@@ -69,7 +71,7 @@ object MeshGenerator {
         }
 
         val mesh = Mesh()
-        mesh.addFaces(allFaces.flatten().flatten().flatten())
+        mesh.addFaces(allFaces.flatten())
         return mesh.toThreeJs()
     }
 
@@ -95,12 +97,44 @@ object MeshGenerator {
         }
 
         val mesh = Mesh()
-        mesh.addFaces(allFaces.flatten().flatten().flatten())
+        mesh.addFaces(allFaces.flatten())
         return "$head\n${mesh.toPython()}\n$tail"
     }
 
     context(MapArea)
-    private fun getChunkMesh(chunk: LocalTileChunk, offset: Pair<Int, Int> = 0 to 0): List<List<List<Face>>> {
+    private fun getChunkWaterMesh(chunk:LocalTileChunk, offset: Pair<Int, Int> = 0 to 0): List<Face> {
+        val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!
+        val chunkOverlays = getChunkOverlay(chunk.chunkPos)!!
+        val chunkDepthMap = getChunkDepthmap(chunk.chunkPos)!!
+        val surface = chunkOverlays.mapIndexed {zz, lines ->
+            lines.mapIndexed checkingBlock@{ xx, block ->
+                if (!block.fluidState.fluid.matchesType(Fluids.WATER)) return@checkingBlock null
+                val height = chunkHeightMap[zz][xx]
+                val depth = chunkDepthMap[zz][xx]
+                height + depth
+            }
+        }
+        val waterTop = surface.mapIndexed { zz, lines ->
+            lines.mapIndexed { xx, height ->
+                if (height == null) return@mapIndexed null
+                getTopFace(xx + 16 * offset.first, zz + 16 * offset.second, height).also {
+                    it.uv = TextureAtlas.getBlockUV(chunkOverlays[zz][xx].block) //TODO just use water always or even don't use uv and use texture
+                }
+            }
+        }
+        val waterSides = mutableListOf<Face>()
+
+        for (zz in 0 until 15) {
+            for (xx in 0 until 15) {
+                //TODO finish generating water sides then duplicate the code for regular terrain
+            }
+        }
+
+        return waterTop.flatten().filterNotNull() + waterSides
+    }
+
+    context(MapArea)
+    private fun getChunkMesh(chunk: LocalTileChunk, offset: Pair<Int, Int> = 0 to 0): List<Face> {
         val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!
         val chunkBlocks = getChunk(chunk.chunkPos)!!
 //        val chunkHeightMap = getChunkHeightmap(chunk.chunkPos)!!.zip(getChunkDepthmap(chunk.chunkPos)!!) { a, b ->
@@ -117,11 +151,20 @@ object MeshGenerator {
                     it.uv = TextureAtlas.getBlockUV(chunkBlocks[zz][xx].block)
                 }
             }
-        }
+        }.flatten().flatten()
     }
 
 
     private fun getTopFace(x: Int, z: Int, height: Short): Face {
+        return Face(
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
+        )
+    }
+
+    private fun getTopFace(x: Int, z: Int, height: Int): Face {
         return Face(
             Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
             Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
