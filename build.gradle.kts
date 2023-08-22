@@ -1,6 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
+import proguard.gradle.ProGuardTask
 import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 
@@ -12,6 +13,17 @@ val minecraft_version: String by project
 val yarn_mappings: String by project
 val loader_version: String by project
 val fabric_version: String by project
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath("com.guardsquare:proguard-gradle:7.4.0-beta01") {
+			exclude("com.android.tools.build")
+		}
+	}
+}
 
 plugins {
 	id ("fabric-loom") version "1.3.8"
@@ -332,16 +344,15 @@ fun getCurrentVersion(): String {
 	return stdout.toString().trim()
 }
 
-//abstract class YarnServeTask : DefaultTask() {
-//	@TaskAction
-//	fun serve() {
-//
-//	}
-//}
-//
-//tasks.register<YarnServeTask>("yarnServe") {
-//
-//}
+tasks.register<ProGuardTask>("proguardJar") {
+//	configuration("proguard.pro")
+//	libraryjars("~/Library/Java/JavaVirtualMachines/openjdk-19.0.1/Contents/Home/jmods/java.base.jmod")
+	injars("$buildDir/libs/${mod_id.toLowerCaseAsciiOnly()}-${project.version}.jar")
+	outjars("$buildDir/libs/${mod_id.toLowerCaseAsciiOnly()}-${project.version}-proguard.jar")
+	outputs.upToDateWhen { false }
+	dependsOn("build")
+	configuration("proguard-rules.pro")
+}
 
 tasks.register<Exec>("serve") {
 	workingDir = file("src-vue")
