@@ -5,9 +5,11 @@ package dev.wefhy.whymap.tiles.mesh
 import dev.wefhy.whymap.tiles.region.MapArea
 import dev.wefhy.whymap.utils.*
 import net.minecraft.fluid.Fluids
+import kotlin.math.absoluteValue
 
 object MeshGenerator {
-    const val bottomFaceHeight = -64f
+    const val bottomFaceHeightI = -64
+    const val bottomFaceHeightF = bottomFaceHeightI.toFloat()
     private const val faceSize: Float = 1f
 
     private val head = """
@@ -48,6 +50,21 @@ object MeshGenerator {
         return chunks.map {
             Mesh().apply{
                 addFaces(getChunkMesh(it))
+//                addFaces(getChunkWaterMesh(it))
+            }.toThreeJs().apply {
+                posX = it.x * 16f - location.getStart().x
+                posY = it.z * 16f - location.getStart().z
+            }
+        }
+    }
+
+    context(MapArea)
+    fun getThreeJsChunkOverlayMeshes(area: RectArea<TileZoom.BlockZoom>): List<ThreeJsMesh> {
+        val intersection = (area intersect location) ?: return emptyList()
+        val chunks = intersection.parent(TileZoom.ChunkZoom).list()
+        return chunks.map {
+            Mesh().apply{
+//                addFaces(getChunkMesh(it))
                 addFaces(getChunkWaterMesh(it))
             }.toThreeJs().apply {
                 posX = it.x * 16f - location.getStart().x
@@ -126,7 +143,60 @@ object MeshGenerator {
 
         for (zz in 0 until 15) {
             for (xx in 0 until 15) {
+                var missingThis = false
+                var missingRight = false
+                var missingBack = false
+                val height = surface[zz][xx] ?: chunkHeightMap[zz][xx].toInt().also { missingThis = true }
+                val heightRight = surface[zz][xx + 1] ?: chunkHeightMap[zz][xx + 1].toInt().also { missingRight = true }
+                val heightBack = surface[zz + 1][xx] ?: chunkHeightMap[zz + 1][xx].toInt().also { missingBack = true }
+
+                if (!(missingThis && missingRight) && height != heightRight) {
+                    waterSides += getRightFace(xx + 16 * offset.first, zz + 16 * offset.second, height, heightRight.toFloat()).also {
+                        val hDiff = (height - heightRight).absoluteValue.toShort()
+                        it.uv = TextureAtlas.getBlockSideUv(chunkOverlays[zz][xx].block, hDiff) //TODO use higher block UV
+                    }
+                }
+                if (!(missingThis && missingBack) && height != heightBack) {
+                    waterSides += getBackFace(xx + 16 * offset.first, zz + 16 * offset.second, heightBack, height.toFloat()).also {
+                        val hDiff = (height - heightBack).absoluteValue.toShort()
+                        it.uv = TextureAtlas.getBlockSideUv(chunkOverlays[zz][xx].block, hDiff) //TODO use higher blocks UV
+                    }
+                }
+
                 //TODO finish generating water sides then duplicate the code for regular terrain
+            }
+        }
+        for (bb in 0 until 16) {
+            surface[0][bb]?.let { heightFront ->
+                val floorHeightFront = chunkHeightMap[0][bb]
+                val hDiff = (heightFront - floorHeightFront).absoluteValue
+                waterSides += getFrontFace(bb + 16 * offset.first, 16 * offset.second, heightFront, floorHeightFront.toFloat()).also {
+                    it.uv = TextureAtlas.getOverlaySideUv(chunkOverlays[0][bb].block, hDiff)
+                }
+            }
+
+            surface[15][bb]?.let { heightBack ->
+                val floorHeightBack = chunkHeightMap[15][bb]
+                val hDiff = (heightBack - floorHeightBack).absoluteValue
+                waterSides += getBackFace(bb + 16 * offset.first, 15 + 16 * offset.second, heightBack, floorHeightBack.toFloat()).also {
+                    it.uv = TextureAtlas.getOverlaySideUv(chunkOverlays[15][bb].block, hDiff)
+                }
+            }
+
+            surface[bb][0]?.let { heightLeft ->
+                val floorHeightLeft = chunkHeightMap[bb][0]
+                val hDiff = (heightLeft - floorHeightLeft).absoluteValue
+                waterSides += getLeftFace(16 * offset.first, bb + 16 * offset.second, heightLeft, floorHeightLeft.toFloat()).also {
+                    it.uv = TextureAtlas.getOverlaySideUv(chunkOverlays[bb][0].block, hDiff)
+                }
+            }
+
+            surface[bb][15]?.let { heightRight ->
+                val floorHeightRight = chunkHeightMap[bb][15]
+                val hDiff = (heightRight - floorHeightRight).absoluteValue
+                waterSides += getRightFace(15 + 16 * offset.first, bb + 16 * offset.second, heightRight, floorHeightRight.toFloat()).also {
+                    it.uv = TextureAtlas.getOverlaySideUv(chunkOverlays[bb][15].block, hDiff)
+                }
             }
         }
 
@@ -175,10 +245,46 @@ object MeshGenerator {
 
     private fun getBottomFace(x: Int, z: Int): Face {
         return Face(
-            Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottomFaceHeight),
-            Vertex((x + 1) * faceSize, (z + 0) * faceSize, bottomFaceHeight),
-            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottomFaceHeight),
-            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottomFaceHeight),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottomFaceHeightF),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, bottomFaceHeightF),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottomFaceHeightF),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottomFaceHeightF),
+        )
+    }
+
+    private fun getRightFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
+        return Face(
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
+        )
+    }
+
+    private fun getLeftFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
+        return Face(
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottom),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
+        )
+    }
+
+    private fun getBackFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
+        return Face(
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
+        )
+    }
+
+    private fun getFrontFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
+        return Face(
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, bottom),
+            Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
         )
     }
 

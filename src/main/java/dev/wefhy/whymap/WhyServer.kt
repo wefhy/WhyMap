@@ -283,6 +283,33 @@ object WhyServer {
             )
             call.respond(result)
         }
+        get("/three/overlay/{x1}/{z1}/{x2}/{z2}") {
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val chunkLimit = 225
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+            val renders = regionArea.list().map { regionTile ->
+                async(WhyDispatchers.Render) {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        val offset = regionTile.getStart() - blockArea.start
+                        ThreeJsObject(
+                            offset.x.toFloat(),
+                            offset.z.toFloat(),
+                            MeshGenerator.getThreeJsChunkOverlayMeshes(blockArea)
+                        )
+                    }
+                }
+            }
+            val result = ThreeJsObject(
+                children = renders.awaitAll().filterNotNull()
+            )
+            call.respond(result)
+        }
         get("three/tiles/{s}/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
             val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
