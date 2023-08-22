@@ -1,4 +1,14 @@
 # WhyMap changelog
+
+## [1.7.0]
+ - Update 1.20 block textures
+ - Improve many blocks rendering, notably bubble columns and sweet berries
+ - Update library versions
+ - Add 3D map preview
+ - Fixed 'analyze area'
+ - Show light level in block info
+ - First attempts at adding diagnostics screen, elytra flight assistance, player path history (neither is enabled yet)
+
 ## [1.6.6]
  - Update to 1.20.1
  - Fixed dependencies
@@ -182,6 +192,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.7.0]: https://github.com/wefhy/WhyMap/compare/1.7.0..1.6.6
 [1.6.6]: https://github.com/wefhy/WhyMap/compare/1.6.6..1.6.5
 [1.6.5]: https://github.com/wefhy/WhyMap/compare/1.6.5..1.6.4
 [1.6.4]: https://github.com/wefhy/WhyMap/compare/1.6.4..1.6.3
