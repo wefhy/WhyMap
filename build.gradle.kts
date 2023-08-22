@@ -200,17 +200,19 @@ val blockMappingsList = task("blockMappingsList") {
 	val md = MessageDigest.getInstance("MD5")
 	inputs.dir(inDir)
 	outputs.file(outFile)
-	if (!File(inDir).exists()) return@task File(outFile).writeText("")
-	File(outFile).writeText(
-		File(inDir)
-			.listFiles()
-			.filter { it.extension == "blockmap" }
-			.sorted()
-			.joinToString("\n") {
-			val md5 = md.digest(it.readBytes())
-			"${it.nameWithoutExtension}=${md5.toHex()}"
-		}
-	)
+	doLast {
+		if (!File(inDir).exists()) return@doLast File(outFile).writeText("")
+		File(outFile).writeText(
+			File(inDir)
+				.listFiles()!!
+				.filter { it.extension == "blockmap" }
+				.sorted()
+				.joinToString("\n") {
+					val md5 = md.digest(it.readBytes())
+					"${it.nameWithoutExtension}=${md5.toHex()}"
+				}
+		)
+	}
 }
 
 val biomeMappingsList = task("biomeMappingsList") {
@@ -219,17 +221,19 @@ val biomeMappingsList = task("biomeMappingsList") {
 	val md = MessageDigest.getInstance("MD5")
 	inputs.dir(inDir)
 	outputs.file(outFile)
-	if (!File(inDir).exists()) return@task File(outFile).writeText("")
-	File(outFile).writeText(
-		File(inDir)
-			.listFiles()
-			.filter { it.extension == "biomemap" }
-			.sorted()
-			.joinToString("\n") {
-			val md5 = md.digest(it.readBytes())
-			"${it.nameWithoutExtension}=${md5.toHex()}"
-		}
-	)
+	doLast {
+		if (!File(inDir).exists()) return@doLast File(outFile).writeText("")
+		File(outFile).writeText(
+			File(inDir)
+				.listFiles()!!
+				.filter { it.extension == "biomemap" }
+				.sorted()
+				.joinToString("\n") {
+					val md5 = md.digest(it.readBytes())
+					"${it.nameWithoutExtension}=${md5.toHex()}"
+				}
+		)
+	}
 }
 
 val newMappings = task("newMappings") {
@@ -242,17 +246,19 @@ val newMappings = task("newMappings") {
 	val inDir = File(inPath)
 	val outBlockDir = File(outBlockmaps)
 	val outBiomeDir = File(outBiomemaps)
-	inDir.resolve("current-biome").takeIf { it.exists() }?.let {
-		val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
-		val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-		biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
-		inDir.resolve("current-biome").delete()
-	}
-	inDir.resolve("current-block").takeIf { it.exists() }?.let {
-		val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
-		val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-		blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
-		inDir.resolve("current-block").delete()
+	doLast {
+		inDir.resolve("current-biome").takeIf { it.exists() }?.let {
+			val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
+			val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+			biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
+			inDir.resolve("current-biome").delete()
+		}
+		inDir.resolve("current-block").takeIf { it.exists() }?.let {
+			val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
+			val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+			blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
+			inDir.resolve("current-block").delete()
+		}
 	}
 }
 
@@ -260,22 +266,24 @@ val fillChangelogLinks = task("fillChangelogLinks") {
 	val projectUrl = "https://github.com/wefhy/WhyMap"
 	val changelog = File("CHANGELOG.md")
 	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
-	val readLines = changelog.readLines()
-	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
-	println(versions)
-	val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
-	val diffLinks = versions.mapIndexed { index, version ->
-		if (index == 0) return@mapIndexed ""
-		val from = versions[index - 1]
-		val to = version
-		"[$from]: $projectUrl/compare/$from..$to"
+	doLast {
+		val readLines = changelog.readLines()
+		val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+		println(versions)
+		val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
+		val diffLinks = versions.mapIndexed { index, version ->
+			if (index == 0) return@mapIndexed ""
+			val from = versions[index - 1]
+			val to = version
+			"[$from]: $projectUrl/compare/$from..$to"
+		}
+
+		//Delete old links
+		val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
+		val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
+
+		changelog.writeText(output.joinToString("\n"))
 	}
-
-	//Delete old links
-	val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
-	val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
-
-	changelog.writeText(output.joinToString("\n"))
 }
 
 val createDiscordMessage = task("createDiscordMessage") {
@@ -284,19 +292,21 @@ val createDiscordMessage = task("createDiscordMessage") {
 	val curseforgeUrl = "https://www.curseforge.com/minecraft/mc-mods/whymap/files/"
 	val changelog = File("CHANGELOG.md")
 	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
-	val readLines = changelog.readLines()
-	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
-	val latestVersion = versions.first()
-	val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
-	val message = """
-New version: $latestVersion
-${latestChangelog.trimIndent()}
-:github: $githubUrl$latestVersion
-:modrinth: $modrinthUrl$latestVersion
-:curseforge: $curseforgeUrl
-	""".trimIndent()
-	File("discordMessage.txt").writeText(message)
-	println(message)
+	doLast {
+		val readLines = changelog.readLines()
+		val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+		val latestVersion = versions.first()
+		val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
+		val message = """
+			New version: $latestVersion
+			${latestChangelog.trimIndent()}
+			:github: $githubUrl$latestVersion
+			:modrinth: $modrinthUrl$latestVersion
+			:curseforge: $curseforgeUrl
+			""".trimIndent()
+		File("discordMessage.txt").writeText(message)
+		println(message)
+	}
 }
 
 fun ByteArray.toHex(): String {
@@ -346,6 +356,8 @@ tasks {
 	"build" {
 		dependsOn(copyDistFolder)
 		dependsOn(copyThreeJsFolder)
+		dependsOn(createDiscordMessage)
+		dependsOn(newMappings)
 	}
 	"processResources" {
 		dependsOn(copyDistFolder)
@@ -366,6 +378,13 @@ tasks {
 	}
 	"threeBuild" {
 		dependsOn(npmInstall)
+	}
+	"createDiscordMessage" {
+		dependsOn(fillChangelogLinks)
+	}
+	"newMappings" {
+		dependsOn(blockMappingsList)
+		dependsOn(biomeMappingsList)
 	}
 }
 val compileKotlin: KotlinCompile by tasks
