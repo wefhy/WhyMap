@@ -134,7 +134,7 @@ object MeshGenerator {
         val waterTop = surface.mapIndexed { zz, lines ->
             lines.mapIndexed { xx, height ->
                 if (height == null) return@mapIndexed null
-                getTopFace(xx + 16 * offset.first, zz + 16 * offset.second, height).also {
+                getTopFace(xx + 16 * offset.first, zz + 16 * offset.second, height.toShort()).also {
                     it.uv = TextureAtlas.getBlockUV(chunkOverlays[zz][xx].block) //TODO just use water always or even don't use uv and use texture
                 }
             }
@@ -157,7 +157,7 @@ object MeshGenerator {
                     }
                 }
                 if (!(missingThis && missingBack) && height != heightBack) {
-                    waterSides += getBackFace(xx + 16 * offset.first, zz + 16 * offset.second, heightBack, height.toFloat()).also {
+                    waterSides += getBackFace(xx + 16 * offset.first, zz + 16 * offset.second, height, heightBack.toFloat()).also {
                         val hDiff = (height - heightBack).absoluteValue.toShort()
                         it.uv = TextureAtlas.getBlockSideUv(chunkOverlays[zz][xx].block, hDiff) //TODO use higher blocks UV
                     }
@@ -234,15 +234,6 @@ object MeshGenerator {
         )
     }
 
-    private fun getTopFace(x: Int, z: Int, height: Int): Face {
-        return Face(
-            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
-            Vertex((x + 1) * faceSize, (z + 0) * faceSize, height * faceSize),
-            Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
-            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
-        )
-    }
-
     private fun getBottomFace(x: Int, z: Int): Face {
         return Face(
             Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottomFaceHeightF),
@@ -263,19 +254,19 @@ object MeshGenerator {
 
     private fun getLeftFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
         return Face(
-            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
             Vertex((x + 0) * faceSize, (z + 0) * faceSize, bottom),
-            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 0) * faceSize, (z + 0) * faceSize, height * faceSize),
             Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottom),
         )
     }
 
     private fun getBackFace(x: Int, z: Int, height: Int, bottom: Float = bottomFaceHeightF): Face {
         return Face(
-            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
             Vertex((x + 0) * faceSize, (z + 1) * faceSize, bottom),
-            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottom),
+            Vertex((x + 0) * faceSize, (z + 1) * faceSize, height * faceSize),
             Vertex((x + 1) * faceSize, (z + 1) * faceSize, height * faceSize),
+            Vertex((x + 1) * faceSize, (z + 1) * faceSize, bottom),
         )
     }
 

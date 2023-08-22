@@ -12,6 +12,7 @@ import dev.wefhy.whymap.tiles.mesh.UvCoordinate
 import net.minecraft.block.Block
 import java.awt.image.BufferedImage
 import java.awt.image.RescaleOp
+import java.util.*
 
 /**
  * Trim sheet implementation
@@ -19,11 +20,30 @@ import java.awt.image.RescaleOp
 
 object TextureAtlas {
 
-    context(CurrentWorldProvider<WhyWorld>)
-    val textureAtlas
-        get() = createTextureAtlas() //TODO lazy?
+    val _textureAtlas by lazy {
+        with(context) {
+            createTextureAtlas()
+        }
+    }
 
-    private val blocks by lazy { Block.STATE_IDS.map { it.block }.toSet().sortedBy { it.translationKey } }
+    lateinit var context: CurrentWorldProvider<WhyWorld>
+
+    context(CurrentWorldProvider<WhyWorld>)
+    val textureAtlas: BufferedImage
+        get() {
+            context = this@CurrentWorldProvider
+            return _textureAtlas
+        }
+
+//    private val blocks by lazy { Block.STATE_IDS.map { it.block }.toSet().sortedBy { it.hashCode() } }
+    private val blocks by lazy {
+        IdentityHashMap(
+            Block.STATE_IDS.map { it.block }.toSet().let {
+                var i = 0
+                it.associateWith { i++ }
+            }
+        )
+    }
 //    private val atlasSize by lazy { blocks.size }
     private val atlasSize by lazy {
 //        1 shl (32 - Integer.numberOfLeadingZeros(blocks.size - 1))
@@ -62,7 +82,9 @@ object TextureAtlas {
         return getOverlaySideUv(block, repeats)
     }
 
-    private fun getBlockIndex(block: Block) = blocks.indexOf(block)
+    private fun getBlockIndex(block: Block) = blocks[block]!!
+//    private fun getBlockIndex(block: Block) = blocks.indexOf(block)
+//    private fun getBlockIndex(block: Block) = blocks.binarySearch { it.hashCode().compareTo(block.hashCode()) }
 //    private inline fun getBlockIndex(block: Block) = blocks.binarySearch { it.translationKey.compareTo(block.translationKey) }
 //    private inline fun getIndex(block: Block) = blocks.binarySearch(block, String::compareTo)
 
@@ -80,7 +102,8 @@ object TextureAtlas {
 //        val normalShade = MapArea.Normal(0, 0).shade
         val floatArray = floatArrayOf(1f, 1f, 1f)
 
-        blocks.forEachIndexed { i, block ->
+        blocks.forEach { (block, i) ->
+//        blocks.forEachIndexed { i, block ->
             val pos = i * 16
             val source = ExperimentalTextureProvider.getBitmap(block)
             val blockColorFilter = if (BlockQuickAccess.foliageBlocksSet.contains(block.defaultState)) {
