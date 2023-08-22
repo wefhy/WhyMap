@@ -1,4 +1,5 @@
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import proguard.gradle.ProGuardTask
@@ -30,6 +31,7 @@ plugins {
 	id ("maven-publish")
 	kotlin("jvm") version "1.9.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
+	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 loom {
@@ -64,6 +66,7 @@ repositories {
 //}
 
 val extraLibs: Configuration by configurations.creating
+//configurations.implementation.get().extendsFrom(extraLibs)
 
 val isReleaseBuild = false
 val experimentalOptimizations = false
@@ -139,7 +142,7 @@ tasks.withType<Jar> {
 		rename { "${it}_${mod_id}"}
 	}
 //	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
+//	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
 //	from(extraLibs.runtimeClasspath { it.resolve().map { if (it.isDirectory) it else zipTree(it) } })
 //	from {
 //		configurations.runtimeClasspath.flatMap { it.resolve().isDirectory() ? it : zipTree(it) }
@@ -396,6 +399,31 @@ tasks {
 	"newMappings" {
 		dependsOn(blockMappingsList)
 		dependsOn(biomeMappingsList)
+	}
+	val archives_base_name = mod_id.toLowerCaseAsciiOnly()
+	val archives_version = getCurrentVersion()
+	shadowJar {
+		archiveBaseName.set(archives_base_name)
+		archiveVersion.set(archives_version)
+		archiveClassifier.set("slim")
+
+		dependencies {
+			exclude(dependency("org.jetbrains.kotlin:.*"))
+			exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-.*"))
+			exclude(dependency("org.slf4j:.*"))
+		}
+		configurations = listOf(extraLibs)
+		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	}
+
+	remapJar {
+		archiveBaseName.set(archives_base_name)
+		archiveVersion.set(archives_version)
+		archiveClassifier.set("")
+
+		val shadowJar = named<ShadowJar>("shadowJar").get()
+		dependsOn("shadowJar")
+		input.set(shadowJar.archiveFile)
 	}
 }
 val compileKotlin: KotlinCompile by tasks
