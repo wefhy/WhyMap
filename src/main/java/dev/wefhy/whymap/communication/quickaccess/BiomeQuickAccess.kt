@@ -1,4 +1,4 @@
-// Copyright (c) 2022 wefhy
+// Copyright (c) 2022-2023 wefhy
 
 package dev.wefhy.whymap.communication.quickaccess
 

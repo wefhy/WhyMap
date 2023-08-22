@@ -34,12 +34,22 @@ bin/
 # fabric
 
 run/
+
 src/main/resources/web/js/
 src/main/resources/web/css/
 src/main/resources/web/index.html
 src/main/resources/web/favicon.ico
 src/main/resources/web/assets/index*
+
+src/main/resources/three/js/
+src/main/resources/three/css/
+src/main/resources/three/index.html
+src/main/resources/three/assets/index*
+src/main/resources/three/favicon.ico
+src/main/resources/three/vite.svg
+
 src/main/resources/blockmappings.txt
 src/main/resources/biomemappings.txt
+
 logs/
 discordMessage.txt

@@ -9,5 +9,5 @@ class BlockData(
     val biome :String,
     val height :Short,
     val depth :UByte,
-    val light: Byte
+    val light: UByte
 )

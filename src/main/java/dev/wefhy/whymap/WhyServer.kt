@@ -11,6 +11,10 @@ import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.portRange
 import dev.wefhy.whymap.config.WhyUserSettings
 import dev.wefhy.whymap.events.*
+import dev.wefhy.whymap.tiles.mesh.MeshGenerator
+import dev.wefhy.whymap.tiles.mesh.ThreeJsMesh
+import dev.wefhy.whymap.tiles.mesh.ThreeJsObject
+import dev.wefhy.whymap.tiles.region.AreaStatistics
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encode
 import dev.wefhy.whymap.utils.ImageWriter.encodePNG
@@ -20,6 +24,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.html.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -28,11 +33,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.withContext
+import kotlinx.html.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import java.awt.image.BufferedImage
@@ -44,9 +51,16 @@ fun Application.myApplicationModule() {
         return
     install(ContentNegotiation) {
         json(Json {
-//                        prettyPrint = true
+//            prettyPrint = true
             isLenient = true
             ignoreUnknownKeys = true
+//            encodeDefaults = true
+            serializersModule = SerializersModule {
+                polymorphic(ThreeJsObject::class) {
+                    subclass(ThreeJsMesh::class)
+                    subclass(ThreeJsObject::class)
+                }
+            }
         })
     }
     install(CORS) {
@@ -116,6 +130,18 @@ object WhyServer {
         } }.toIntArray()
     }
 
+    @Suppress("SameParameterValue")
+    private fun PipelineContext<Unit, ApplicationCall>.getQueryParams(vararg paramName: String): IntArray? {
+        return paramName.map { call.request.queryParameters[it]?.toFloat()?.toInt() ?: return null.also {
+            println(
+                call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
+                    ", ",
+                    "Failed to parse request: "
+                )
+            )
+        } }.toIntArray()
+    }
+
     inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
         return activeWorld?.also {
             block(it)
@@ -135,6 +161,9 @@ object WhyServer {
 //                                }
 //                            }
 //                        }
+        }
+        get("/three") {
+            call.respondRedirect("/three/index.html")
         }
         get("/block/{x}/{z}") {
             activeWorld ?: return@get call.respondText("World not loaded!")
@@ -178,6 +207,152 @@ object WhyServer {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L
             call.respond(WorldEventQueue.getLatestUpdates(threshold))
         }
+        get("/textureAtlas") {
+            val bitmap = with(activeWorld?.provider) {
+                if (this == null) return@get call.respondText("World not loaded!")
+                withContext(WhyDispatchers.LowPriority) { TextureAtlas.textureAtlas }
+            }
+            call.respondOutputStream(contentType = WhyMapMod.contentType) {
+                withContext(WhyDispatchers.LowPriority) {
+                    encodePNG(bitmap)
+                }
+            }
+        }
+        get("/diagnostics") {
+            call.respondRedirect("/diagnostics.html")
+        }
+        get("/diagnostics.html") {
+            call.respondHtml {
+                head {
+                    title { +"Whymap Diagnostics" }
+                }
+                body {
+                    h1 { +"Whymap Diagnostics" }
+                    h2 { +"Player Data" }
+                    val player = MinecraftClient.getInstance()?.player
+
+                    img {
+                        src = "/tiles/0/0/0.png"
+                    }
+                }
+            }
+        }
+
+        get("/three/browseSmall") {
+            val radius = 3
+            val (x, z) = getQueryParams("x", "z") ?: return@get call.respondText(parsingError)
+            val block = LocalTile.Block(x, z)
+            val chunk = block.parent(TileZoom.ChunkZoom)
+            val start = LocalTile.Chunk(chunk.x - radius, chunk.z - radius).getStart()
+            val end = LocalTile.Chunk(chunk.x + radius, chunk.z + radius).getEnd()
+            call.respondRedirect("/three/index.html?x1=${start.x}&z1=${start.z}&x2=${end.x}&z2=${end.z}")
+        }
+        get("/three/browseBig") {
+            val radius = 7
+            val (x, z) = getQueryParams("x", "z") ?: return@get call.respondText(parsingError)
+            val block = LocalTile.Block(x, z)
+            val chunk = block.parent(TileZoom.ChunkZoom)
+            val start = LocalTile.Chunk(chunk.x - radius, chunk.z - radius).getStart()
+            val end = LocalTile.Chunk(chunk.x + radius, chunk.z + radius).getEnd()
+            call.respondRedirect("/three/index.html?x1=${start.x}&z1=${start.z}&x2=${end.x}&z2=${end.z}")
+        }
+        get("/three/area/{x1}/{z1}/{x2}/{z2}") {
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val chunkLimit = 225
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+            val renders = regionArea.list().map { regionTile ->
+                async(WhyDispatchers.Render) {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        val offset = regionTile.getStart() - blockArea.start
+                        ThreeJsObject(
+                            offset.x.toFloat(),
+                            offset.z.toFloat(),
+                            MeshGenerator.getThreeJsChunkMeshes(blockArea)
+                        )
+                    }
+                }
+            }
+            val result = ThreeJsObject(
+                children = renders.awaitAll().filterNotNull()
+            )
+            call.respond(result)
+        }
+        get("/three/overlay/{x1}/{z1}/{x2}/{z2}") {
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val chunkLimit = 225
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
+            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+            val renders = regionArea.list().map { regionTile ->
+                async(WhyDispatchers.Render) {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        val offset = regionTile.getStart() - blockArea.start
+                        ThreeJsObject(
+                            offset.x.toFloat(),
+                            offset.z.toFloat(),
+                            MeshGenerator.getThreeJsChunkOverlayMeshes(blockArea)
+                        )
+                    }
+                }
+            }
+            val result = ThreeJsObject(
+                children = renders.awaitAll().filterNotNull()
+            )
+            call.respond(result)
+        }
+        get("three/tiles/{s}/{x}/{z}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            if ((s != 17) && (s != -17)) return@get call.respondText("unsupportedZoomLevel")
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val result = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                MeshGenerator.getThreeJsMesh()
+            } ?: return@get call.respondText("Chunk unavailable")
+            call.respond(result)
+        }
+
+        get("/3d/tiles/{s}/{x}/{z}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            if ((s != 17) && (s != -17)) return@get call.respondText("unsupportedZoomLevel")
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val result = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                MeshGenerator.getBlenderPythonMesh()
+            } ?: return@get call.respondText("Chunk unavailable")
+            call.respondText(result)
+        }
+
+        get("/regionheight/{x}/{z}/{s}") {
+            activeWorld ?: return@get call.respondText("World not loaded!")
+            val (x, z, s) = getParams("x", "z", "s") ?: return@get call.respondText(parsingError)
+            val regionTile = if (s >= 0)
+                MapTile(x, z, TileZoom.RegionZoom).toLocalTile()
+            else
+                LocalTile(x, z, TileZoom.RegionZoom)
+            val heightMap = activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                heightMap
+            }
+//            val region = activeWorld?.mapRegionManager?.getLoadedRegionForRead(LocalTile.Region(x, z)) ?: return@get call.respondText("Region unavailable")
+//            call.respondText { region.heightMap.joinToString(","){it.joinToString(",")} }
+        }
+
+
         get("/featureUpdates/{threshold}") {
             val threshold = call.parameters["threshold"]?.toLong() ?: 0L //TODO this is not error handling for NumberFormatException!
             call.respond(FeatureUpdateQueue.getLatestUpdates(threshold))
@@ -258,23 +433,8 @@ object WhyServer {
             }
         }
 
-//                    get("/export") {
-//                        MinecraftClient.getInstance().world ?: return@get call.respondText("World not loaded!")
-//                        withContext(Dispatchers.Default) {
-//                            activeWorld?.provider?.run {
-//                                InteractiveMapExporter().exportRegions(
-//                                    activeWorld.mapRegionManager.loadedRegions,
-//                                    true
-//                                )
-//                            } ?: call.respond("Unavailable!") //todo respond error code
-//                            call.respondText("Done!")
-//                        }
-//                    }
-
-        static("/") {
-            staticBasePackage = "web"
-            resources(".")
-        }
+        staticResources("/", "web")
+        staticResources("/three", "three")
         get("/waypoints") {
 
             val deaths = call.request.queryParameters["deaths"].toBoolean()
@@ -332,6 +492,38 @@ object WhyServer {
         }
         val activeRenders = Semaphore(2)
 
+        get("/analyzeArea/{x1}/{z1}/{x2}/{z2}") {
+            val regionLimit = 200
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val blockArea = RectArea(
+                LocalTile.Block(x1, z1),
+                LocalTile.Block(x2, z2)
+            )
+            val regionArea = blockArea.parent(TileZoom.RegionZoom)
+            if (regionArea.size > regionLimit) return@get call.respondText("Too big area! Area would need to anazyle ${regionArea.size} regions, limit is $regionLimit regions.")
+            val analyzeJobs = regionArea.list().map { regionTile ->
+                val selectionStartX = maxOf(blockArea.start.x, regionTile.getStart().x)
+                val selectionStartZ = maxOf(blockArea.start.z, regionTile.getStart().z)
+                val selectionEndX = minOf(blockArea.end.x, regionTile.getEnd().x)
+                val selectionEndZ = minOf(blockArea.end.z, regionTile.getEnd().z)
+                val relativeStartX = selectionStartX - regionTile.getStart().x
+                val relativeStartZ = selectionStartZ - regionTile.getStart().z
+                val relativeEndX = selectionEndX - regionTile.getStart().x
+                val relativeEndZ = selectionEndZ - regionTile.getStart().z
+                async(WhyDispatchers.Render) {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
+                        analyzeRegion(
+                            relativeStartX,
+                            relativeStartZ,
+                            relativeEndX,
+                            relativeEndZ
+                        )
+                    }
+                }
+            }
+            val result = AreaStatistics(activeWorld ?: return@get, *analyzeJobs.awaitAll().filterNotNull().toTypedArray())
+            call.respond(result.toString())
+        }
 
         get("/exportArea/{x1}/{z1}/{x2}/{z2}/{format}/{scale}") {
             activeRenders.tryAcquire {
@@ -341,7 +533,7 @@ object WhyServer {
                 val formatName = call.parameters["format"] ?: return@get call.respondText("Format not specified")
                 val scale = call.parameters["scale"]?.toIntOrNull() ?: 1
                 if (scale != 1 && scale != 16) return@get call.respondText("Unsupported scale!")
-                val format = ImageFormat.values().find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
+                val format = ImageFormat.entries.find { it.matchesExtension(formatName) } ?: return@get call.respondText("Format not supported")
                 val blockArea = RectArea(
                     LocalTile.Block(x1, z1),
                     LocalTile.Block(x2, z2)

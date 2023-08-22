@@ -299,7 +299,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             biome = currentWorld.biomeManager.biomeGetName(currentWorld.biomeManager.decodeBiome(biomeMap[z][x])),
             height = heightMap[z][x],
             depth = depthMap[z][x].toUByte(),
-            light = lightMap[z][x]
+            light = lightMap[z][x].toUByte()
         )
     }
 
@@ -561,6 +561,38 @@ class MapArea private constructor(val location: LocalTileRegion) {
             lastThumbnailUpdate = currentTime()
         }
         bitmap
+    }
+
+    fun analyzeRegion(
+        localStartX: Int = 0,
+        localStartZ: Int = 0,
+        localEndX: Int = storageTileBlocks,
+        localEndZ: Int = storageTileBlocks
+    ): EncodedRegionStatistics {
+
+        val blockCounter = mutableMapOf<Short, Int>()
+        val overlayBlockCounter = mutableMapOf<Short, Int>()
+        val biomeCounter = mutableMapOf<Byte, Int>()
+
+        for(z in localStartZ..<localEndZ) {
+            for(x in localStartX..<localEndX) {
+                val block = blockIdMap[z][x]
+                val overlayBlock = blockOverlayIdMap[z][x]
+                val biome = biomeMap[z][x]
+//                val height = heightMap[z][x]
+//                val light = lightMap[z][x]
+                val depth = depthMap[z][x]
+
+                blockCounter[block] = (blockCounter[block] ?: 0) + 1
+                if (depth != 0.toByte()) overlayBlockCounter[overlayBlock] = (overlayBlockCounter[overlayBlock] ?: 0) + 1
+                biomeCounter[biome] = (biomeCounter[biome] ?: 0) + 1
+            }
+        }
+        return EncodedRegionStatistics(
+            blockCounter,
+            overlayBlockCounter,
+            biomeCounter
+        )
     }
 
     private fun calculateColor(z: Int, x: Int, normalFinder: (z: Int, x: Int) -> Normal): WhyColor {

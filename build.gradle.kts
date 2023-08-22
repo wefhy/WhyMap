@@ -147,16 +147,37 @@ val yarnBuild = task<Exec>("yarnBuild") {
 	commandLine("yarn", "build")
 }
 
+val threeBuild = task<Exec>("threeBuild") {
+	inputs.dir("src-threejs/src")
+	inputs.dir("src-threejs/public")
+	inputs.files("src-threejs/index.html", "src-threejs/vite.config.js", "src-threejs/vue.config.js", "src-threejs/jsconfig.json")
+	outputs.dir("src-threejs/dist")
+	workingDir = file("src-threejs")
+	commandLine("npm", "run", "build")
+}
+
 val copyDistFolder = tasks.register<Copy>("copyDistFolder") {
 	from(file("src-vue/dist"))
 	into(file("src/main/resources/web"))
 	exclude("*.js.map")
 }
 
+val copyThreeJsFolder = tasks.register<Copy>("copyThreeJsFolder") {
+	from(file("src-threejs/dist"))
+	into(file("src/main/resources/three"))
+	exclude("*.js.map")
+}
+
 val deleteOldWeb = tasks.register<Delete>("deleteOldWeb") {
-	delete(files("src/main/resources/web/css"))
-	delete(files("src/main/resources/web/js"))
+//	delete(files("src/main/resources/web/css"))
+//	delete(files("src/main/resources/web/js"))
 	delete(files("src/main/resources/web/assets"))
+}
+
+val deleteOldThree = tasks.register<Delete>("deleteOldThree") {
+//	delete(files("src/main/resources/three/css"))
+//	delete(files("src/main/resources/three/js"))
+	delete(files("src/main/resources/three/assets"))
 }
 
 val yarnInstall = task<Exec>("yarnInstall") {
@@ -164,6 +185,13 @@ val yarnInstall = task<Exec>("yarnInstall") {
 	outputs.dir("src-vue/node_modules")
 	workingDir = file("src-vue")
 	commandLine("yarn", "install")
+}
+
+val npmInstall = task<Exec>("npmInstall") {
+	inputs.file("src-threejs/package.json")
+	outputs.dir("src-threejs/node_modules")
+	workingDir = file("src-threejs")
+	commandLine("npm", "install")
 }
 
 val blockMappingsList = task("blockMappingsList") {
@@ -313,12 +341,15 @@ tasks.register<Exec>("serve") {
 tasks {
 	"runClient" {
 		dependsOn(copyDistFolder)
+		dependsOn(copyThreeJsFolder)
 	}
 	"build" {
 		dependsOn(copyDistFolder)
+		dependsOn(copyThreeJsFolder)
 	}
 	"processResources" {
 		dependsOn(copyDistFolder)
+		dependsOn(copyThreeJsFolder)
 		dependsOn(blockMappingsList)
 		dependsOn(biomeMappingsList)
 	}
@@ -326,8 +357,15 @@ tasks {
 		dependsOn(deleteOldWeb)
 		dependsOn(yarnBuild)
 	}
+	"copyThreeJsFolder" {
+		dependsOn(deleteOldThree)
+		dependsOn(threeBuild)
+	}
 	"yarnBuild" {
 		dependsOn(yarnInstall)
+	}
+	"threeBuild" {
+		dependsOn(npmInstall)
 	}
 }
 val compileKotlin: KotlinCompile by tasks
