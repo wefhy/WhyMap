@@ -166,6 +166,7 @@ object MeshGenerator {
                 //TODO finish generating water sides then duplicate the code for regular terrain
             }
         }
+/*      This commented out code is for generating water sides for the entire chunk. This should be enabled when it can be correctly rendered in threejs
         for (bb in 0 until 16) {
             surface[0][bb]?.let { heightFront ->
                 val floorHeightFront = chunkHeightMap[0][bb]
@@ -198,7 +199,7 @@ object MeshGenerator {
                     it.uv = TextureAtlas.getOverlaySideUv(chunkOverlays[bb][15].block, hDiff)
                 }
             }
-        }
+        }*/
 
         return waterTop.flatten().filterNotNull() + waterSides
     }

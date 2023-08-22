@@ -142,6 +142,10 @@ object WhyServer {
         } }.toIntArray()
     }
 
+    private suspend fun PipelineContext<Unit, ApplicationCall>.respondErrorObject(error: String) {
+        call.respond(mapOf("error" to error))
+    }
+
     inline fun withActiveWorld(block: (CurrentWorld) -> Unit): CurrentWorld? {
         return activeWorld?.also {
             block(it)
@@ -257,14 +261,14 @@ object WhyServer {
             call.respondRedirect("/three/index.html?x1=${start.x}&z1=${start.z}&x2=${end.x}&z2=${end.z}")
         }
         get("/three/area/{x1}/{z1}/{x2}/{z2}") {
-            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get respondErrorObject(parsingError)
             val chunkLimit = 225
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
                 LocalTile.Block(x2, z2)
             )
             val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
-            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            if (chunkArea.size > chunkLimit) return@get respondErrorObject("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             val renders = regionArea.list().map { regionTile ->
                 async(WhyDispatchers.Render) {
@@ -284,14 +288,14 @@ object WhyServer {
             call.respond(result)
         }
         get("/three/overlay/{x1}/{z1}/{x2}/{z2}") {
-            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get call.respondText(parsingError)
+            val (x1, z1, x2, z2) = getParams("x1", "z1", "x2", "z2") ?: return@get respondErrorObject(parsingError)
             val chunkLimit = 225
             val blockArea = RectArea(
                 LocalTile.Block(x1, z1),
                 LocalTile.Block(x2, z2)
             )
             val chunkArea = blockArea.parent(TileZoom.ChunkZoom)
-            if (chunkArea.size > chunkLimit) return@get call.respondText("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
+            if (chunkArea.size > chunkLimit) return@get respondErrorObject("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             val renders = regionArea.list().map { regionTile ->
                 async(WhyDispatchers.Render) {
