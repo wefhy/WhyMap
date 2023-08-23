@@ -197,58 +197,48 @@ val npmInstall = task<Exec>("npmInstall") {
 	commandLine("npm", "install")
 }
 
+val md = MessageDigest.getInstance("MD5")!!
+
+fun listFilesAndMd5(inDir: File, extension: String): String {
+	return inDir
+		.listFiles()!!
+		.filter { it.extension == extension }
+		.sorted()
+		.joinToString("\n") {
+			val md5 = md.digest(it.readBytes())
+			"${it.nameWithoutExtension}=${md5.toHex()}"
+		}
+}
+
 val blockMappingsList = task("blockMappingsList") {
-	val inDir = "src/main/resources/blockmappings"
-	val outFile = "src/main/resources/blockmappings.txt"
-	val md = MessageDigest.getInstance("MD5")
-	inputs.dir(inDir)
-	outputs.file(outFile)
+	val inDir = File("src/main/resources/blockmappings")
+	val outFile = File("src/main/resources/blockmappings.txt")
+	inputs.dir(inDir.path)
+	outputs.file(outFile.path)
 	doLast {
-		if (!File(inDir).exists()) return@doLast File(outFile).writeText("")
-		File(outFile).writeText(
-			File(inDir)
-				.listFiles()!!
-				.filter { it.extension == "blockmap" }
-				.sorted()
-				.joinToString("\n") {
-					val md5 = md.digest(it.readBytes())
-					"${it.nameWithoutExtension}=${md5.toHex()}"
-				}
-		)
+		if (!inDir.exists()) return@doLast outFile.writeText("")
+		outFile.writeText(listFilesAndMd5(inDir, "blockmap"))
 	}
 }
 
 val biomeMappingsList = task("biomeMappingsList") {
-	val inDir = "src/main/resources/biomemappings"
-	val outFile = "src/main/resources/biomemappings.txt"
-	val md = MessageDigest.getInstance("MD5")
-	inputs.dir(inDir)
-	outputs.file(outFile)
+	val inDir = File("src/main/resources/biomemappings")
+	val outFile = File("src/main/resources/biomemappings.txt")
+	inputs.dir(inDir.path)
+	outputs.file(outFile.path)
 	doLast {
-		if (!File(inDir).exists()) return@doLast File(outFile).writeText("")
-		File(outFile).writeText(
-			File(inDir)
-				.listFiles()!!
-				.filter { it.extension == "biomemap" }
-				.sorted()
-				.joinToString("\n") {
-					val md5 = md.digest(it.readBytes())
-					"${it.nameWithoutExtension}=${md5.toHex()}"
-				}
-		)
+		if (!inDir.exists()) return@doLast outFile.writeText("")
+		outFile.writeText(listFilesAndMd5(inDir, "biomemap"))
 	}
 }
 
 val newMappings = task("newMappings") {
-	val inPath = "run/WhyMap/mappings-custom"
-	val outBlockmaps = "src/main/resources/blockmappings"
-	val outBiomemaps = "src/main/resources/biomemappings"
-//	inputs.dir(inPath)
-//	outputs.dir(outBiomemaps)
-//	outputs.dir(outBlockmaps)
-	val inDir = File(inPath)
-	val outBlockDir = File(outBlockmaps)
-	val outBiomeDir = File(outBiomemaps)
+	val inDir = File("run/WhyMap/mappings-custom")
+	val outBlockDir = File("src/main/resources/blockmappings")
+	val outBiomeDir = File("src/main/resources/biomemappings")
+//	inputs.dir(inDir.path)
+//	outputs.dir(outBiomeDir.path)
+//	outputs.dir(outBlockDir.path)
 	doLast {
 		inDir.resolve("current-biome").takeIf { it.exists() }?.let {
 			val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
@@ -392,9 +382,18 @@ tasks {
 	val archives_base_name = mod_id.toLowerCaseAsciiOnly()
 	val archives_version = getCurrentVersion()
 	shadowJar {
+//		minimize {
+//			minimize is incompatible with kotlin? https://github.com/johnrengelman/shadow/issues/688
+//		}
 		archiveBaseName.set(archives_base_name)
 		archiveVersion.set(archives_version)
 		archiveClassifier.set("slim")
+
+//		This saves 0.1MB
+//		exclude("**/*.kotlin_metadata")
+//		exclude ("**/*.kotlin_module")
+//		exclude ("META-INF/maven/**")
+
 
 		dependencies {
 			exclude(dependency("org.jetbrains.kotlin:.*"))
