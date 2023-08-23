@@ -129,16 +129,29 @@ tasks.withType<Jar> {
 	from("LICENSE") {
 		rename { "${it}_${mod_id}"}
 	}
-//	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-//	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
-//	from(extraLibs.runtimeClasspath { it.resolve().map { if (it.isDirectory) it else zipTree(it) } })
-//	from {
-//		configurations.runtimeClasspath.flatMap { it.resolve().isDirectory() ? it : zipTree(it) }
+}
+
+tasks.shadowJar {
+//	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+//	from("LICENSE") {
+//		rename { "${it}_${mod_id}"}
 //	}
-//	configurations.named("extraLibs").map { it.resolve().map { if (it.isDirectory) it else zipTree(it) } }
-	//TODO can be improved?
-	// https://stackoverflow.com/a/36404235/7438147
-	// https://stackoverflow.com/a/9359588/7438147
+//	minimize {
+//		minimize is incompatible with kotlin? https://github.com/johnrengelman/shadow/issues/688
+//	}
+	archiveClassifier.set("slim")
+//	This saves 0.1MB
+//	exclude("**/*.kotlin_metadata")
+//	exclude ("**/*.kotlin_module")
+//	exclude ("META-INF/maven/**")
+
+	dependencies {
+		exclude(dependency("org.jetbrains.kotlin:.*"))
+		exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-.*"))
+		exclude(dependency("org.slf4j:.*"))
+	}
+	configurations = listOf(extraLibs)
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 val yarnBuild = task<Exec>("yarnBuild") {
@@ -379,39 +392,9 @@ tasks {
 		dependsOn(blockMappingsList)
 		dependsOn(biomeMappingsList)
 	}
-	val archives_base_name = mod_id.toLowerCaseAsciiOnly()
-	val archives_version = getCurrentVersion()
-	shadowJar {
-//		minimize {
-//			minimize is incompatible with kotlin? https://github.com/johnrengelman/shadow/issues/688
-//		}
-		archiveBaseName.set(archives_base_name)
-		archiveVersion.set(archives_version)
-		archiveClassifier.set("slim")
-
-//		This saves 0.1MB
-//		exclude("**/*.kotlin_metadata")
-//		exclude ("**/*.kotlin_module")
-//		exclude ("META-INF/maven/**")
-
-
-		dependencies {
-			exclude(dependency("org.jetbrains.kotlin:.*"))
-			exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-.*"))
-			exclude(dependency("org.slf4j:.*"))
-		}
-		configurations = listOf(extraLibs)
-		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	}
-
 	remapJar {
-		archiveBaseName.set(archives_base_name)
-		archiveVersion.set(archives_version)
-		archiveClassifier.set("")
-
-		val shadowJar = named<ShadowJar>("shadowJar").get()
 		dependsOn("shadowJar")
-		input.set(shadowJar.archiveFile)
+		inputFile.set(named<ShadowJar>("shadowJar").get().archiveFile)
 	}
 }
 val compileKotlin: KotlinCompile by tasks
