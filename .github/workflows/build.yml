@@ -49,7 +49,7 @@ jobs:
         run: |
           chmod +x ./scripts/build_changelog.sh
           changelog=$(sh ./scripts/build_changelog.sh ${{ env.version }})
-          echo "changelog=${changelog}" >> "$GITHUB_ENV"
+          echo "changelog=\"${changelog}\"" >> "$GITHUB_ENV"
       - name: print version and changelog
         run: |
           echo "Version: ${{ env.version }}"

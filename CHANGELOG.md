@@ -1,5 +1,8 @@
 # WhyMap changelog
 
+## [1.7.2]
+ - Fix changelog generation, delete temporary jars
+
 ## [1.7.1]
  - Use ShadowJAR to bundle dependencies
  - Reduced JAR file from 15MB to 8MB (proguard could apparently even reduce it to 3MB but seems unnecessary for now)
