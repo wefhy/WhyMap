@@ -1,5 +1,9 @@
 # WhyMap changelog
 
+## [1.7.1]
+ - Use ShadowJAR to bundle dependencies
+ - Reduced JAR file from 15MB to 8MB (proguard could apparently even reduce it to 3MB but seems unnecessary for now)
+
 ## [1.7.0]
  - Update 1.20 block textures
  - Improve many blocks rendering, notably bubble columns and sweet berries
@@ -192,6 +196,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.7.1]: https://github.com/wefhy/WhyMap/compare/1.7.1..1.7.0
 [1.7.0]: https://github.com/wefhy/WhyMap/compare/1.7.0..1.6.6
 [1.6.6]: https://github.com/wefhy/WhyMap/compare/1.6.6..1.6.5
 [1.6.5]: https://github.com/wefhy/WhyMap/compare/1.6.5..1.6.4
