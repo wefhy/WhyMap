@@ -1,4 +1,5 @@
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
@@ -18,6 +19,7 @@ plugins {
 	id ("maven-publish")
 	kotlin("jvm") version "1.9.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
+	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 loom {
@@ -52,6 +54,7 @@ repositories {
 //}
 
 val extraLibs: Configuration by configurations.creating
+//configurations.implementation.get().extendsFrom(extraLibs)
 
 val isReleaseBuild = false
 val experimentalOptimizations = false
@@ -126,16 +129,29 @@ tasks.withType<Jar> {
 	from("LICENSE") {
 		rename { "${it}_${mod_id}"}
 	}
-//	from(extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) })
-	from(project.provider { extraLibs.resolve().map { if (it.isDirectory) it else zipTree(it) }})
-//	from(extraLibs.runtimeClasspath { it.resolve().map { if (it.isDirectory) it else zipTree(it) } })
-//	from {
-//		configurations.runtimeClasspath.flatMap { it.resolve().isDirectory() ? it : zipTree(it) }
+}
+
+tasks.shadowJar {
+//	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+//	from("LICENSE") {
+//		rename { "${it}_${mod_id}"}
 //	}
-//	configurations.named("extraLibs").map { it.resolve().map { if (it.isDirectory) it else zipTree(it) } }
-	//TODO can be improved?
-	// https://stackoverflow.com/a/36404235/7438147
-	// https://stackoverflow.com/a/9359588/7438147
+//	minimize {
+//		minimize is incompatible with kotlin? https://github.com/johnrengelman/shadow/issues/688
+//	}
+	archiveClassifier.set("slim")
+//	This saves 0.1MB
+//	exclude("**/*.kotlin_metadata")
+//	exclude ("**/*.kotlin_module")
+//	exclude ("META-INF/maven/**")
+
+	dependencies {
+		exclude(dependency("org.jetbrains.kotlin:.*"))
+		exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-.*"))
+		exclude(dependency("org.slf4j:.*"))
+	}
+	configurations = listOf(extraLibs)
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 val yarnBuild = task<Exec>("yarnBuild") {
@@ -194,65 +210,61 @@ val npmInstall = task<Exec>("npmInstall") {
 	commandLine("npm", "install")
 }
 
-val blockMappingsList = task("blockMappingsList") {
-	val inDir = "src/main/resources/blockmappings"
-	val outFile = "src/main/resources/blockmappings.txt"
-	val md = MessageDigest.getInstance("MD5")
-	inputs.dir(inDir)
-	outputs.file(outFile)
-	if (!File(inDir).exists()) return@task File(outFile).writeText("")
-	File(outFile).writeText(
-		File(inDir)
-			.listFiles()
-			.filter { it.extension == "blockmap" }
-			.sorted()
-			.joinToString("\n") {
+val md = MessageDigest.getInstance("MD5")!!
+
+fun listFilesAndMd5(inDir: File, extension: String): String {
+	return inDir
+		.listFiles()!!
+		.filter { it.extension == extension }
+		.sorted()
+		.joinToString("\n") {
 			val md5 = md.digest(it.readBytes())
 			"${it.nameWithoutExtension}=${md5.toHex()}"
 		}
-	)
+}
+
+val blockMappingsList = task("blockMappingsList") {
+	val inDir = File("src/main/resources/blockmappings")
+	val outFile = File("src/main/resources/blockmappings.txt")
+	inputs.dir(inDir.path)
+	outputs.file(outFile.path)
+	doLast {
+		if (!inDir.exists()) return@doLast outFile.writeText("")
+		outFile.writeText(listFilesAndMd5(inDir, "blockmap"))
+	}
 }
 
 val biomeMappingsList = task("biomeMappingsList") {
-	val inDir = "src/main/resources/biomemappings"
-	val outFile = "src/main/resources/biomemappings.txt"
-	val md = MessageDigest.getInstance("MD5")
-	inputs.dir(inDir)
-	outputs.file(outFile)
-	if (!File(inDir).exists()) return@task File(outFile).writeText("")
-	File(outFile).writeText(
-		File(inDir)
-			.listFiles()
-			.filter { it.extension == "biomemap" }
-			.sorted()
-			.joinToString("\n") {
-			val md5 = md.digest(it.readBytes())
-			"${it.nameWithoutExtension}=${md5.toHex()}"
-		}
-	)
+	val inDir = File("src/main/resources/biomemappings")
+	val outFile = File("src/main/resources/biomemappings.txt")
+	inputs.dir(inDir.path)
+	outputs.file(outFile.path)
+	doLast {
+		if (!inDir.exists()) return@doLast outFile.writeText("")
+		outFile.writeText(listFilesAndMd5(inDir, "biomemap"))
+	}
 }
 
 val newMappings = task("newMappings") {
-	val inPath = "run/WhyMap/mappings-custom"
-	val outBlockmaps = "src/main/resources/blockmappings"
-	val outBiomemaps = "src/main/resources/biomemappings"
-//	inputs.dir(inPath)
-//	outputs.dir(outBiomemaps)
-//	outputs.dir(outBlockmaps)
-	val inDir = File(inPath)
-	val outBlockDir = File(outBlockmaps)
-	val outBiomeDir = File(outBiomemaps)
-	inDir.resolve("current-biome").takeIf { it.exists() }?.let {
-		val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
-		val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-		biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
-		inDir.resolve("current-biome").delete()
-	}
-	inDir.resolve("current-block").takeIf { it.exists() }?.let {
-		val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
-		val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-		blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
-		inDir.resolve("current-block").delete()
+	val inDir = File("run/WhyMap/mappings-custom")
+	val outBlockDir = File("src/main/resources/blockmappings")
+	val outBiomeDir = File("src/main/resources/biomemappings")
+//	inputs.dir(inDir.path)
+//	outputs.dir(outBiomeDir.path)
+//	outputs.dir(outBlockDir.path)
+	doLast {
+		inDir.resolve("current-biome").takeIf { it.exists() }?.let {
+			val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
+			val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+			biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
+			inDir.resolve("current-biome").delete()
+		}
+		inDir.resolve("current-block").takeIf { it.exists() }?.let {
+			val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
+			val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+			blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
+			inDir.resolve("current-block").delete()
+		}
 	}
 }
 
@@ -260,22 +272,24 @@ val fillChangelogLinks = task("fillChangelogLinks") {
 	val projectUrl = "https://github.com/wefhy/WhyMap"
 	val changelog = File("CHANGELOG.md")
 	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
-	val readLines = changelog.readLines()
-	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
-	println(versions)
-	val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
-	val diffLinks = versions.mapIndexed { index, version ->
-		if (index == 0) return@mapIndexed ""
-		val from = versions[index - 1]
-		val to = version
-		"[$from]: $projectUrl/compare/$from..$to"
+	doLast {
+		val readLines = changelog.readLines()
+		val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+		println(versions)
+		val versionLinks = versions.map { "[$it]: $projectUrl/releases/tag/$it" }
+		val diffLinks = versions.mapIndexed { index, version ->
+			if (index == 0) return@mapIndexed ""
+			val from = versions[index - 1]
+			val to = version
+			"[$from]: $projectUrl/compare/$from..$to"
+		}
+
+		//Delete old links
+		val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
+		val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
+
+		changelog.writeText(output.joinToString("\n"))
 	}
-
-	//Delete old links
-	val oldLinksRegex = Regex("\\[.+]: $projectUrl/(releases/tag|compare)/.+")
-	val output = readLines.filter { !oldLinksRegex.matches(it) }.dropLastWhile { it.isBlank() } + "\n" + diffLinks + versionLinks.last()
-
-	changelog.writeText(output.joinToString("\n"))
 }
 
 val createDiscordMessage = task("createDiscordMessage") {
@@ -284,19 +298,21 @@ val createDiscordMessage = task("createDiscordMessage") {
 	val curseforgeUrl = "https://www.curseforge.com/minecraft/mc-mods/whymap/files/"
 	val changelog = File("CHANGELOG.md")
 	val versionRegex = Regex("## ?\\[(?<version>.+)].*")
-	val readLines = changelog.readLines()
-	val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
-	val latestVersion = versions.first()
-	val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
-	val message = """
-New version: $latestVersion
-${latestChangelog.trimIndent()}
-:github: $githubUrl$latestVersion
-:modrinth: $modrinthUrl$latestVersion
-:curseforge: $curseforgeUrl
-	""".trimIndent()
-	File("discordMessage.txt").writeText(message)
-	println(message)
+	doLast {
+		val readLines = changelog.readLines()
+		val versions = readLines.mapNotNull { versionRegex.matchEntire(it)?.groups?.get("version")?.value }
+		val latestVersion = versions.first()
+		val latestChangelog = readLines.dropWhile { !it.startsWith("## [$latestVersion]") }.drop(1).takeWhile { !it.startsWith("## [") }.joinToString("\n")
+		val message = """
+			New version: $latestVersion
+			${latestChangelog.trimIndent()}
+			:github: $githubUrl$latestVersion
+			:modrinth: $modrinthUrl$latestVersion
+			:curseforge: $curseforgeUrl
+			""".trimIndent()
+		File("discordMessage.txt").writeText(message)
+		println(message)
+	}
 }
 
 fun ByteArray.toHex(): String {
@@ -346,6 +362,8 @@ tasks {
 	"build" {
 		dependsOn(copyDistFolder)
 		dependsOn(copyThreeJsFolder)
+		dependsOn(createDiscordMessage)
+		dependsOn(newMappings)
 	}
 	"processResources" {
 		dependsOn(copyDistFolder)
@@ -366,6 +384,17 @@ tasks {
 	}
 	"threeBuild" {
 		dependsOn(npmInstall)
+	}
+	"createDiscordMessage" {
+		dependsOn(fillChangelogLinks)
+	}
+	"newMappings" {
+		dependsOn(blockMappingsList)
+		dependsOn(biomeMappingsList)
+	}
+	remapJar {
+		dependsOn("shadowJar")
+		inputFile.set(named<ShadowJar>("shadowJar").get().archiveFile)
 	}
 }
 val compileKotlin: KotlinCompile by tasks
