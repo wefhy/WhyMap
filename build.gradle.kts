@@ -394,7 +394,11 @@ tasks {
 	}
 	remapJar {
 		dependsOn("shadowJar")
-		inputFile.set(named<ShadowJar>("shadowJar").get().archiveFile)
+		val shadowFile = named<ShadowJar>("shadowJar").get().archiveFile
+		inputFile.set(shadowFile)
+		doLast {
+			delete(shadowFile)
+		}
 	}
 }
 val compileKotlin: KotlinCompile by tasks
