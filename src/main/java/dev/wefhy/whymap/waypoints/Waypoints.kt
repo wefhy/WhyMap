@@ -75,6 +75,7 @@ class Waypoints {
     }
 
     fun add(waypoint: OnlineWaypoint) {
+        println("adding new waypoint: $waypoint")
         waypoints += waypoint.asLocalWaypoint()
     }
 

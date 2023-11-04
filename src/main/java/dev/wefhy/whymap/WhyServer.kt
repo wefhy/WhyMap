@@ -633,9 +633,9 @@ object WhyServer {
             call.respond(HttpStatusCode.OK)
         }
         delete("/waypoint") {
-            println("deleting waypoint")
 //            println(call.receive<String>())
             val waypoint = call.receive<OnlineWaypoint>()
+            println("deleting waypoint $waypoint")
             WhyMapMod.LOGGER.debug("Deleting waypoint: ${waypoint.name}, ${waypoint.pos}")
             activeWorld?.waypoints?.remove(waypoint) ?: call.respond(HttpStatusCode.ServiceUnavailable)
             call.respond(HttpStatusCode.OK)

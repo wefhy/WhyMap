@@ -14,6 +14,7 @@ import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.foliageBlocks
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.ignoreDepthTint
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.isOverlay
 import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterBlocks
+import dev.wefhy.whymap.communication.quickaccess.BlockQuickAccess.waterLoggedBlocks
 import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.config.WhyMapConfig.legacyMetadataSize
 import dev.wefhy.whymap.config.WhyMapConfig.metadataSize
@@ -608,7 +609,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
         val foliageColor = biomeManager.decodeBiomeFoliage(biomeId)
         val baseBlockColor = decodeBlockColor(blockId)
         val overlayBlock = decodeBlock(overlayId)
-        val overlayBlockColor = if (waterBlocks.contains(overlayBlock))
+        val overlayBlockColor = if (waterBlocks.contains(overlayBlock) || waterLoggedBlocks.contains(overlayBlock))
             biomeManager.decodeBiomeWaterColor(biomeId)
         else
             decodeBlockColor(overlayId) //TODO overlays should use correct alpha - it's not handled at all for now :(
@@ -628,6 +629,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
             var waterColor = overlayBlockColor + depthTint
             waterColor = if (foliageBlocksSet.contains(overlayBlock))
                 waterColor * foliageColor
+            else if (waterLoggedBlocks.contains(overlayBlock))
+                waterColor.alphaOver(decodeBlockColor(overlayId))
             else
                 waterColor
             color = waterColor.mixWeight(color, getDepthShade(depth))

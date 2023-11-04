@@ -13,7 +13,7 @@ class LocalWaypoint(var name: String, val location: CoordXYZ, var color: String?
 
 @Serializable
 data class OnlineWaypoint(val name: String, var loc: LatLng? = null, val pos: CoordXYZ, val color: String? = null) {
-    fun asLocalWaypoint() = LocalWaypoint(name, pos) //TODO calculate Y value!
+    fun asLocalWaypoint() = LocalWaypoint(name, pos, color) //TODO calculate Y value!
 }
 
 @Serializable
