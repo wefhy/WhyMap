@@ -6,7 +6,6 @@ import dev.wefhy.whymap.CurrentWorldProvider
 import dev.wefhy.whymap.WhyMapMod.Companion.LOGGER
 import dev.wefhy.whymap.WhyWorld
 import dev.wefhy.whymap.utils.mkDirsIfNecessary
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.minecraft.util.math.GlobalPos
@@ -27,6 +26,13 @@ class Waypoints {
 
     val onlineWaypointsWithoutDeaths: List<OnlineWaypoint>
         get() = waypoints.filter { it.isDeath == null || !it.isDeath }.map { it.asOnlineWaypointWithOffset() }
+
+    fun getOnlineWaypoints(deaths: Boolean, beds: Boolean): List<OnlineWaypoint> {
+        var wp: List<LocalWaypoint> = waypoints
+        if (!deaths) wp = wp.filter { it.isDeath == null || !it.isDeath }
+        if (!beds) wp = wp.filter { it.isBed == null || !it.isBed }
+        return wp.map { it.asOnlineWaypointWithOffset() }
+    }
 
     fun save() {
         file.mkDirsIfNecessary()

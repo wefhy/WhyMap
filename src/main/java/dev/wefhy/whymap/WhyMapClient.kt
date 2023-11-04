@@ -221,7 +221,15 @@ class WhyMapClient : ClientModInitializer {
             drawHud(drawContext)
         }
 
+//        UseBlockCallback.EVENT.register { playerEntity, world, hand, result ->
+//            TODO("Whymap: no chat message confirmation. Assuming respawn point setting has failed.")
+//            return@register ActionResult.PASS
+//        }
+
         ClientTickEvents.END_CLIENT_TICK.register { mc ->
+            if(mc.player != null) {
+//                mc.player!!.spawn
+            }
             if (kbNewWaypoint.wasPressed()) {
                 GlobalScope.launch {
                     with(mc) {

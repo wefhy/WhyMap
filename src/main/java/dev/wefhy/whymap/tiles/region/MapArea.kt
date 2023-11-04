@@ -151,10 +151,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
             file.parentFile.mkdirs()
             file.createNewFile()
         }
+        val packedData = packData()
+//        val uncompressedFile = file.parentFile.resolve(file.name + ".uncompressed")
+//        uncompressedFile.writeBytes(packedData)
         file.outputStream().use {
             it.write(currentWorld.mappingsManager.metadata)
             val compressed = withContext(WhyDispatchers.LowPriority) {
-                packData().compress().writeTo(it)
+                packedData.compress().writeTo(it)
             }//.toByteArray()
 //            it.write(compressed)
         }

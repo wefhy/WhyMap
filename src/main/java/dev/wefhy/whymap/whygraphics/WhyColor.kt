@@ -127,6 +127,11 @@ val WhyColor.intARGB
 val WhyColor.intABGR
     inline get() = (intA shl 24) or (intB shl 16) or (intG shl 8) or intR
 
+val WhyColor.hexRGB
+    inline get() = "#${intRGB.toUInt().toString(16).padStart(6, '0')}"
+val WhyColor.hexRGBA
+    inline get() = "#${intRGBA.toUInt().toString(16).padStart(8, '0')}"
+
 private const val mulA = 255f * 255f * 255f * 255f
 private const val mulR = 255f * 255f * 255f
 private const val mulG = 255f * 255f

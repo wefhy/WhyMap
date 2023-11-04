@@ -19,6 +19,13 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
         super(world, pos, yaw, gameProfile);
     }
 
+    //write additional message when setting respawn point
+//    @Inject(method="setSpawnPoint", at=@At("TAIL"))
+//    void onSetSpawnPoint(RegistryKey<World> dimension, BlockPos pos, float angle, boolean forced, boolean sendMessage, CallbackInfo ci) {
+//        System.out.println("PLAYER SERVER SET SPAWN");
+//        WorldEventQueue.INSTANCE.addUpdate$whymap(WorldEventQueue.WorldEvent.PlayerSetSpawn);
+//    }
+
     @Inject(method="onDeath", at=@At("TAIL"))
     void onPlayerDeath(CallbackInfo ci) {
 //        ((PlayerEntity)(Object)this).getPos();

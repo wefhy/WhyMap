@@ -75,6 +75,7 @@ class MapAreaAccess private constructor(val position: LocalTileRegion) : Rendere
         }
     }
 
+    //TODO can I implement some kind of borrow checker so that it can be loaded multiple times for read?
     internal suspend inline fun <T> withLoaded(loadPriority: LoadPriority, block: MapArea.() -> T): T? = withLock {
         val region: MapArea? = when (loadPriority) {
             PEEK_IF_LOADED -> getRegion

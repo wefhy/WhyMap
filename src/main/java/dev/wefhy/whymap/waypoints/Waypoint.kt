@@ -6,7 +6,7 @@ import dev.wefhy.whymap.utils.CoordinateConversion
 import kotlinx.serialization.Serializable
 
 @Serializable
-class LocalWaypoint(var name: String, val location: CoordXYZ, var color: String? = null, var initials: String? = null, val isDeath: Boolean? = null) {
+class LocalWaypoint(var name: String, val location: CoordXYZ, var color: String? = null, var initials: String? = null, val isDeath: Boolean? = null, val isBed: Boolean? = null) {
     fun asOnlineWaypoint() = OnlineWaypoint(name, location.toLatLng(), location, color)
     fun asOnlineWaypointWithOffset() = OnlineWaypoint(name, location.toLatLngWithHalfBlockOffset(), location, color)
 }
