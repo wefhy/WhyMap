@@ -1,5 +1,11 @@
 # WhyMap changelog
 
+## [1.7.3]
+ - Updated to 1.20.2
+ - You can now select color of a waypoint (from web)
+ - You can now edit waypoints (from web)
+ - Improved rendering of pressure plates and some other blocks
+
 ## [1.7.2]
  - Fix changelog generation, delete temporary jars
 
@@ -199,6 +205,8 @@ NOT PLANNED features as of now:
 
 
 
+[1.7.3]: https://github.com/wefhy/WhyMap/compare/1.7.3..1.7.2
+[1.7.2]: https://github.com/wefhy/WhyMap/compare/1.7.2..1.7.1
 [1.7.1]: https://github.com/wefhy/WhyMap/compare/1.7.1..1.7.0
 [1.7.0]: https://github.com/wefhy/WhyMap/compare/1.7.0..1.6.6
 [1.6.6]: https://github.com/wefhy/WhyMap/compare/1.6.6..1.6.5
