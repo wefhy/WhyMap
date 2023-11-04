@@ -15,10 +15,10 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.3.8"
+	id ("fabric-loom") version "1.4.4"
 	id ("maven-publish")
-	kotlin("jvm") version "1.9.10"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+	kotlin("jvm") version "1.9.20"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -65,14 +65,14 @@ dependencies {
 	mappings("net.fabricmc:yarn:$yarn_mappings:v2")
 	modImplementation("net.fabricmc", "fabric-loader", loader_version)
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
-	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.10.8+kotlin.1.9.0")
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.10.13+kotlin.1.9.20")
 
 	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
 		exclude (group = "net.fabricmc.fabric-api")
 	}
-	modCompileOnlyApi("com.terraformersmc", "modmenu", "6.2.0")
+	modCompileOnlyApi("com.terraformersmc", "modmenu", "8.0.0")
 
-	val ktorVersion = "2.3.2"
+	val ktorVersion = "2.3.5"
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", ktorVersion))
