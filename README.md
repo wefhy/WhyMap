@@ -105,6 +105,4 @@ gradle build
 ## Contributions
 **I DO NOT accept contributions to this repository at this moment. Pull requests will be rejected.**
 
-This repository will most likely be open for contributions starting November 2023.
-
 If you wish to help with frontend development, [frontend repository](https://github.com/wefhy/WhyMap-frontend) is open for contributions (or even a complete rewrite because I'm bad at frontend coding)

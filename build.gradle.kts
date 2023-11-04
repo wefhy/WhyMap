@@ -17,8 +17,8 @@ val fabric_version: String by project
 plugins {
 	id ("fabric-loom") version "1.3.8"
 	id ("maven-publish")
-	kotlin("jvm") version "1.9.0"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
+	kotlin("jvm") version "1.9.10"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -113,6 +113,8 @@ tasks.withType<KotlinCompile>().all {
 		kotlinOptions.freeCompilerArgs += "-Xlambdas=indy"
 		kotlinOptions.freeCompilerArgs += "-Xsam-conversions=indy"
 	}
+//	kotlinOptions.languageVersion = "2.0"
+//	kotlinOptions.useK2 = true
 //	kotlinOptions.freeCompilerArgs += "-Xtype-enhancement-improvements-strict-mode"
 //	kotlinOptions.freeCompilerArgs += "-Xenhance-type-parameter-types-to-def-not-null"
 
