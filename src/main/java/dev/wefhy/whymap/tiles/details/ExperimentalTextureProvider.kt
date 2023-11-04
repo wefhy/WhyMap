@@ -49,6 +49,8 @@ object ExperimentalTextureProvider {
         return loadedTextures.getOrPut(name) {
             val file = getTopTexture(name)
                 ?: getRegularTexture(name)
+                ?: getTopTexture(name)
+                ?: getRegularTexture(name)
                 ?: kotlin.run {
                     val shortName = name
                         .replace("_stairs", "")
@@ -69,6 +71,9 @@ object ExperimentalTextureProvider {
                         ?: getRegularTexture(shortName.replace("_carpet", "_wool"))
                         ?: getRegularTexture(shortName.replace("_carpet", "_block"))
                         ?: getRegularTexture(shortName.replace("wood", "log"))
+                        ?: getRegularTexture(shortName.replace("pressure_plate", "planks"))
+                        ?: getRegularTexture(shortName.replace("pressure_plate", "block"))
+                        ?: getRegularTexture(shortName.replace("_pressure_plate", ""))
                         ?: tryGenerateCustomTexture(name)
                         ?: tryGenerateCustomTexture(shortName)
                         ?: return@getOrPut Optional.empty<BufferedImage>().also {
@@ -161,6 +166,14 @@ object ExperimentalTextureProvider {
 
     private fun getTopTexture(name: String): URL? {
         return classLoader.getResource("zoom-textures/${name}_top.png")
+    }
+
+    private fun getFrontTexture(name: String): URL? {
+        return classLoader.getResource("zoom-textures/${name}_front.png")
+    }
+
+    private fun getSideTexture(name: String): URL? {
+        return classLoader.getResource("zoom-textures/${name}_side.png")
     }
 
     private fun getRegularTexture(name: String): URL? {
