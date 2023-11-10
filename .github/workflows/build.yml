@@ -27,6 +27,19 @@ jobs:
         id: version_number
         shell: bash
         run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/heads/})"
+      - name: "Get Version"
+        id: version
+        run: echo "version=$(git describe --tags)" >> "$GITHUB_ENV"
+      - name: Build Changelog
+        id: changelog
+#        continue-on-error: true
+        run: |
+          chmod +x ./scripts/build_changelog.sh
+          {
+            echo 'changelog<<EOF'
+            sh ./scripts/build_changelog.sh ${{ env.version }}
+            echo EOF
+          } >> "$GITHUB_ENV"
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: setup jdk ${{ matrix.java }}
@@ -40,15 +53,6 @@ jobs:
       - name: build
         id: build
         run: ./gradlew build
-      - name: "Get Version"
-        id: version
-        run: echo "version=$(git describe --tags)" >> "$GITHUB_ENV"
-      - name: Build Changelog
-        id: changelog
-        continue-on-error: true
-        run: |
-          chmod +x ./scripts/build_changelog.sh
-          echo "changelog=$(sh ./scripts/build_changelog.sh ${{ env.version }})" >> "$GITHUB_ENV"
       - name: print version and changelog
         run: |
           echo "Version: ${{ env.version }}"
@@ -81,7 +85,7 @@ jobs:
           changelog: ${{ env.changelog }}
 #          changelog-file: CHANGELOG.md
           game-versions: |
-            1.20.1
+            1.20.2
           files-primary: build/libs/*.jar
           loaders: fabric
           fail-mode: warn
