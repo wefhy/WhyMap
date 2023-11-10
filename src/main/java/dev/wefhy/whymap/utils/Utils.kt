@@ -112,7 +112,11 @@ inline fun File.mkDirsIfNecessary(): File {
     return this
 }
 
-inline fun getDepthShade(depth: UByte): Float { //TODO use lookup table
+private val _depthShade = FloatArray(256) { _getDepthShade(it.toUByte()) }
+
+internal inline fun getDepthShade(depth: UByte) = _depthShade[depth.toInt()]
+
+inline fun _getDepthShade(depth: UByte): Float {
     val tmp1 = (1 - depth.toInt() * 0.02f).coerceAtLeast(0f)
     return 1 - tmp1 * tmp1 * _1_3
 }
