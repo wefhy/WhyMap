@@ -1,5 +1,9 @@
 # WhyMap changelog
 
+## [1.7.4]
+ - Updated to 1.20.3 and 1.20.4
+ - Minor shading performance improvement
+
 ## [1.7.3]
  - Updated to 1.20.2
  - You can now select color of a waypoint (from web)

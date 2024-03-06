@@ -36,10 +36,10 @@ Your map will be presented at http://localhost:7542
  - You can search waypoints or coordinates
 
 ### Actively supported versions:
- - **1.20.1, 1.20.2**
+ - **1.20.3, 1.20.4**
 
 ### Other supported versions:
- - 1.20
+ - 1.20, 1.20.1, 1.20.2
  - 1.19, 1.19.1, 1.19.2, 1.19.3, 1.19.4
  - 1.16.5
 
