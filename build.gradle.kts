@@ -311,7 +311,7 @@ val createDiscordMessage = task("createDiscordMessage") {
 			:github: $githubUrl$latestVersion
 			:modrinth: $modrinthUrl$latestVersion
 			:curseforge: $curseforgeUrl
-			""".trimIndent()
+			""".lines().map { it.trimIndent() }.joinToString("\n")
 		File("discordMessage.txt").writeText(message)
 		println(message)
 	}
