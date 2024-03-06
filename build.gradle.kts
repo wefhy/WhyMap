@@ -15,7 +15,7 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.4.4"
+	id ("fabric-loom") version "1.5-SNAPSHOT"
 	id ("maven-publish")
 	kotlin("jvm") version "1.9.20"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"

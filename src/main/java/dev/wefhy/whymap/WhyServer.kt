@@ -452,7 +452,7 @@ object WhyServer {
                 MinecraftClient.getInstance().player ?: run { call.respondText("Player does not exist"); return@get }
             val position = player.pos
             val onlinePlayer = OnlinePlayer(
-                player.displayName.string,
+                player.displayName?.string ?: "null",
                 OnlinePlayer.PlayerPosition(
                     position.x.roundTo(1),
                     position.y.roundTo(1),
