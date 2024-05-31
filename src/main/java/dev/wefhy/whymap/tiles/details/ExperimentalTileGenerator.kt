@@ -92,7 +92,7 @@ class ExperimentalTileGenerator {
                     g2d.color = Color(block.getMapColor(null, null).color)
                     g2d.fillRect(drawPosX, drawPosY, 16, 16)
                 }
-                if (depth == 0) continue
+                if (depth == 0 || blockOverlay.isAir) continue
                 val sourceOverlay = ExperimentalTextureProvider.getBitmap(blockOverlay.block)
                 val tmp1 = (1 - depth * 0.02f).coerceAtLeast(0f)
                 val alpha = (3 - tmp1 * tmp1) / 3

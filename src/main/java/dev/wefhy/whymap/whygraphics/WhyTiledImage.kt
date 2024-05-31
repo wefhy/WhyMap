@@ -65,7 +65,7 @@ class WhyTiledImage(
     }
 
     fun toNativeImage(): NativeImage {
-        val image = NativeImage(width, height, false)
+        val image = getSharedNativeImage(width, height)
         for (y in 0 until yTiles) {
             val line = data[y]
             for (x in 0 until xTiles) {
@@ -95,6 +95,12 @@ class WhyTiledImage(
     }
 
     companion object {
+
+        val sharedNativeImages = mutableMapOf<Pair<Int, Int>, NativeImage>()
+
+        fun getSharedNativeImage(width: Int, height: Int): NativeImage = synchronized(Unit) {
+            return sharedNativeImages.getOrPut(width to height) { NativeImage(width, height, false) }
+        }
 
         fun BuildForRegion(builder: (y: Int, x: Int) -> WhyColor): WhyTiledImage {
             return WhyTiledImage(WhyMapConfig.storageTileChunks, WhyMapConfig.storageTileChunks) { y, x ->

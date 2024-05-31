@@ -20,7 +20,6 @@ data class UserSettings(
     var displayHud: Boolean = true,
     var minimapPosition: MinimapPosition = MinimapPosition.TOP_LEFT,
     var minimapMode: WhyMapClient.MapMode = WhyMapClient.MapMode.NORTH_LOCKED,
-    val forceExperimentalMinmap: Boolean = false,
     val hudColor: Int = 0xFFFFFFFFu.toInt(),
 //    var minimapSize: Int = 128,
 //    var minimapScale : Int = 1,

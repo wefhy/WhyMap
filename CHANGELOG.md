@@ -1,5 +1,10 @@
 # WhyMap changelog
 
+## [1.7.5]
+ - Minimap won't cause crashes or memory leaks
+ - Minimap is no longer experimental
+ - Fixed short grass rendering
+
 ## [1.7.4]
  - Updated to 1.20.3 and 1.20.4
  - Minor shading performance improvement

@@ -11,6 +11,7 @@ object RenderConfig {
 //    }
 
     private val ignoredOverlayBlocks = arrayOf(
+        "air",
         "string",
         "tripwire",
         "vine",

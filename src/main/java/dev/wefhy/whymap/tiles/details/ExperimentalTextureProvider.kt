@@ -60,6 +60,8 @@ object ExperimentalTextureProvider {
                         .replace("stripped_", "")
                         .replace("wall_", "") //this handles coral wall fans
                         .replace("waxed_", "")
+                        .replace("short_", "")
+                        .replace("long_", "")
 //                        .replace("hanging_sign", "sign")
                     getTopTexture(shortName)
                         ?: getRegularTexture(shortName)

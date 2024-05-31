@@ -51,11 +51,11 @@ class WhyMapClient : ClientModInitializer {
 
     fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
         val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
-
-        return { matrixStack ->
-            val texture = NativeImageBackedTexture(image)
+        val texture = NativeImageBackedTexture(image)
 //            val identifier = Identifier("whymap", "icon")
-            val identifier = MinecraftClient.getInstance().textureManager.registerDynamicTexture("playericon", texture)
+        val identifier = MinecraftClient.getInstance().textureManager.registerDynamicTexture("playericon", texture)
+        return { matrixStack ->
+
             drawCenter(matrixStack, identifier, image.width.toFloat(), image.height.toFloat())
         }
     }
@@ -84,7 +84,7 @@ class WhyMapClient : ClientModInitializer {
 
 
     override fun onInitializeClient() {
-        val playerIcon = loadPngIntoNativeImage()
+        val playerIcon by lazy { loadPngIntoNativeImage()}
         val mc = MinecraftClient.getInstance()
         val hud = WhyHud(mc)
 
@@ -92,7 +92,7 @@ class WhyMapClient : ClientModInitializer {
             if (!WhyUserSettings.generalSettings.displayHud) return
             with(drawContext.matrices) {
                 push()
-                if (WhyUserSettings.mapSettings.minimapMode.visible && WhyUserSettings.mapSettings.minimapPosition == MinimapPosition.TOP_LEFT && WhyUserSettings.mapSettings.forceExperimentalMinmap) {
+                if (WhyUserSettings.mapSettings.minimapMode.visible && WhyUserSettings.mapSettings.minimapPosition == MinimapPosition.TOP_LEFT) {
                     translate(mapPadding.toDouble(), (mapPadding + mapRadius) * 2.0, 0.0)
                 } else {
                     translate(mapPadding.toDouble(), mapPadding.toDouble(), 0.0)
@@ -117,7 +117,6 @@ class WhyMapClient : ClientModInitializer {
             val mapPosY = mapRadius + mapPadding
 
             if (!mapMode.visible) return
-            if (!WhyUserSettings.mapSettings.forceExperimentalMinmap) return
             val player = mc.player ?: return println("No player!")
             val playerPos = player.pos ?: return println("No player pos!")
             val mrm = activeWorld?.mapRegionManager ?: return println("No map region manager!")
@@ -146,6 +145,8 @@ class WhyMapClient : ClientModInitializer {
                     }
                 }
             }
+            //no leak till here
+
 
             if(true) {
                 val cropXstart = mapPosX - mapRadius
@@ -172,6 +173,7 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.translate(-mapPosX, -mapPosY, 0f)
             }
 
+            //no leak till here
 
 
             for ((region, rendered) in rendered) {
@@ -183,11 +185,10 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
 //                val texture: WhyTiledImage = rendered
                 val texture: NativeImage = rendered.toNativeImage() //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
-                val i =
-                    region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
+                val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
                 draw(mc, matrixStack, texture, mapScale, nativeImageBackedTextures[i], i)
                 matrixStack.pop()
-                texture.close()
+//                texture.close() //No longer necessary since toNativeImage uses textures from the list
             }
             matrixStack.pop()
             matrixStack.push()
