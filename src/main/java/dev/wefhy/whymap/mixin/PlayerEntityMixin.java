@@ -8,7 +8,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
@@ -55,7 +54,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 //            System.out.println("FAILED TO SET DEATH POS!");
             WhyMapMod.javaAddDeathPoint(globalPos);
         } finally {
-            System.out.println("PLAYER DEAAAATH position: " + globalPos.getPos().toString() + ", dim: " + globalPos.getDimension());
+            System.out.println("PLAYER DEAAAATH position: " + globalPos.pos().toString() + ", dim: " + globalPos.dimension());
         }
     }
 }
