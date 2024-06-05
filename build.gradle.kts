@@ -254,24 +254,38 @@ val biomeMappingsList = task("biomeMappingsList") {
 
 val newMappings = task("newMappings") {
 	val inDir = File("run/WhyMap/mappings-custom")
-	val outBlockDir = File("src/main/resources/blockmappings")
-	val outBiomeDir = File("src/main/resources/biomemappings")
 //	inputs.dir(inDir.path)
 //	outputs.dir(outBiomeDir.path)
 //	outputs.dir(outBlockDir.path)
+
+	fun copyNew(name: String) {
+		val outDir = File("src/main/resources/${name}mappings")
+		inDir.resolve("current-$name").takeIf { it.exists() }?.let {
+			val extension = name + "map"
+			val map = inDir.resolve("${it.readText().trim()}.$extension")
+			val fileNumber = outDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
+			map.copyTo(outDir.resolve("$fileNumber.$extension"))
+
+			val previousFile = outDir.resolve("${fileNumber - 1}.$extension")
+			if (previousFile.exists()) {
+				val currentLines = map.readLines().toSet()
+				val missingLines = previousFile.readLines().filter {
+					it !in currentLines
+				}
+				println("Current lines: ${currentLines.size}, Missing lines: ${missingLines.size}, Previous lines: ${previousFile.readLines().size}")
+				if (missingLines.isNotEmpty()) {
+					val missingFile = outDir.resolve("${fileNumber}_missing.$extension")
+					missingFile.writeText(missingLines.joinToString("\n"))
+				}
+			}
+
+			it.delete()
+		}
+	}
+
 	doLast {
-		inDir.resolve("current-biome").takeIf { it.exists() }?.let {
-			val biomeMap = inDir.resolve("${it.readText().trim()}.biomemap")
-			val fileNumber = outBiomeDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-			biomeMap.copyTo(outBiomeDir.resolve("$fileNumber.biomemap"))
-			inDir.resolve("current-biome").delete()
-		}
-		inDir.resolve("current-block").takeIf { it.exists() }?.let {
-			val blockMap = inDir.resolve("${it.readText().trim()}.blockmap")
-			val fileNumber = outBlockDir.listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.maxOrNull()?.plus(1) ?: 0
-			blockMap.copyTo(outBlockDir.resolve("$fileNumber.blockmap"))
-			inDir.resolve("current-block").delete()
-		}
+		copyNew("biome")
+		copyNew("block")
 	}
 }
 

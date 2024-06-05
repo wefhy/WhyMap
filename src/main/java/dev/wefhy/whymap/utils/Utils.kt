@@ -13,6 +13,9 @@ import net.minecraft.text.Text
 import java.awt.image.*
 import java.io.Closeable
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.time.LocalDateTime
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -215,6 +218,17 @@ fun WritableRaster.fillWithColor2(color: Int) {
             setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
         }
     }
+}
+
+inline fun File.useAtomicProxy(block: File.() -> Unit) {
+    mkDirsIfNecessary()
+    val tmp = File("$absolutePath.tmp").apply {
+        createNewFile()
+        deleteOnExit()
+    }
+    tmp.block()
+//    tmp.renameTo(this)
+    Files.move(tmp.toPath(), this.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
 }
 
 inline fun<T> Semaphore.tryAcquire(block: () -> T): T? {

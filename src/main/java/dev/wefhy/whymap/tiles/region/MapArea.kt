@@ -148,19 +148,16 @@ class MapArea private constructor(val location: LocalTileRegion) {
         currentWorld.writeToLog("Saving ${obfuscateObjectWithCommand(location, "save")}, file existed: ${file.exists()}")
         if (!modifiedSinceSave)
             return@withContext
-        if (!file.exists()) {
-            file.parentFile.mkdirs()
-            file.createNewFile()
-        }
         val packedData = packData()
 //        val uncompressedFile = file.parentFile.resolve(file.name + ".uncompressed")
 //        uncompressedFile.writeBytes(packedData)
-        file.outputStream().use {
-            it.write(currentWorld.mappingsManager.metadata)
-            val compressed = withContext(WhyDispatchers.LowPriority) {
-                packedData.compress().writeTo(it)
-            }//.toByteArray()
-//            it.write(compressed)
+        file.useAtomicProxy {
+            outputStream().use {
+                it.write(currentWorld.mappingsManager.metadata)
+                withContext(WhyDispatchers.LowPriority) {
+                    packedData.compress().writeTo(it)
+                }//.toByteArray()
+            }
         }
         reRenderAndSaveThumbnail()
         LOGGER.debug("SAVED: ${file.absolutePath}")
