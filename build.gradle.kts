@@ -117,6 +117,11 @@ dependencies {
 	extraLibs(implementation(composeBom)!!)
 //	extraLibs(implementation(compose.desktop.currentOs)!!) //TODO make builds for different OSes compose.desktop.common
     extraLibs(implementation(compose.desktop.common)!!)
+    extraLibs(implementation(compose.desktop.macos_arm64)!!)
+    extraLibs(implementation(compose.desktop.macos_x64)!!)
+    extraLibs(implementation(compose.desktop.windows_x64)!!)
+    extraLibs(implementation(compose.desktop.linux_x64)!!)
+    extraLibs(implementation(compose.desktop.linux_arm64)!!)
 	extraLibs(implementation(compose.material)!!)
 
 //	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
