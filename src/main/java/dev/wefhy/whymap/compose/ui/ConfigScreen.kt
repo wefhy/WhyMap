@@ -6,7 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.shrinkOut
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -21,18 +20,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.utils.Accessors.clientWindow
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
+import java.util.*
 import kotlin.random.Random
 
 class ConfigScreen : Screen(Text.of("Config")) {
+
+    companion object {
+        private var initializationCount = 0
+    }
 
     var i = 0
     val random = Random(0)
@@ -46,6 +49,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
     }
 
     init {
+        println("ConfigScreen init ${++initializationCount}")
 //        RenderThreadScope.launch {
 //            while (true) {
 ////                composeView.passLMBClick(148.8671875f, 43.724609375f)
@@ -91,21 +95,38 @@ class ConfigScreen : Screen(Text.of("Config")) {
 //                        }
 //                    }
 //                }
+//                return@Row
                 AnimatedVisibility(
                     showList,
                     enter = expandIn(),
                     exit = shrinkOut()
                 ) {
+                    val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
+                    val entries = waypoints.mapIndexed() { i, it ->
+                        WaypointEntry(
+                            name = it.name, distance = 0.0f, waypointId = i, date = Date(), waypointStatus = WaypointEntry.Status.NEW, waypointType = WaypointEntry.Type.SIGHTSEEING
+                        )
+                    }
+                    WaypointsView(entries) {
+                        println("Refresh!")
+                    }
                     val rememberScrollState = rememberScrollState()
 //                    Column(Modifier.scrollable(rememberScrollState, orientation = Orientation.Vertical)) {
                     Column(Modifier.verticalScroll(rememberScrollState)) {
-                        for (it in 0..20) {
-                            val hovered = remember { mutableStateOf(false) }
-                            Text("Item $it", Modifier.background(if (hovered.value) Color.Gray else Color.Transparent).padding(8.dp).onPointerEvent(
-                                PointerEventType.Move) {
-                                hovered.value = true
-                            })
-                        }
+//                        for (it in 0..20) {
+//                            val hovered = remember { mutableStateOf(false) }
+//                            Text("Item $it", Modifier.background(if (hovered.value) Color.Gray else Color.Transparent).padding(8.dp).onPointerEvent(
+//                                PointerEventType.Move) {
+//                                hovered.value = true
+//                            })
+//                        }
+
+//                        for (entry in entries) {
+//                            WaypointEntryView(entry)
+//                        }
+//                        WaypointsView(entries) {
+//                            println("Refresh!")
+//                        }
                     }
                 }
             }

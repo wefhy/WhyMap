@@ -30,6 +30,7 @@ open class ComposeView(
     private val density: Density = Density(2f),
     private val content: @Composable () -> Unit
 ) : Closeable {
+    private var invalidated = true
     private val screenScale = 2 //TODO This is Macbook specific
     private var width by mutableStateOf(width)
     private var height by mutableStateOf(height)
@@ -52,7 +53,9 @@ open class ComposeView(
         }
 
     //TODO use ImageComposeScene, seems more popular?
-    private val scene = SingleLayerComposeScene(coroutineContext = coroutineContext, density = density)
+    private val scene = SingleLayerComposeScene(coroutineContext = coroutineContext, density = density) {
+        invalidated = true
+    }
 
     init {
         scene.setContent(boxedContent)
@@ -95,7 +98,16 @@ open class ComposeView(
         )
     }
 
+    var isRendering = false
+
     fun render(drawContext: DrawContext, tickDelta: Float) {
+        println("Trying to start rendering on thread ${Thread.currentThread().name}!")
+        if (isRendering) throw Exception("Already rendering!")
+        isRendering = true
+        if (!invalidated) return Unit.also {
+            println("Cancelled rendering on thread ${Thread.currentThread().name}!")
+            isRendering = false
+        }
         width = clientWindow.width
         height = clientWindow.height
         directRenderer.onSizeChange(
@@ -104,12 +116,17 @@ open class ComposeView(
         )
         directRenderer.render(drawContext, tickDelta) { glCanvas ->
             try {
+//                println("Rendering START!")
                 scene.render(glCanvas, System.nanoTime())
+//                println("Rendered END!")
+                invalidated = false
             } catch (e: Exception) {
                 e.printStackTrace()
                 scene.setContent(boxedContent)
             }
         }
+        println("Finished rendering on thread ${Thread.currentThread().name}!")
+        isRendering = false
     }
 
     override fun close() {

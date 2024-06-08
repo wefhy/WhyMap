@@ -5,7 +5,7 @@ package dev.wefhy.whymap.compose
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.asComposeCanvas
 import com.mojang.blaze3d.systems.RenderSystem
-import dev.wefhy.whymap.utils.WhyDispatchers.launchOnMain
+import dev.wefhy.whymap.utils.WhyDispatchers.blockOnMain
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.render.BufferRenderer
 import org.jetbrains.skia.*
@@ -51,7 +51,7 @@ internal class DirectRenderer(var width: Int, var height: Int) : Renderer() {
         initilaize()
     }
 
-    override fun render(drawContext: DrawContext, tickDelta: Float, block: (Canvas) -> Unit) = launchOnMain {
+    override fun render(drawContext: DrawContext, tickDelta: Float, block: (Canvas) -> Unit) = blockOnMain {
         RenderSystem.assertOnRenderThread()
         enterManaged()
         if (composeCanvas == null) {
