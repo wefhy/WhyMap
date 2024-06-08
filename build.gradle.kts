@@ -21,6 +21,8 @@ plugins {
 	kotlin("jvm") version "2.0.0"
 	id ("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
+	id("org.jetbrains.compose")
+	id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
 }
 
 loom {
@@ -47,10 +49,12 @@ version = getCurrentVersion()
 group = maven_group
 
 repositories {
+	google()
 	mavenCentral()
 	maven(url = "https://repo.maven.apache.org/maven2/")
 	maven(url = "https://maven.shedaniel.me/") //TODO use maven local or multi project build to build from sources
 	maven(url = "https://maven.terraformersmc.com") //TODO use maven local or multi project build to build from sources
+	maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 }
 
 //configurations {
@@ -77,7 +81,7 @@ dependencies {
 	}
 	modCompileOnlyApi("com.terraformersmc", "modmenu", "8.0.0")
 
-	val ktorVersion = "2.3.5"
+	val ktorVersion = "2.3.11"
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", ktorVersion))
@@ -86,7 +90,35 @@ dependencies {
 	extraLibs(implementation("io.ktor", "ktor-server-cors", ktorVersion))
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
-	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.5.0"))
+	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.5.1"))
+
+	extraLibs("org.jetbrains.skiko:skiko:0.8.4") {
+		attributes {
+//			attribute(Attribute.of("org.jetbrains.compose.ui", String::class.java), "desktop")
+//			attribute(Attribute.of("org.jetbrains.compose.ui", String::class.java), "awtRuntimeElements-published")
+//			attribute(Attribute.of("org.jetbrains.compose.ui", String::class.java), "awt")
+//			attribute(Attribute.of("org.gradle.libraryelements", String::class.java), LibraryElements.JAR)
+//			attribute(Attribute.of("org.gradle.usage", String::class.java), Usage.JAVA_RUNTIME)
+//			attribute(Attribute.of("org.jetbrains.kotlin.platform.type", String::class.java), "jvm")
+
+			attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+			attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category::class.java, Category.LIBRARY))
+			attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements::class.java, LibraryElements.JAR))
+			attribute(Attribute.of("org.jetbrains.kotlin.platform.type", String::class.java), "jvm")
+			attribute(Attribute.of("ui", String::class.java), "awt")
+		}
+	}
+
+	val composeBom = project.dependencies.platform("androidx.compose:compose-bom:2024.05.00")
+//	implementation(composeBom)
+//	implementation(compose.desktop.currentOs) //TODO make builds for different OSes compose.desktop.common
+//	implementation(compose.desktop.common)
+//	implementation(compose.material)
+	extraLibs(implementation(composeBom)!!)
+//	extraLibs(implementation(compose.desktop.currentOs)!!) //TODO make builds for different OSes compose.desktop.common
+    extraLibs(implementation(compose.desktop.common)!!)
+	extraLibs(implementation(compose.material)!!)
+
 //	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
 //	extraLibs(implementation("ai.hypergraph", "kotlingrad", "0.4.7"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
@@ -96,6 +128,12 @@ dependencies {
 	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.9.1")
 	testImplementation("ar.com.hjg", "pngj", "2.1.0")
     implementation(kotlin("stdlib-jdk8"))
+}
+
+configurations.all {
+	resolutionStrategy.dependencySubstitution {
+		substitute(module("org.jetbrains.skiko:skiko")).using(module("org.jetbrains.skiko:skiko-awt:0.8.4"))
+	}
 }
 
 @Suppress("UnstableApiUsage")
