@@ -101,13 +101,13 @@ open class ComposeView(
     var isRendering = false
 
     fun render(drawContext: DrawContext, tickDelta: Float) {
-        println("Trying to start rendering on thread ${Thread.currentThread().name}!")
+//        println("Trying to start rendering on thread ${Thread.currentThread().name}!")
         if (isRendering) throw Exception("Already rendering!")
         isRendering = true
-        if (!invalidated) return Unit.also {
-            println("Cancelled rendering on thread ${Thread.currentThread().name}!")
-            isRendering = false
-        }
+//        if (!invalidated) return Unit.also {
+//            println("Cancelled rendering on thread ${Thread.currentThread().name}!")
+//            isRendering = false
+//        }
         width = clientWindow.width
         height = clientWindow.height
         directRenderer.onSizeChange(
@@ -125,7 +125,7 @@ open class ComposeView(
                 scene.setContent(boxedContent)
             }
         }
-        println("Finished rendering on thread ${Thread.currentThread().name}!")
+//        println("Finished rendering on thread ${Thread.currentThread().name}!")
         isRendering = false
     }
 

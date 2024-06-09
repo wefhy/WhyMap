@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.utils.Accessors.clientWindow
+import dev.wefhy.whymap.utils.MapTile
+import dev.wefhy.whymap.utils.TileZoom
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
@@ -69,6 +71,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
         var clicks by remember { mutableStateOf(0) }
         var color by remember { mutableStateOf(Color.Green) }
         var showList by remember { mutableStateOf(true) }
+        var showMap by remember { mutableStateOf(false) }
         Card(
             elevation = 20.dp, modifier = Modifier.padding(200.dp, 0.dp, 0.dp, 0.dp).padding(8.dp)/*.onPointerEvent(PointerEventType.Move) {
             val position = it.changes.first().position
@@ -87,6 +90,10 @@ class ConfigScreen : Screen(Text.of("Config")) {
                         Text("Show List")
                         Switch(checked = showList, onCheckedChange = { showList = it })
                     }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Show Map")
+                        Switch(checked = showMap, onCheckedChange = { showMap = it })
+                    }
                 }
 //                if(showList) {
 //                    LazyColumn { //TODO scrolling LazyColumn will cause race condition in Recomposer, broadcastFrameClock
@@ -96,6 +103,20 @@ class ConfigScreen : Screen(Text.of("Config")) {
 //                    }
 //                }
 //                return@Row
+
+                AnimatedVisibility(
+                    showMap,
+                    enter = expandIn(),
+                    exit = shrinkOut()
+                ) {
+                    Column {
+                        Text("Map")
+                        MapTileView(MapTile(65532, 65543, TileZoom.RegionZoom).toLocalTile())
+                    }
+//                    MapTileView(LocalTileThumbnail(16383, 16384, TileZoom.ThumbnailZoom))
+                }
+
+
                 AnimatedVisibility(
                     showList,
                     enter = expandIn(),

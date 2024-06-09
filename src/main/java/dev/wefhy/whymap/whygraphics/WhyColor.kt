@@ -37,6 +37,13 @@ val FastWhyColor.intB
 val FastWhyColor.intARGB
     inline get() = (intA shl 24) or (intR shl 16) or (intG shl 8) or intB
 
+val WhyColor.composeColor
+//    inline get() = androidx.compose.ui.graphics.Color(r, g, b, a) //TODO this causes crash due to negative red! How can it be negative?
+    inline get() = androidx.compose.ui.graphics.Color(intR, intG, intB, intA)
+
+val FastWhyColor.composeColor
+    inline get() = androidx.compose.ui.graphics.Color(r, g, b, a)
+
 fun FastWhyColor.toWhyColor(): WhyColor = WhyColor(r, g, b, a)
 
 inline fun WhyColor.toFastWhyColor(): FastWhyColor = floatArrayOf(a, r, g, b)

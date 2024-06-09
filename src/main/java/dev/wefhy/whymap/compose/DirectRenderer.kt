@@ -20,6 +20,9 @@ import org.lwjgl.opengl.GL33
 
 internal class DirectRenderer(var width: Int, var height: Int) : Renderer() {
 
+//    private val device = MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Can't create MTLDevice")
+//    private val commandQueue = device.newCommandQueue() ?: throw IllegalStateException("Can't create MTLCommandQueue")
+//    private val context: DirectContext by lazy { DirectContext.makeMetal() }
     private val context: DirectContext by lazy { DirectContext.makeGL() }
     private var renderTarget: BackendRenderTarget? = null
     private var surface: Surface? = null

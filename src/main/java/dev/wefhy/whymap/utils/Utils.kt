@@ -30,6 +30,7 @@ const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
 const val _1_2 = 1f / 2
 const val bestHashConst = 92821
+val rand = Random(0)
 
 inline fun Double.roundToString(places: Int) = String.format("%.${places}f", this)
 inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
