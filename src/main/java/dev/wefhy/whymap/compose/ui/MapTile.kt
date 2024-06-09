@@ -15,16 +15,15 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.ImageBitmapConfig
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.utils.LocalTileRegion
@@ -35,6 +34,10 @@ import dev.wefhy.whymap.utils.LocalTileRegion
 fun MapTileView(regionTile: LocalTileRegion) {
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+    var scale by remember { mutableStateOf(1f) }
+    val paint = Paint().apply {
+        filterQuality = FilterQuality.None
+    }
 
 //    var tile: MapArea? by remember { mutableStateOf(null) }
     var image: ImageBitmap? by remember { mutableStateOf(null) }
@@ -63,25 +66,23 @@ fun MapTileView(regionTile: LocalTileRegion) {
         Canvas(modifier = Modifier.size(dpSize).clipToBounds().pointerInput(Unit) {
             detectDragGestures { change, dragAmount ->
                 change.consume()
-                offsetX += dragAmount.x
-                offsetY += dragAmount.y
+                offsetX += dragAmount.x / scale
+                offsetY += dragAmount.y / scale
             }
-//
-//            detectTransformGestures { centroid, pan, zoom, rotation ->
-//                println("Gesture: centroid: $centroid, pan: $pan, zoom: $zoom, rotation: $rotation")
-//            }
         }.onPointerEvent(PointerEventType.Scroll) {
             val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
-            println(scrollDelta)
+            scale *= 1 + scrollDelta.y / 10
         }
         ) {
-
             println("MapTileView Canvas recompose, image: $image")
 //            drawRect(Rect(Offset(0f, 0f), Size(size.width, size.height)), Paint().apply { color = Color.Black })
 //            t?.drawTiledImage()
             drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
             image?.let { im ->
-                drawImage(im, topLeft = Offset(offsetX, offsetY))
+                scale(scale) {
+//                    drawImage(im, topLeft = Offset(offsetX, offsetY))
+                    drawImage(im, dstOffset = IntOffset(offsetX.toInt(), offsetY.toInt()), filterQuality = FilterQuality.None)
+                }
             }
 //            drawIntoCanvas { canvas ->
 //                with(canvas) {
