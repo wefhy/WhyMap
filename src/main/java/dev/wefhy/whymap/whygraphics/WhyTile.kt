@@ -2,13 +2,14 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.toOffset
 import dev.wefhy.whymap.utils.ExpensiveCall
 import dev.wefhy.whymap.utils.memoize
-import dev.wefhy.whymap.utils.rand
 import net.minecraft.client.texture.NativeImage
 import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
@@ -87,15 +88,15 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
         )
     }
 
-    context(DrawScope)
+    context(Canvas)
     fun drawTile(xOffset: Int, yOffset: Int) {
 //        val image = toImageBitmap()
         val image = memoizedImageBitmap(this)
-        println("Drawing $image at $xOffset, $yOffset of size ${image.width}, ${image.height}")
+//        println("Drawing $image at $xOffset, $yOffset of size ${image.width}, ${image.height}")
 //        drawRect(memoizedAverage(this).composeColor, Offset(xOffset.toFloat(), yOffset.toFloat()), Size(chunkSize.toFloat(), chunkSize.toFloat()))
-        if (rand.nextInt(4) == 1) {
-            drawImage(image, dstOffset = IntOffset(xOffset, yOffset))
-        }
+//        if (rand.nextInt(4) == 1) {
+        drawImage(image, topLeftOffset = IntOffset(xOffset, yOffset).toOffset(), paint = Paint())
+//        }
     }
 
     val memoizedImageBitmap = memoize<WhyTile, ImageBitmap> {
