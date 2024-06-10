@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -36,7 +37,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun MapTileView(regionTile: LocalTileRegion) {
+fun MapTileView(startPosition: LocalTileBlock) {
     val tileRadius = 1
     val nTiles = 3
     var offsetX by remember { mutableStateOf(0f) }
@@ -45,7 +46,7 @@ fun MapTileView(regionTile: LocalTileRegion) {
     val paint = Paint().apply {
         filterQuality = FilterQuality.None
     }
-    val block = regionTile.getCenter() - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
+    val block = startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
     val centerTile = block.parent(TileZoom.RegionZoom)
     val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
     val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
@@ -56,15 +57,17 @@ fun MapTileView(regionTile: LocalTileRegion) {
     for (x in minTile.x..maxTile.x) {
         for (z in minTile.z..maxTile.z) {
             val tile = LocalTileRegion(x, z)
+            if (tile in dontDispose) continue
             val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
+            images[index] = null
             LaunchedEffect(tile) {
-                if (tile in dontDispose) return@LaunchedEffect
-                images[index] = null
+                println("MapTileView LaunchedEffect, tile: $tile, index: $index")
+//                if (tile in dontDispose) return@LaunchedEffect
                 withContext(WhyDispatchers.Render) {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
-                        if (!isActive) return@getRegionForTilesRendering
+                        if (!isActive) return@getRegionForTilesRendering Unit.also { println("Cancel early 1")}
                         val image = renderWhyImageNow().imageBitmap
-                        if (!isActive) return@getRegionForTilesRendering
+                        if (!isActive) return@getRegionForTilesRendering Unit.also { println("Cancel early 2")}
                         images[index] = image
                         dontDispose.add(tile)
                     }
@@ -103,15 +106,17 @@ fun MapTileView(regionTile: LocalTileRegion) {
                 for (x in minTile.x .. maxTile.x) {
                     val index = y.mod(nTiles) * nTiles + x.mod(nTiles)
                     val image = images[index]
-                    val drawOffset = LocalTileRegion(x, y, TileZoom.RegionZoom).getCenter() - regionTile.getCenter()
+                    val drawOffset = LocalTileRegion(x, y, TileZoom.RegionZoom).getCenter() - startPosition
                     image?.let { im ->
-                        scale(scale) {
-                            val drawX = drawOffset.x + offsetX + 350
-                            val drawY = drawOffset.z + offsetY + 350
-                            if (scale > 1) {
-                                drawImage(im, dstOffset = IntOffset(drawX.toInt(), drawY.toInt()), filterQuality = FilterQuality.None)
-                            } else {
-                                drawImage(im, topLeft = Offset(drawX, drawY))
+                        translate(offsetX * scale, offsetY * scale) {
+                            scale(scale) {
+                                val drawX = drawOffset.x + 350
+                                val drawY = drawOffset.z + 350
+                                if (scale > 1) {
+                                    drawImage(im, dstOffset = IntOffset(drawX.toInt(), drawY.toInt()), filterQuality = FilterQuality.None)
+                                } else {
+                                    drawImage(im, topLeft = Offset(drawX.toFloat(), drawY.toFloat()))
+                                }
                             }
                         }
                     }

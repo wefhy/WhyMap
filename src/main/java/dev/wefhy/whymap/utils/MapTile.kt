@@ -5,6 +5,7 @@ package dev.wefhy.whymap.utils
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.utils.TileZoom.*
 import net.minecraft.util.math.ChunkPos
+import net.minecraft.util.math.Vec3d
 import java.io.File
 
 open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
@@ -52,6 +53,7 @@ open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 
 typealias LocalTileBlock = LocalTile<BlockZoom>
 fun LocalTileBlock(x: Int, z: Int) = LocalTile(x, z, BlockZoom)
+fun LocalTileBlock(pos: Vec3d) = LocalTileBlock(pos.x.toInt(), pos.z.toInt())
 typealias LocalTileChunk = LocalTile<ChunkZoom>
 fun LocalTileChunk(x: Int, z: Int) = LocalTile(x, z, ChunkZoom)
 typealias LocalTileRegion = LocalTile<RegionZoom>

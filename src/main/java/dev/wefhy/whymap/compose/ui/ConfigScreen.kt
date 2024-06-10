@@ -24,9 +24,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
+import dev.wefhy.whymap.utils.Accessors.clientInstance
 import dev.wefhy.whymap.utils.Accessors.clientWindow
-import dev.wefhy.whymap.utils.MapTile
-import dev.wefhy.whymap.utils.TileZoom
+import dev.wefhy.whymap.utils.LocalTileBlock
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
@@ -111,7 +111,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
                 ) {
                     Column {
                         Text("Map")
-                        MapTileView(MapTile(65532, 65543, TileZoom.RegionZoom).toLocalTile())
+                        MapTileView(LocalTileBlock(clientInstance.player!!.pos))
                     }
 //                    MapTileView(LocalTileThumbnail(16383, 16384, TileZoom.ThumbnailZoom))
                 }

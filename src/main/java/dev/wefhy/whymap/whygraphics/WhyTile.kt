@@ -119,10 +119,10 @@ open class WhyTile(val data: Array<WhyColor> = Array(arraySize) { WhyColor.Trans
             bytes = bytes,
             rowBytes = width * 4
         )
-        return image.toComposeImageBitmap().also {
-            println("Converted to ImageBitmap: " +
-                    "${it.colorSpace}, ${it.width}, ${it.height}, ${it.config}")
-        }
+        return image.toComposeImageBitmap()//.also {
+//            println("Converted to ImageBitmap: " +
+//                    "${it.colorSpace}, ${it.width}, ${it.height}, ${it.config}")
+//        }
     }
 
     fun writeInto(raster: WritableRaster, xOffset: Int, yOffset: Int) {
