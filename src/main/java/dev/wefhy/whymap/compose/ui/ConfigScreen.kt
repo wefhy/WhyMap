@@ -103,20 +103,18 @@ class ConfigScreen : Screen(Text.of("Config")) {
     }
 }
 
+private var i = 0
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun UI(vm: MapViewModel) {
-    var i by remember { mutableStateOf(0) }
     var clicks by remember { mutableStateOf(0) }
     var color by remember { mutableStateOf(Color.Green) }
     var showList by remember { mutableStateOf(true) }
     var showMap by remember { mutableStateOf(false) }
     Card(
         border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
-        elevation = 20.dp, modifier = Modifier.padding(200.dp, 0.dp, 0.dp, 0.dp).padding(8.dp)/*.onPointerEvent(PointerEventType.Move) {
-            val position = it.changes.first().position
-            color = Color(position.x.toInt() % 256, position.y.toInt() % 256, 0)
-        }*/
+        elevation = 20.dp, modifier = Modifier/*.padding(200.dp, 0.dp, 0.dp, 0.dp)*/.padding(8.dp)
     ) {
         Box {
             Row(Modifier.padding(8.dp)) {

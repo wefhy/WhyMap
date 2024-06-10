@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.compose.ui.ComposeConstants.scaleRange
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toOffset
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
 import dev.wefhy.whymap.utils.LocalTileBlock
 import dev.wefhy.whymap.utils.LocalTileRegion
 import dev.wefhy.whymap.utils.TileZoom
@@ -98,19 +98,18 @@ fun MapTileView(startPosition: LocalTileBlock) {
             }
             .onPointerEvent(PointerEventType.Scroll) {
                 val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
-                scale *= 1 + scrollDelta.y / 10
+                scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
             }
         ) {
 //            drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
             for (y in minTile.z .. maxTile.z) {
                 for (x in minTile.x .. maxTile.x) {
-                    val index = y.mod(nTiles) * nTiles + x.mod(nTiles)
                     val tile = LocalTileRegion(x, y)
                     val image = images[tile]
-                    val drawOffset = tile.getCenter()
+                    val drawOffset = tile.getStart()
                     image?.let { im ->
                         scale(scale) {
-                            translate(storageTileBlocks.toFloat() / 2, storageTileBlocks.toFloat() / 2) {
+                            translate(size.width / 2, size.height / 2) {
                                 translate( - center.x,  - center.y) {
                                     if (scale > 1) {
                                         drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
