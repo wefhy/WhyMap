@@ -43,19 +43,12 @@ fun MapTileView(startPosition: LocalTileBlock) {
     val scope = rememberCoroutineScope()
     val tileRadius = 1
     val nTiles = 3
-//    var offsetX by remember { mutableStateOf(0f) }
-//    var offsetY by remember { mutableStateOf(0f) }
     var scale by remember { mutableStateOf(1f) }
     var center by remember { mutableStateOf(startPosition.toOffset()) }
     val paint = Paint().apply {
         filterQuality = FilterQuality.None
     }
     val block by remember { derivedStateOf { center.toLocalTileBlock() }} //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
-//    val offsetX = center.x - startPosition.x
-//    val offsetY = center.y - startPosition.z
-//    rememberSaveable()
-    val offsetX = startPosition.x - center.x
-    val offsetY = startPosition.z - center.y
     val centerTile = block.parent(TileZoom.RegionZoom)
     val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
     val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
@@ -71,7 +64,6 @@ fun MapTileView(startPosition: LocalTileBlock) {
             LaunchedEffect(tile) {
                 images[index] = null
                 println("MapTileView LaunchedEffect, tile: $tile, index: $index")
-//                if (tile in dontDispose) return@LaunchedEffect
                 val image = withContext(WhyDispatchers.Render) {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
                         if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1")}
@@ -86,57 +78,45 @@ fun MapTileView(startPosition: LocalTileBlock) {
         dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
     }
     Column {
-//        Text("Tile $tile")
-//        val t: WhyTiledImage? = tile?.renderWhyImageNow()
-//        val image = t?.imageBitmap
 //        val dpSize = with(LocalDensity.current) {
 ////            DpSize(t?.width?.toDp() ?: 1.dp, t?.height?.toDp() ?: 1.dp)
 //            DpSize(image?.width?.toDp() ?: 1.dp, image?.height?.toDp() ?: 1.dp)
 //        }
 
-
-//        WrappedCanvas(modifier = Modifier.size(dpSize)) { size ->
-        Canvas(modifier = Modifier.size(DpSize(400.dp, 400.dp)).clipToBounds().pointerInput(Unit) {
-            detectDragGestures { change, dragAmount ->
-                change.consume()
-                center -= dragAmount / scale
+        Canvas(modifier = Modifier
+            .size(DpSize(400.dp, 400.dp))
+            .clipToBounds()
+            .pointerInput(Unit) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    center -= dragAmount / scale
+                }
             }
-        }.onPointerEvent(PointerEventType.Scroll) {
-            val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
-            scale *= 1 + scrollDelta.y / 10
-        }
+            .onPointerEvent(PointerEventType.Scroll) {
+                val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
+                scale *= 1 + scrollDelta.y / 10
+            }
         ) {
-//            println("MapTileView Canvas recompose, image: $image")
-//            drawRect(Rect(Offset(0f, 0f), Size(size.width, size.height)), Paint().apply { color = Color.Black })
-//            t?.drawTiledImage()
-            drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
+//            drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
             for (y in minTile.z .. maxTile.z) {
                 for (x in minTile.x .. maxTile.x) {
                     val index = y.mod(nTiles) * nTiles + x.mod(nTiles)
                     val image = images[index]
-                    val drawOffset = LocalTileRegion(x, y, TileZoom.RegionZoom).getCenter() - startPosition
+                    val drawOffset = LocalTileRegion(x, y).getCenter()
                     image?.let { im ->
-                        translate(offsetX * scale, offsetY * scale) {
-                            scale(scale) {
-                                val drawX = drawOffset.x + 350
-                                val drawY = drawOffset.z + 350
+                        scale(scale) {
+                            translate( - center.x,  - center.y) {
                                 if (scale > 1) {
-                                    drawImage(im, dstOffset = IntOffset(drawX.toInt(), drawY.toInt()), filterQuality = FilterQuality.None)
+                                    drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
                                 } else {
-                                    drawImage(im, topLeft = Offset(drawX.toFloat(), drawY.toFloat()))
+                                    drawImage(im, topLeft = drawOffset.toOffset())
                                 }
                             }
                         }
                     }
                 }
             }
-//            drawIntoCanvas { canvas ->
-//                with(canvas) {
-//                    t?.drawTiledImage()
-//                }
-//            }
         }
-
     }
 }
 

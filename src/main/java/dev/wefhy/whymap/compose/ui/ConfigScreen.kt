@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.shrinkOut
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -73,6 +74,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
         var showList by remember { mutableStateOf(true) }
         var showMap by remember { mutableStateOf(false) }
         Card(
+            border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
             elevation = 20.dp, modifier = Modifier.padding(200.dp, 0.dp, 0.dp, 0.dp).padding(8.dp)/*.onPointerEvent(PointerEventType.Move) {
             val position = it.changes.first().position
             color = Color(position.x.toInt() % 256, position.y.toInt() % 256, 0)
