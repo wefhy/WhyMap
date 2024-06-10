@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
+import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
+import dev.wefhy.whymap.compose.ui.ComposeUtils.toOffset
 import dev.wefhy.whymap.utils.LocalTileBlock
 import dev.wefhy.whymap.utils.LocalTileRegion
 import dev.wefhy.whymap.utils.TileZoom
@@ -38,15 +40,22 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MapTileView(startPosition: LocalTileBlock) {
+    val scope = rememberCoroutineScope()
     val tileRadius = 1
     val nTiles = 3
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
+//    var offsetX by remember { mutableStateOf(0f) }
+//    var offsetY by remember { mutableStateOf(0f) }
     var scale by remember { mutableStateOf(1f) }
+    var center by remember { mutableStateOf(startPosition.toOffset()) }
     val paint = Paint().apply {
         filterQuality = FilterQuality.None
     }
-    val block = startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
+    val block by remember { derivedStateOf { center.toLocalTileBlock() }} //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
+//    val offsetX = center.x - startPosition.x
+//    val offsetY = center.y - startPosition.z
+//    rememberSaveable()
+    val offsetX = startPosition.x - center.x
+    val offsetY = startPosition.z - center.y
     val centerTile = block.parent(TileZoom.RegionZoom)
     val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
     val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
@@ -59,19 +68,19 @@ fun MapTileView(startPosition: LocalTileBlock) {
             val tile = LocalTileRegion(x, z)
             if (tile in dontDispose) continue
             val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
-            images[index] = null
             LaunchedEffect(tile) {
+                images[index] = null
                 println("MapTileView LaunchedEffect, tile: $tile, index: $index")
 //                if (tile in dontDispose) return@LaunchedEffect
-                withContext(WhyDispatchers.Render) {
+                val image = withContext(WhyDispatchers.Render) {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
-                        if (!isActive) return@getRegionForTilesRendering Unit.also { println("Cancel early 1")}
-                        val image = renderWhyImageNow().imageBitmap
-                        if (!isActive) return@getRegionForTilesRendering Unit.also { println("Cancel early 2")}
-                        images[index] = image
-                        dontDispose.add(tile)
+                        if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1")}
+                        renderWhyImageNow().imageBitmap
                     }
                 }
+                if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2")}
+                images[index] = image
+                dontDispose.add(tile)
             }
         }
         dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
@@ -90,8 +99,7 @@ fun MapTileView(startPosition: LocalTileBlock) {
         Canvas(modifier = Modifier.size(DpSize(400.dp, 400.dp)).clipToBounds().pointerInput(Unit) {
             detectDragGestures { change, dragAmount ->
                 change.consume()
-                offsetX += dragAmount.x / scale
-                offsetY += dragAmount.y / scale
+                center -= dragAmount / scale
             }
         }.onPointerEvent(PointerEventType.Scroll) {
             val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
