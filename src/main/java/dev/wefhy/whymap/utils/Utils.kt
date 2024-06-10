@@ -210,13 +210,11 @@ fun Raster.fillWithColor(color: Int) {
     }
 }
 
-val R = Random(0)
-
 fun WritableRaster.fillWithColor2(color: Int) {
     println("${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}, ${minX} ${minY} ${width} ${height}")
     for (y in 0 until height) {
         for (x in 0 until width) {
-            setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
+            setPixel(x, y, intArrayOf(color, rand.nextInt(), rand.nextInt()))
         }
     }
 }

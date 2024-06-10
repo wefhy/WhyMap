@@ -2,20 +2,15 @@
 
 package dev.wefhy.whymap.compose.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.*
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -32,27 +27,30 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 import java.util.*
-import kotlin.random.Random
 
 class ConfigScreen : Screen(Text.of("Config")) {
 
-    companion object {
-        private var initializationCount = 0
-    }
-
-    var i = 0
-    val random = Random(0)
+    private val vm = MapViewModel()
 
     private val composeView = ComposeView(
         width = clientWindow.width,
         height = clientWindow.height,
         density = Density(3f)
     ) {
-        UI()
+        var visible by remember { mutableStateOf(false) }
+        MaterialTheme(colors = if(vm.isDarkTheme) darkColors() else lightColors()) { //todo change theme according to minecraft day/night or real life
+            LaunchedEffect(Unit) {
+                visible = true
+            }
+            AnimatedVisibility(visible, enter = scaleIn() + fadeIn()) {
+                UI(vm)
+            }
+//            Scaffold {
+//            }
+        }
     }
 
-    init {
-        println("ConfigScreen init ${++initializationCount}")
+//    init {
 //        RenderThreadScope.launch {
 //            while (true) {
 ////                composeView.passLMBClick(148.8671875f, 43.724609375f)
@@ -63,23 +61,64 @@ class ConfigScreen : Screen(Text.of("Config")) {
 //                delay(random.nextLong(50, 550))
 //            }
 //        }
+//    }
+
+    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+//        super.render(context, mouseX, mouseY, delta)
+        composeView.render(context, delta)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    @Preview
-    @Composable
-    fun UI() {
-        var clicks by remember { mutableStateOf(0) }
-        var color by remember { mutableStateOf(Color.Green) }
-        var showList by remember { mutableStateOf(true) }
-        var showMap by remember { mutableStateOf(false) }
-        Card(
-            border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
-            elevation = 20.dp, modifier = Modifier.padding(200.dp, 0.dp, 0.dp, 0.dp).padding(8.dp)/*.onPointerEvent(PointerEventType.Move) {
+
+    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+//        println("Mouse clicked at $mouseX, $mouseY")
+        composeView.passLMBClick(mouseX.toFloat(), mouseY.toFloat())
+        return super.mouseClicked(mouseX, mouseY, button)
+    }
+
+    override fun mouseMoved(mouseX: Double, mouseY: Double) {
+        composeView.passMouseMove(mouseX.toFloat(), mouseY.toFloat())
+        super.mouseMoved(mouseX, mouseY)
+    }
+
+    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+//        println("Mouse released at $mouseX, $mouseY")
+        composeView.passLMBRelease(mouseX.toFloat(), mouseY.toFloat())
+        return super.mouseReleased(mouseX, mouseY, button)
+    }
+
+    override fun mouseScrolled(
+        mouseX: Double,
+        mouseY: Double,
+        horizontalAmount: Double,
+        verticalAmount: Double
+    ): Boolean {
+//        println("Mouse scrolled at $mouseX, $mouseY, $horizontalAmount, $verticalAmount")
+        composeView.passScroll(mouseX.toFloat(), mouseY.toFloat(), horizontalAmount.toFloat(), verticalAmount.toFloat())
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+    }
+
+    override fun close() {
+        composeView.close()
+        super.close()
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun UI(vm: MapViewModel) {
+    var i by remember { mutableStateOf(0) }
+    var clicks by remember { mutableStateOf(0) }
+    var color by remember { mutableStateOf(Color.Green) }
+    var showList by remember { mutableStateOf(true) }
+    var showMap by remember { mutableStateOf(false) }
+    Card(
+        border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
+        elevation = 20.dp, modifier = Modifier.padding(200.dp, 0.dp, 0.dp, 0.dp).padding(8.dp)/*.onPointerEvent(PointerEventType.Move) {
             val position = it.changes.first().position
             color = Color(position.x.toInt() % 256, position.y.toInt() % 256, 0)
         }*/
-        ) {
+    ) {
+        Box {
             Row(Modifier.padding(8.dp)) {
                 println("Recomposition ${i++}")
                 Column {
@@ -125,7 +164,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
                     exit = shrinkOut()
                 ) {
                     val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
-                    val entries = waypoints.mapIndexed() { i, it ->
+                    val entries = waypoints.mapIndexed { i, it ->
                         WaypointEntry(
                             name = it.name, distance = 0.0f, waypointId = i, date = Date(), waypointStatus = WaypointEntry.Status.NEW, waypointType = WaypointEntry.Type.SIGHTSEEING
                         )
@@ -133,9 +172,9 @@ class ConfigScreen : Screen(Text.of("Config")) {
                     WaypointsView(entries) {
                         println("Refresh!")
                     }
-                    val rememberScrollState = rememberScrollState()
+//                    val rememberScrollState = rememberScrollState()
 //                    Column(Modifier.scrollable(rememberScrollState, orientation = Orientation.Vertical)) {
-                    Column(Modifier.verticalScroll(rememberScrollState)) {
+//                    Column(Modifier.verticalScroll(rememberScrollState)) {
 //                        for (it in 0..20) {
 //                            val hovered = remember { mutableStateOf(false) }
 //                            Text("Item $it", Modifier.background(if (hovered.value) Color.Gray else Color.Transparent).padding(8.dp).onPointerEvent(
@@ -150,48 +189,25 @@ class ConfigScreen : Screen(Text.of("Config")) {
 //                        WaypointsView(entries) {
 //                            println("Refresh!")
 //                        }
-                    }
+//                    }
                 }
+            }
+            FloatingActionButton(onClick = { vm.isDarkTheme = !vm.isDarkTheme }, Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                val im = if (vm.isDarkTheme) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
+                Icon(im, contentDescription = "Theme")
             }
         }
     }
+}
 
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
-//        super.render(context, mouseX, mouseY, delta)
-        composeView.render(context, delta)
-    }
-
-
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-//        println("Mouse clicked at $mouseX, $mouseY")
-        composeView.passLMBClick(mouseX.toFloat(), mouseY.toFloat())
-        return super.mouseClicked(mouseX, mouseY, button)
-    }
-
-    override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        composeView.passMouseMove(mouseX.toFloat(), mouseY.toFloat())
-        super.mouseMoved(mouseX, mouseY)
-    }
-
-    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-//        println("Mouse released at $mouseX, $mouseY")
-        composeView.passLMBRelease(mouseX.toFloat(), mouseY.toFloat())
-        return super.mouseReleased(mouseX, mouseY, button)
-    }
-
-    override fun mouseScrolled(
-        mouseX: Double,
-        mouseY: Double,
-        horizontalAmount: Double,
-        verticalAmount: Double
-    ): Boolean {
-//        println("Mouse scrolled at $mouseX, $mouseY, $horizontalAmount, $verticalAmount")
-        composeView.passScroll(mouseX.toFloat(), mouseY.toFloat(), horizontalAmount.toFloat(), verticalAmount.toFloat())
-        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
-    }
-
-    override fun close() {
-        composeView.close()
-        super.close()
+@Preview
+@Composable
+private fun preview() {
+    val vm = MapViewModel()
+    vm.isDarkTheme = true
+    MaterialTheme(colors = if(vm.isDarkTheme) darkColors() else lightColors()) {
+        Scaffold {
+            UI(vm)
+        }
     }
 }

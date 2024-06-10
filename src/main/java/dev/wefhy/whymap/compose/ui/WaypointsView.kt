@@ -106,12 +106,12 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit) {
     Box(Modifier.pullRefresh(state).clipToBounds()) {
         val scrollState = rememberScrollState()
         Column(
-            modifier = Modifier.verticalScroll(scrollState),
+            modifier = Modifier.verticalScroll(scrollState).padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
 //            contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp)
         ) {
             for (waypoint in waypoints) {
-                Box(Modifier.padding(8.dp)) {
+                Box {
                     WaypointEntryView(waypoint)
                 }
             }
