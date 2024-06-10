@@ -11,8 +11,8 @@ open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 
     fun toLocalTile(): LocalTile<Z> {
         return LocalTile(
-            x - zoom.shift,
-            z - zoom.shift,
+            x - zoom.offset,
+            z - zoom.offset,
             zoom
         )
     }
@@ -51,16 +51,20 @@ open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 }
 
 typealias LocalTileBlock = LocalTile<BlockZoom>
+fun LocalTileBlock(x: Int, z: Int) = LocalTile(x, z, BlockZoom)
 typealias LocalTileChunk = LocalTile<ChunkZoom>
+fun LocalTileChunk(x: Int, z: Int) = LocalTile(x, z, ChunkZoom)
 typealias LocalTileRegion = LocalTile<RegionZoom>
+fun LocalTileRegion(x: Int, z: Int) = LocalTile(x, z, RegionZoom)
 typealias LocalTileThumbnail = LocalTile<ThumbnailZoom>
+fun LocalTileThumbnail(x: Int, z: Int) = LocalTile(x, z, ThumbnailZoom)
 
 open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
 
     fun toMapTile(): MapTile<Z> {
         return MapTile(
-            x + zoom.shift,
-            z + zoom.shift,
+            x + zoom.offset,
+            z + zoom.offset,
             zoom
         )
     }
@@ -189,7 +193,7 @@ sealed class TileZoom(val zoom: Int) {
     object RegionZoom : TileZoom(WhyMapConfig.regionZoom)
     object ThumbnailZoom : TileZoom(WhyMapConfig.thumbnailZoom)
 
-    val shift = 1 shl (zoom - 1)
+    val offset = 1 shl (zoom - 1)
 }
 
 fun File.resolve(tile: MapTile<out TileZoom>) = this

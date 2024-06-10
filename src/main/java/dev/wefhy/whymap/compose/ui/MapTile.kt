@@ -30,7 +30,8 @@ import dev.wefhy.whymap.utils.LocalTileBlock
 import dev.wefhy.whymap.utils.LocalTileRegion
 import dev.wefhy.whymap.utils.TileZoom
 import dev.wefhy.whymap.utils.WhyDispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -44,22 +45,27 @@ fun MapTileView(regionTile: LocalTileRegion) {
     val paint = Paint().apply {
         filterQuality = FilterQuality.None
     }
-    val block = regionTile.getCenter() - LocalTileBlock(offsetX.toInt(), offsetY.toInt(), TileZoom.BlockZoom)
+    val block = regionTile.getCenter() - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
     val centerTile = block.parent(TileZoom.RegionZoom)
-    val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius, TileZoom.RegionZoom)
-    val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius, TileZoom.RegionZoom)
+    val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
+    val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
     val dontDispose = remember { mutableSetOf<LocalTileRegion>() }
     val images: SnapshotStateList<ImageBitmap?> = remember { mutableStateListOf(null, null, null, null, null, null, null, null, null) }
-    LaunchedEffect(centerTile) {
-        for (x in minTile.x..maxTile.x) {
-            for (z in minTile.z..maxTile.z) {
-                val tile = LocalTileRegion(x, z, TileZoom.RegionZoom)
-                val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
-                if (tile in dontDispose) continue
+
+
+    for (x in minTile.x..maxTile.x) {
+        for (z in minTile.z..maxTile.z) {
+            val tile = LocalTileRegion(x, z)
+            val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
+            LaunchedEffect(tile) {
+                if (tile in dontDispose) return@LaunchedEffect
                 images[index] = null
-                launch(WhyDispatchers.Render) {
+                withContext(WhyDispatchers.Render) {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
-                        images[index] = renderWhyImageNow().imageBitmap
+                        if (!isActive) return@getRegionForTilesRendering
+                        val image = renderWhyImageNow().imageBitmap
+                        if (!isActive) return@getRegionForTilesRendering
+                        images[index] = image
                         dontDispose.add(tile)
                     }
                 }
@@ -67,8 +73,6 @@ fun MapTileView(regionTile: LocalTileRegion) {
         }
         dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
     }
-
-
     Column {
 //        Text("Tile $tile")
 //        val t: WhyTiledImage? = tile?.renderWhyImageNow()
@@ -102,8 +106,13 @@ fun MapTileView(regionTile: LocalTileRegion) {
                     val drawOffset = LocalTileRegion(x, y, TileZoom.RegionZoom).getCenter() - regionTile.getCenter()
                     image?.let { im ->
                         scale(scale) {
-//                    drawImage(im, topLeft = Offset(offsetX, offsetY))
-                            drawImage(im, dstOffset = IntOffset(drawOffset.x + offsetX.toInt() + 350, drawOffset.z + offsetY.toInt() + 350), filterQuality = FilterQuality.None)
+                            val drawX = drawOffset.x + offsetX + 350
+                            val drawY = drawOffset.z + offsetY + 350
+                            if (scale > 1) {
+                                drawImage(im, dstOffset = IntOffset(drawX.toInt(), drawY.toInt()), filterQuality = FilterQuality.None)
+                            } else {
+                                drawImage(im, topLeft = Offset(drawX, drawY))
+                            }
                         }
                     }
                 }
