@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -28,13 +29,15 @@ import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.utils.LocalTileBlock
 import dev.wefhy.whymap.utils.LocalTileRegion
 import dev.wefhy.whymap.utils.TileZoom
+import dev.wefhy.whymap.utils.WhyDispatchers
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MapTileView(regionTile: LocalTileRegion) {
-    val nRequiredTiles = 3
-
+    val tileRadius = 1
+    val nTiles = 3
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var scale by remember { mutableStateOf(1f) }
@@ -43,19 +46,26 @@ fun MapTileView(regionTile: LocalTileRegion) {
     }
     val block = regionTile.getCenter() - LocalTileBlock(offsetX.toInt(), offsetY.toInt(), TileZoom.BlockZoom)
     val centerTile = block.parent(TileZoom.RegionZoom)
-    val drawOffset =  centerTile.getCenter() - regionTile.getCenter()
-
-//    var tile: MapArea? by remember { mutableStateOf(null) }
-    var image: ImageBitmap? by remember { mutableStateOf(null) }
-    println("MapTileView recompose, image: $image, regionTile: $centerTile")
+    val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius, TileZoom.RegionZoom)
+    val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius, TileZoom.RegionZoom)
+    val dontDispose = remember { mutableSetOf<LocalTileRegion>() }
+    val images: SnapshotStateList<ImageBitmap?> = remember { mutableStateListOf(null, null, null, null, null, null, null, null, null) }
     LaunchedEffect(centerTile) {
-        image = null
-        println("MapTileView LaunchedEffect")
-        activeWorld?.mapRegionManager?.getRegionForTilesRendering(centerTile) {
-            println("MapTileView LaunchedEffect getRegionForTilesRendering, tile: ${this@getRegionForTilesRendering}")
-            val tile = this@getRegionForTilesRendering
-            image = tile.renderWhyImageNow().imageBitmap
+        for (x in minTile.x..maxTile.x) {
+            for (z in minTile.z..maxTile.z) {
+                val tile = LocalTileRegion(x, z, TileZoom.RegionZoom)
+                val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
+                if (tile in dontDispose) continue
+                images[index] = null
+                launch(WhyDispatchers.Render) {
+                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
+                        images[index] = renderWhyImageNow().imageBitmap
+                        dontDispose.add(tile)
+                    }
+                }
+            }
         }
+        dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
     }
 
 
@@ -81,14 +91,21 @@ fun MapTileView(regionTile: LocalTileRegion) {
             scale *= 1 + scrollDelta.y / 10
         }
         ) {
-            println("MapTileView Canvas recompose, image: $image")
+//            println("MapTileView Canvas recompose, image: $image")
 //            drawRect(Rect(Offset(0f, 0f), Size(size.width, size.height)), Paint().apply { color = Color.Black })
 //            t?.drawTiledImage()
             drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
-            image?.let { im ->
-                scale(scale) {
+            for (y in minTile.z .. maxTile.z) {
+                for (x in minTile.x .. maxTile.x) {
+                    val index = y.mod(nTiles) * nTiles + x.mod(nTiles)
+                    val image = images[index]
+                    val drawOffset = LocalTileRegion(x, y, TileZoom.RegionZoom).getCenter() - regionTile.getCenter()
+                    image?.let { im ->
+                        scale(scale) {
 //                    drawImage(im, topLeft = Offset(offsetX, offsetY))
-                    drawImage(im, dstOffset = IntOffset(drawOffset.x + offsetX.toInt(), drawOffset.z + offsetY.toInt()), filterQuality = FilterQuality.None)
+                            drawImage(im, dstOffset = IntOffset(drawOffset.x + offsetX.toInt() + 350, drawOffset.z + offsetY.toInt() + 350), filterQuality = FilterQuality.None)
+                        }
+                    }
                 }
             }
 //            drawIntoCanvas { canvas ->
