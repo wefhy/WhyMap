@@ -126,7 +126,8 @@ class WhyMapMod : ModInitializer {
 
             val message = Text.literal("WhyMap: see your map at ") + Text.literal(mapLink).apply {
                 style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
-            }
+            } + Text.literal(" or press  ${kbModSettings.boundKeyLocalizedText} to new in-game map!")
+//            } + Text.literal(" or press ${KeyBindingHelper.getBoundKeyOf(kbModSettings)} to open map")
             client.player!!.sendMessage(message, false)
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.EnterWorld)
         }

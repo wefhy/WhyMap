@@ -5,9 +5,9 @@ package dev.wefhy.whymap.compose.ui
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
@@ -104,33 +104,21 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit) {
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
     Box(Modifier.pullRefresh(state).clipToBounds()) {
-        val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier.verticalScroll(scrollState).padding(8.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-//            contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp)
+            contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp),
         ) {
-            for (waypoint in waypoints) {
-                Box {
-                    WaypointEntryView(waypoint)
-                }
+            items(waypoints) {
+                WaypointEntryView(it)
             }
         }
-//        LazyColumn(
-//            modifier = Modifier.fillMaxSize(), //TODO removing this causes race condition instead of crash
-//            verticalArrangement = Arrangement.spacedBy(8.dp),
-//            contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp)
-//        ) {
-//            items(waypoints) {
-//                WaypointEntryView(it)
-//            }
-//        }
 
         PullRefreshIndicator(refreshing, state, Modifier.align(Alignment.TopCenter))
     }
 }
 
-val viewEntry = WaypointEntry(
+private val viewEntry = WaypointEntry(
     name = "Hello",
     distance = 123.57f,
     waypointId = 2137,
@@ -153,5 +141,5 @@ fun Preview() {
 fun Preview2() {
     WaypointsView(
         listOf(viewEntry, viewEntry, viewEntry)
-    ){}
+    ) {}
 }

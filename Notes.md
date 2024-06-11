@@ -8,6 +8,13 @@ https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 
 https://github.com/leonbloy/pngj
 
+### Compose bugs
+ - Can't use Lazy layouts
+ - It will crash once for no reason. If the error is caught and UI is restarted, it'll continue working fine.
+ - LocalDensity.current will cause crashes
+ - 
+
+
 ### Design choices
 `withLock` implementation found in `UpdateQueue` and `MapAreaAccess` - 
 These are operations that can be accessed from multiple threads but none of them are crucial do be finished quickly. 

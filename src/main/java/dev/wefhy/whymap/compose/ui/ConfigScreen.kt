@@ -5,19 +5,25 @@ package dev.wefhy.whymap.compose.ui
 import androidx.compose.animation.*
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.utils.Accessors.clientInstance
@@ -49,19 +55,6 @@ class ConfigScreen : Screen(Text.of("Config")) {
 //            }
         }
     }
-
-//    init {
-//        RenderThreadScope.launch {
-//            while (true) {
-////                composeView.passLMBClick(148.8671875f, 43.724609375f)
-//                composeView.passLMBClick(191f, 90f)
-//                delay(random.nextLong(25, 50))
-////                composeView.passLMBRelease(148.8671875f, 43.724609375f)
-//                composeView.passLMBRelease(191f, 90f)
-//                delay(random.nextLong(50, 550))
-//            }
-//        }
-//    }
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
 //        super.render(context, mouseX, mouseY, delta)
@@ -117,83 +110,212 @@ private fun UI(vm: MapViewModel) {
         elevation = 20.dp, modifier = Modifier/*.padding(200.dp, 0.dp, 0.dp, 0.dp)*/.padding(8.dp)
     ) {
         Box {
-            Row(Modifier.padding(8.dp)) {
-                println("Recomposition ${i++}")
-                Column {
-                    Text("Clicks: $clicks")
-                    Button(onClick = { clicks++ }) {
-                        Text("Click me!")
-                        color = Color(0x7F777700)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Show List")
-                        Switch(checked = showList, onCheckedChange = { showList = it })
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Show Map")
-                        Switch(checked = showMap, onCheckedChange = { showMap = it })
-                    }
-                }
-//                if(showList) {
-//                    LazyColumn { //TODO scrolling LazyColumn will cause race condition in Recomposer, broadcastFrameClock
-//                        items(20) {
-//                            Text("Item $it")
-//                        }
-//                    }
-//                }
-//                return@Row
+            Column {
+                var showDropDown by remember { mutableStateOf(false) }
+                TopAppBar({
+                    Text("WhyMap")
 
-                AnimatedVisibility(
-                    showMap,
-                    enter = expandIn(),
-                    exit = shrinkOut()
-                ) {
+                    //smaller text in cursive
+                    Text("by wefhy", fontSize = 12.sp, modifier = Modifier.padding(4.dp).offset(0.dp, 4.dp), fontStyle = FontStyle.Italic)
+//                    DimensionDropDown()
+                    Spacer(Modifier.weight(1f))
+                    BetterDimensionDrop()
+                }, actions = {
+                    IconButton(
+                        onClick = { showDropDown = true }) {
+                        Icon(Icons.Filled.MoreVert, null)
+
+                    }
+                    DropdownMenu(
+                        showDropDown, { showDropDown = false }
+                        // offset = DpOffset((-102).dp, (-64).dp),
+                    ) {
+                        DropdownMenuItem(/*icon = {
+                            Icon(
+                                Icons.Filled.Home
+                            )
+                        },*/ onClick = {
+                            showDropDown = false
+                        }) { Text(text = "Drop down item") }
+                    }
+                })
+                Row(Modifier.padding(8.dp)) {
+                    println("Recomposition ${i++}")
                     Column {
-                        Text("Map")
+                        Text("Clicks: $clicks")
+                        Button(onClick = { clicks++ }) {
+                            Text("Click me!")
+                            color = Color(0x7F777700)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Show List")
+                            Switch(checked = showList, onCheckedChange = { showList = it })
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Show Map")
+                            Switch(checked = showMap, onCheckedChange = { showMap = it })
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        showMap,
+                        enter = expandIn(),
+                        exit = shrinkOut()
+                    ) {
                         MapTileView(LocalTileBlock(clientInstance.player!!.pos))
                     }
-//                    MapTileView(LocalTileThumbnail(16383, 16384, TileZoom.ThumbnailZoom))
-                }
 
-
-                AnimatedVisibility(
-                    showList,
-                    enter = expandIn(),
-                    exit = shrinkOut()
-                ) {
-                    val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
-                    val entries = waypoints.mapIndexed { i, it ->
-                        WaypointEntry(
-                            name = it.name, distance = 0.0f, waypointId = i, date = Date(), waypointStatus = WaypointEntry.Status.NEW, waypointType = WaypointEntry.Type.SIGHTSEEING
-                        )
+                    AnimatedVisibility(
+                        showList,
+                        enter = expandIn(),
+                        exit = shrinkOut()
+                    ) {
+                        val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
+                        val entries = waypoints.mapIndexed { i, it ->
+                            WaypointEntry(
+                                name = it.name,
+                                distance = 0.0f,
+                                waypointId = i,
+                                date = Date(),
+                                waypointStatus = WaypointEntry.Status.NEW,
+                                waypointType = WaypointEntry.Type.SIGHTSEEING
+                            )
+                        }
+                        WaypointsView(entries) {
+                            println("Refresh!")
+                        }
                     }
-                    WaypointsView(entries) {
-                        println("Refresh!")
-                    }
-//                    val rememberScrollState = rememberScrollState()
-//                    Column(Modifier.scrollable(rememberScrollState, orientation = Orientation.Vertical)) {
-//                    Column(Modifier.verticalScroll(rememberScrollState)) {
-//                        for (it in 0..20) {
-//                            val hovered = remember { mutableStateOf(false) }
-//                            Text("Item $it", Modifier.background(if (hovered.value) Color.Gray else Color.Transparent).padding(8.dp).onPointerEvent(
-//                                PointerEventType.Move) {
-//                                hovered.value = true
-//                            })
-//                        }
-
-//                        for (entry in entries) {
-//                            WaypointEntryView(entry)
-//                        }
-//                        WaypointsView(entries) {
-//                            println("Refresh!")
-//                        }
-//                    }
                 }
             }
-            FloatingActionButton(onClick = { vm.isDarkTheme = !vm.isDarkTheme }, Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+            FloatingActionButton(onClick = { vm.isDarkTheme = !vm.isDarkTheme }, Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
                 val im = if (vm.isDarkTheme) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
                 Icon(im, contentDescription = "Theme")
             }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun BetterDimensionDrop() {
+    val coffeeDrinks = arrayOf("OverWorld", "Nether", "End", "Neth/OW overlay")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedText by remember { mutableStateOf(coffeeDrinks[0]) }
+
+    Box(
+        modifier = Modifier
+//            .fillMaxWidth()
+            .padding(4.dp)
+    ) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = {
+                expanded = !expanded
+            }
+        ) {
+//            TextField(
+//                value = selectedText,
+//                textStyle = MaterialTheme.typography.body1,
+//                onValueChange = {},
+//                readOnly = true,
+//                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+//                // modifier = Modifier.menuAnchor() TODO this will be required in material3
+//            )
+            val interactionSource = remember { MutableInteractionSource() }
+            BasicTextField(
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp).merge(
+                    TextStyle(color = TextFieldDefaults.textFieldColors().textColor(true).value)
+                ),
+                value = selectedText,
+                onValueChange = {},
+//                textStyle = TextStyle.Default.copy(fontSize = 18.sp),
+                modifier = Modifier
+//                    .background(
+//                        color = colors.background,
+//                        shape = TextFieldDefaults.TextFieldShape//RoundedCornerShape(13.dp)
+//                    )
+//                    .indicatorLine(
+//                        enabled = enabled,
+//                        isError = false,
+//                        interactionSource = interactionSource,
+//                        colors = TextFieldDefaults.outlinedTextFieldColors(),
+//                        focusedIndicatorLineThickness = 0.dp,  //to hide the indicator line
+//                        unfocusedIndicatorLineThickness = 0.dp //to hide the indicator line
+//                    )
+                    .height(42.dp),
+
+
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(8.dp)
+//                    .border(1.dp, Color.Black)
+            ) {
+                TextFieldDefaults.OutlinedTextFieldDecorationBox(
+                    value = selectedText,
+                    enabled = true,
+                    innerTextField = it,
+                    singleLine = true,
+                    visualTransformation = VisualTransformation.None,
+                    interactionSource = interactionSource,
+                    contentPadding = PaddingValues(16.dp, 0.dp, 0.dp, 0.dp),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                )
+            }
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                coffeeDrinks.forEach { item ->
+                    DropdownMenuItem(
+                        onClick = {
+                            selectedText = item
+                            expanded = false
+                        }
+                    ) { Text(text = item) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DimensionDropDown() {
+    var expanded by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf("OverWorld") }
+
+    Box(
+        modifier = Modifier.fillMaxWidth()
+            .wrapContentSize(Alignment.TopEnd).border(1.dp, Color.Black)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "More"
+                )
+            }
+            Text(selected)
+        }
+
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                onClick = { selected = "OverWorld"}
+            ) { Text("OverWorld") }
+            DropdownMenuItem(
+                onClick = { selected = "Nether"}
+            ) { Text("Nether") }
+            DropdownMenuItem(
+                onClick = { selected = "End"}
+            ) { Text("End") }
+            DropdownMenuItem(
+                onClick = { selected = "Neth/OW overlay"}
+            ) { Text("Neth/OW overlay") }
         }
     }
 }

@@ -13,13 +13,17 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.scene.SingleLayerComposeScene
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.utils.Accessors.clientWindow
+import dev.wefhy.whymap.utils.WhyDispatchers
 import dev.wefhy.whymap.utils.WhyDispatchers.launchOnMain
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import net.minecraft.client.gui.DrawContext
+import org.jetbrains.skiko.MainUIDispatcher
 import java.io.Closeable
 import java.util.concurrent.Executors
 
@@ -30,6 +34,10 @@ open class ComposeView(
     private val density: Density = Density(2f),
     private val content: @Composable () -> Unit
 ) : Closeable {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val rawSingleThreadDispatcher = MainUIDispatcher.limitedParallelism(1)
+    protected val singleThreadDispatcher = rawSingleThreadDispatcher +
+            CoroutineExceptionHandler { _, throwable -> println(throwable) }
     private var invalidated = true
     private val screenScale = 2 //TODO This is Macbook specific
     private var width by mutableStateOf(width)
@@ -53,7 +61,10 @@ open class ComposeView(
         }
 
     //TODO use ImageComposeScene, seems more popular?
-    private val scene = SingleLayerComposeScene(coroutineContext = coroutineContext, density = density) {
+    private val scene = MultiLayerComposeScene(coroutineContext = WhyDispatchers.MainDispatcher, density = density) {
+//    private val scene = MultiLayerComposeScene(coroutineContext = singleThreadDispatcher, density = density) {
+//    private val scene = MultiLayerComposeScene(coroutineContext = coroutineContext, density = density) {
+//    private val scene = SingleLayerComposeScene(coroutineContext = coroutineContext, density = density) {
         invalidated = true
     }
 
@@ -115,6 +126,16 @@ open class ComposeView(
             height * screenScale
         )
         directRenderer.render(drawContext, tickDelta) { glCanvas ->
+            /**
+             * So the problem is
+             *  - scene.render needs to run on minecraft render thread
+             *  - but it also needs to run on the same thread as the scene
+             *  - scene under the hood probably uses `val MainUIDispatcher: CoroutineDispatcher get() = SwingDispatcher`
+             *  For some reason, this only happens
+             *
+             *  The problem is in GlobalSnapshotManager.ensureStarted - it uses swing thread to consume events
+             */
+
             try {
 //                println("Rendering START!")
                 scene.render(glCanvas, System.nanoTime())

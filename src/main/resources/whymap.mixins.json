@@ -4,6 +4,7 @@
   "package": "dev.wefhy.whymap.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MainUIDispatcherMixin",
     "PlayerEntityMixin",
     "ServerPlayerEntityMixin"
   ],
