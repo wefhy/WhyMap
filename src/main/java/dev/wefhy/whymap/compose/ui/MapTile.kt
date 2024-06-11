@@ -2,13 +2,18 @@
 
 package dev.wefhy.whymap.compose.ui
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Card
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -26,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowPosition.PlatformDefault.x
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.compose.ui.ComposeConstants.scaleRange
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
@@ -42,11 +48,19 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MapTileView(startPosition: LocalTileBlock) {
     val scope = rememberCoroutineScope()
+    val target by animateOffsetAsState(startPosition.toOffset(), animationSpec = spring(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+    )
     val tileRadius = 1
     val nTiles = 3
     var scale by remember { mutableStateOf(1f) }
     var center by remember { mutableStateOf(startPosition.toOffset()) }
-    val block by remember { derivedStateOf { center.toLocalTileBlock() }} //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
+    remember(target) {
+        center = target
+    }
+    val block by remember { derivedStateOf { center.toLocalTileBlock() } } //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
     val centerTile = block.parent(TileZoom.RegionZoom)
     val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
     val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
@@ -65,11 +79,11 @@ fun MapTileView(startPosition: LocalTileBlock) {
                 println("MapTileView LaunchedEffect, tile: $tile, index: $index")
                 val image = withContext(WhyDispatchers.Render) {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
-                        if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1")}
+                        if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1") }
                         renderWhyImageNow().imageBitmap
                     }
                 }
-                if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2")}
+                if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2") }
                 image?.let {
                     images[tile] = it
                 }
@@ -78,43 +92,44 @@ fun MapTileView(startPosition: LocalTileBlock) {
         }
     }
 
-    Card(
-        elevation = 8.dp
-    ) {
+    Column {
+        Card(
+            elevation = 8.dp
+        ) {
 //        val dpSize = with(LocalDensity.current) {
 ////            DpSize(t?.width?.toDp() ?: 1.dp, t?.height?.toDp() ?: 1.dp)
 //            DpSize(image?.width?.toDp() ?: 1.dp, image?.height?.toDp() ?: 1.dp)
 //        }
 
-        Canvas(modifier = Modifier
-            .size(DpSize(400.dp, 400.dp))
-            .background(Color(0.1f, 0.1f, 0.1f))
-            .clipToBounds()
-            .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    center -= dragAmount / scale
+            Canvas(modifier = Modifier
+                .size(DpSize(400.dp, 400.dp))
+                .background(Color(0.1f, 0.1f, 0.1f))
+                .clipToBounds()
+                .pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        center -= dragAmount / scale
+                    }
                 }
-            }
-            .onPointerEvent(PointerEventType.Scroll) {
-                val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
-                scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
-            }
-        ) {
-//            drawRect(Color.Black, Offset(0f, 0f), Size(size.width, size.height))
-            for (y in minTile.z .. maxTile.z) {
-                for (x in minTile.x .. maxTile.x) {
-                    val tile = LocalTileRegion(x, y)
-                    val image = images[tile]
-                    val drawOffset = tile.getStart()
-                    image?.let { im ->
-                        scale(scale) {
-                            translate(size.width / 2, size.height / 2) {
-                                translate( - center.x,  - center.y) {
-                                    if (scale > 1) {
-                                        drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
-                                    } else {
-                                        drawImage(im, topLeft = drawOffset.toOffset())
+                .onPointerEvent(PointerEventType.Scroll) {
+                    val scrollDelta = it.changes.fold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
+                    scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
+                }
+            ) {
+                for (y in minTile.z..maxTile.z) {
+                    for (x in minTile.x..maxTile.x) {
+                        val tile = LocalTileRegion(x, y)
+                        val image = images[tile]
+                        val drawOffset = tile.getStart()
+                        image?.let { im ->
+                            scale(scale) {
+                                translate(size.width / 2, size.height / 2) {
+                                    translate(-center.x, -center.y) {
+                                        if (scale > 1) {
+                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
+                                        } else {
+                                            drawImage(im, topLeft = drawOffset.toOffset())
+                                        }
                                     }
                                 }
                             }
@@ -125,7 +140,6 @@ fun MapTileView(startPosition: LocalTileBlock) {
         }
     }
 }
-
 @Composable
 fun CachedCanvas(modifier: Modifier = Modifier, block: DrawScope.() -> Unit) {
     Spacer(modifier = Modifier.fillMaxSize().drawWithCache {

@@ -157,12 +157,14 @@ private fun UI(vm: MapViewModel) {
                         }
                     }
 
+                    var center by remember { mutableStateOf(clientInstance.player!!.pos) }
+
                     AnimatedVisibility(
                         showMap,
                         enter = expandIn(),
                         exit = shrinkOut()
                     ) {
-                        MapTileView(LocalTileBlock(clientInstance.player!!.pos))
+                        MapTileView(LocalTileBlock(center))
                     }
 
                     AnimatedVisibility(
@@ -173,16 +175,17 @@ private fun UI(vm: MapViewModel) {
                         val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
                         val entries = waypoints.mapIndexed { i, it ->
                             WaypointEntry(
-                                name = it.name,
-                                distance = 0.0f,
                                 waypointId = i,
-                                date = Date(),
-                                waypointStatus = WaypointEntry.Status.NEW,
-                                waypointType = WaypointEntry.Type.SIGHTSEEING
+                                name = it.name,
+                                distance = clientInstance?.player?.pos?.distanceTo(it.pos.toVec3d())?.toFloat() ?: 0f,
+                                coords = it.pos,
                             )
                         }
-                        WaypointsView(entries) {
+                        WaypointsView(entries, {
                             println("Refresh!")
+                        }) {
+                            println("Clicked on ${it.name}, centering on ${it.coords}")
+                            center = it.coords.toVec3d()
                         }
                     }
                 }

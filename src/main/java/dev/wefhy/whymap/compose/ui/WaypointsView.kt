@@ -3,10 +3,13 @@
 package dev.wefhy.whymap.compose.ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.onClick
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.wefhy.whymap.waypoints.CoordXYZ
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -31,16 +35,13 @@ import java.util.*
 
 
 class WaypointEntry(
+    val waypointId: Int,
     val name: String,
     val distance: Float,
-    val waypointId: Int,
-    val date: Date,
-    val waypointStatus: Status,
-    val waypointType: Type
+    val coords: CoordXYZ,
+    val date: Date? = null,
+    val waypointType: Type? = null
 ) {
-    enum class Status {
-        NEW, REACHED, ARCHIVED
-    }
 
     enum class Type {
         SPAWN, DEATH, TODO, HOME, SIGHTSEEING
@@ -48,9 +49,9 @@ class WaypointEntry(
 }
 
 @Composable
-fun WaypointEntryView(waypointEntry: WaypointEntry) {
+fun WaypointEntryView(waypointEntry: WaypointEntry, modifier: Modifier = Modifier) {
     val dateFormatter = SimpleDateFormat("HH:mm, EEE, MMM d", Locale.getDefault())
-    Card(modifier = Modifier.fillMaxWidth(), elevation = 8.dp) {
+    Card(modifier = modifier.fillMaxWidth(), elevation = 8.dp) {
         Box(
             Modifier
                 .fillMaxWidth()
@@ -68,18 +69,20 @@ fun WaypointEntryView(waypointEntry: WaypointEntry) {
                         )
                     }
                 }
-                Text(text = dateFormatter.format(waypointEntry.date), fontSize = 16.sp)
-                Text(text = waypointEntry.waypointId.toString(), color = Color.Gray, fontSize = 14.sp)
+
+                Text(text = "${waypointEntry.waypointType ?: ""}", fontSize = 16.sp)
+                Text(text = waypointEntry.date?.let {dateFormatter.format(it)} ?: "Now", color = Color.Gray, fontSize = 14.sp)
             }
+            val c = waypointEntry.coords
             Text(
-                text = "${waypointEntry.waypointStatus}/${waypointEntry.waypointType}",
+                text = "${c.x}, ${c.y}, ${c.z}",
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .clip(RoundedCornerShape(8.dp))
                     .background(
                         Color.Blue
                     )
-                    .padding(4.dp),
+                    .padding(6.dp),
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
@@ -88,9 +91,9 @@ fun WaypointEntryView(waypointEntry: WaypointEntry) {
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit) {
+fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick: (WaypointEntry) -> Unit = {}) {
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
 
@@ -110,7 +113,7 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit) {
             contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp),
         ) {
             items(waypoints) {
-                WaypointEntryView(it)
+                WaypointEntryView(it, Modifier.clickable { onClick(it) })
             }
         }
 
@@ -119,12 +122,11 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit) {
 }
 
 private val viewEntry = WaypointEntry(
+    waypointId = 2137,
     name = "Hello",
     distance = 123.57f,
-    waypointId = 2137,
     date = Date(),
-    waypointStatus = WaypointEntry.Status.NEW,
-    waypointType = WaypointEntry.Type.TODO
+    coords = CoordXYZ(1, 2, 3),
 )
 
 
@@ -140,6 +142,6 @@ fun Preview() {
 @Composable
 fun Preview2() {
     WaypointsView(
-        listOf(viewEntry, viewEntry, viewEntry)
+        listOf(viewEntry, viewEntry, viewEntry), {}
     ) {}
 }

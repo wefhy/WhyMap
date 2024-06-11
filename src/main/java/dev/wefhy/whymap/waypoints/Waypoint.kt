@@ -4,6 +4,7 @@ package dev.wefhy.whymap.waypoints
 
 import dev.wefhy.whymap.utils.CoordinateConversion
 import kotlinx.serialization.Serializable
+import net.minecraft.util.math.Vec3d
 
 @Serializable
 class LocalWaypoint(var name: String, val location: CoordXYZ, var color: String? = null, var initials: String? = null, val isDeath: Boolean? = null, val isBed: Boolean? = null) {
@@ -24,6 +25,10 @@ data class CoordXYZ(val x: Int, val y: Int, val z: Int) {
     fun toLatLng(): LatLng {
         val deg = CoordinateConversion.coord2deg(x.toDouble(), z.toDouble())
         return LatLng(deg.first, deg.second)
+    }
+
+    fun toVec3d(): Vec3d {
+        return Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
     }
 
     fun toLatLngWithHalfBlockOffset(): LatLng {
