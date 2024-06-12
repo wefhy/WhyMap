@@ -12,6 +12,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.unit.Density
@@ -24,8 +27,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import net.minecraft.client.gui.DrawContext
 import org.jetbrains.skiko.MainUIDispatcher
+import java.awt.Component
 import java.io.Closeable
 import java.util.concurrent.Executors
+import java.awt.event.KeyEvent as AwtKeyEvent
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 open class ComposeView(
@@ -107,6 +112,55 @@ open class ComposeView(
             Offset(x, y).toComposeCoords(),
             scrollDelta = Offset(scrollX, scrollY),
         )
+    }
+
+//    private fun getAwtKeyEvent(key: Int, action: Int, modifiers: Int): KeyEvent {
+//        val k = Key(key)
+//        return java.awt.event.KeyEvent(
+//            scene,
+//            action,
+//            System.currentTimeMillis(),
+//            modifiers,
+//            key,
+//            k.toString().first()
+//        ).let {
+//            KeyEvent(k, KeyEventType.KeyDown, codePoint = key)
+//        }
+//    }
+    val dummy = object : Component() {}
+
+    private fun createKeyEvent(awtId: Int, time: Long, awtMods: Int, key: Int, char: Char, location: Int) = KeyEvent(
+        AwtKeyEvent(dummy, awtId, time, awtMods, key, char, location)
+    )
+
+    private fun remapKeycode(key: Int, char: Char): Int {
+        return when (key) {
+            0x0 -> char.toInt()
+            else -> key
+        }
+    }
+
+
+    fun passKeyPress(key: Int, action: Int, modifiers: Int) = onComposeThread {
+//        scene.sendKeyEvent(androidx.compose.ui.input.key.KeyEvent(AwtKeyEvent.KEY_TYPED, System.nanoTime() / 1_000_000, getAwtMods(), remapKeycode(key, char), 0.toChar(), AwtKeyEvent.KEY_LOCATION_STANDARD))
+//        scene.sendKeyEvent(KeyEvent(AwtKeyEvent.KEY_TYPED, System.nanoTime() / 1_000_000, getAwtMods(), remapKeycode(key, char), 0.toChar(), AwtKeyEvent.KEY_LOCATION_STANDARD))
+//        val time = System.nanoTime() / 1_000_000
+//        val kmod = action//getAwtMods()
+//        val char = Key(key).toString().first()
+//        val native1 = createKeyEvent(AwtKeyEvent.KEY_PRESSED, time, kmod, remapKeycode(key, char), 0.toChar(), AwtKeyEvent.KEY_LOCATION_STANDARD)
+//        val native2 = createKeyEvent(AwtKeyEvent.KEY_TYPED, time, kmod, 0, char, AwtKeyEvent.KEY_LOCATION_UNKNOWN)
+//        val k = Key(key)
+//        val event1 = KeyEvent(k, KeyEventType.KeyDown, codePoint = key, nativeEvent = native1)
+//        scene.sendKeyEvent(event1)
+//        val event2 = KeyEvent(k, KeyEventType.Unknown, codePoint = key, nativeEvent = native2)
+//        scene.sendKeyEvent(event2)
+        val event = KeyEvent(Key(key), KeyEventType.KeyDown, codePoint = key)
+        scene.sendKeyEvent(event)//getAwtKeyEvent(key, action, modifiers)))
+    }
+
+    fun passKeyRelease(key: Int, action: Int, modifiers: Int) = onComposeThread {
+        val event = KeyEvent(Key(key), KeyEventType.KeyUp, codePoint = key)
+        scene.sendKeyEvent(event)//getAwtKeyEvent(key, action, modifiers)))
     }
 
     var isRendering = false

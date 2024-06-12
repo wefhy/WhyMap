@@ -6,8 +6,10 @@ import androidx.compose.animation.*
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -26,11 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
+import dev.wefhy.whymap.compose.styles.McTheme
+import dev.wefhy.whymap.compose.styles.mcColors
+import dev.wefhy.whymap.compose.styles.noctuaColors
 import dev.wefhy.whymap.utils.Accessors.clientInstance
 import dev.wefhy.whymap.utils.Accessors.clientWindow
 import dev.wefhy.whymap.utils.LocalTileBlock
-import dev.wefhy.whymap.utils.parseHex
-import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
@@ -47,7 +50,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
     ) {
         var visible by remember { mutableStateOf(false) }
         val isDarkTheme by vm.isDark.collectAsState()
-        MaterialTheme(colors = if(isDarkTheme) darkColors() else lightColors()) { //todo change theme according to minecraft day/night or real life
+        McTheme(colors = if(isDarkTheme) mcColors else noctuaColors) { //todo change theme according to minecraft day/night or real life
             LaunchedEffect(Unit) {
                 visible = true
             }
@@ -93,6 +96,16 @@ class ConfigScreen : Screen(Text.of("Config")) {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
     }
 
+    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        composeView.passKeyPress(keyCode, scanCode, modifiers)
+        return super.keyPressed(keyCode, scanCode, modifiers)
+    }
+
+    override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        composeView.passKeyRelease(keyCode, scanCode, modifiers)
+        return super.keyReleased(keyCode, scanCode, modifiers)
+    }
+
     override fun close() {
         composeView.close()
         super.close()
@@ -107,7 +120,7 @@ private fun UI(vm: MapViewModel) {
     var clicks by remember { mutableStateOf(0) }
     var color by remember { mutableStateOf(Color.Green) }
     var showList by remember { mutableStateOf(true) }
-    var showMap by remember { mutableStateOf(false) }
+    var showMap by remember { mutableStateOf(true) }
     Card(
         border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
         elevation = 20.dp, modifier = Modifier/*.padding(200.dp, 0.dp, 0.dp, 0.dp)*/.padding(8.dp)
@@ -120,9 +133,9 @@ private fun UI(vm: MapViewModel) {
 
                     //smaller text in cursive
                     Text("by wefhy", fontSize = 12.sp, modifier = Modifier.padding(4.dp).offset(0.dp, 4.dp), fontStyle = FontStyle.Italic)
-//                    DimensionDropDown()
-                    Spacer(Modifier.weight(1f))
-                    BetterDimensionDrop()
+                    DimensionDropDown()
+//                    Spacer(Modifier.weight(1f))
+//                    BetterDimensionDrop()
                 }, actions = {
                     IconButton(
                         onClick = { showDropDown = true }) {
@@ -166,7 +179,7 @@ private fun UI(vm: MapViewModel) {
                     }
 
                     remember {
-                        val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
+                        val waypoints = WhyMapMod.activeWorld?.waypoints?.waypoints ?: emptyList()
                         entries.addAll(waypoints.mapIndexed { i, it ->
                             WaypointEntry(
                                 waypointId = i,
@@ -175,8 +188,8 @@ private fun UI(vm: MapViewModel) {
                                     if (it.first() != '#') return@let null
                                     Color(it.drop(1).toInt(16)).copy(alpha = 1f)
                                 } ?: Color.Black,
-                                distance = clientInstance?.player?.pos?.distanceTo(it.pos.toVec3d())?.toFloat() ?: 0f,
-                                coords = it.pos,
+                                distance = clientInstance?.player?.pos?.distanceTo(it.location.toVec3d())?.toFloat() ?: 0f,
+                                coords = it.location,
                             )
                         })
                     }
@@ -316,15 +329,15 @@ fun DimensionDropDown() {
 
     Box(
         modifier = Modifier.fillMaxWidth()
-            .wrapContentSize(Alignment.TopEnd).border(1.dp, Color.Black)
+            .wrapContentSize(Alignment.TopEnd).border(1.dp, Color.Black, shape = RoundedCornerShape(4.dp))
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { expanded = !expanded }) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { expanded = !expanded }.padding(8.dp)) {
+//            IconButton(onClick = { expanded = !expanded }) {
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = "More"
                 )
-            }
+//            }
             Text(selected)
         }
 
