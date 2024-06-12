@@ -29,10 +29,12 @@ import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.utils.Accessors.clientInstance
 import dev.wefhy.whymap.utils.Accessors.clientWindow
 import dev.wefhy.whymap.utils.LocalTileBlock
+import dev.wefhy.whymap.utils.parseHex
+import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
-import java.util.*
+import net.minecraft.util.math.Vec3d
 
 class ConfigScreen : Screen(Text.of("Config")) {
 
@@ -44,7 +46,8 @@ class ConfigScreen : Screen(Text.of("Config")) {
         density = Density(3f)
     ) {
         var visible by remember { mutableStateOf(false) }
-        MaterialTheme(colors = if(vm.isDarkTheme) darkColors() else lightColors()) { //todo change theme according to minecraft day/night or real life
+        val isDarkTheme by vm.isDark.collectAsState()
+        MaterialTheme(colors = if(isDarkTheme) darkColors() else lightColors()) { //todo change theme according to minecraft day/night or real life
             LaunchedEffect(Unit) {
                 visible = true
             }
@@ -140,6 +143,10 @@ private fun UI(vm: MapViewModel) {
                     }
                 })
                 Row(Modifier.padding(8.dp)) {
+                    var hovered by remember { mutableStateOf<WaypointEntry?>(null) }
+                    var updateCount by remember { mutableStateOf(0) }
+                    var center by remember { mutableStateOf(clientInstance.player?.pos ?: Vec3d.ZERO) }
+                    val entries = remember { mutableStateListOf<WaypointEntry>() }
                     println("Recomposition ${i++}")
                     Column {
                         Text("Clicks: $clicks")
@@ -155,16 +162,34 @@ private fun UI(vm: MapViewModel) {
                             Text("Show Map")
                             Switch(checked = showMap, onCheckedChange = { showMap = it })
                         }
+//                        Text("Hovered: ${hovered?.name ?: "None"}")
                     }
 
-                    var center by remember { mutableStateOf(clientInstance.player!!.pos) }
+                    remember {
+                        val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
+                        entries.addAll(waypoints.mapIndexed { i, it ->
+                            WaypointEntry(
+                                waypointId = i,
+                                name = it.name,
+                                color = it.color?.let {
+                                    if (it.first() != '#') return@let null
+                                    Color(it.drop(1).toInt(16)).copy(alpha = 1f)
+                                } ?: Color.Black,
+                                distance = clientInstance?.player?.pos?.distanceTo(it.pos.toVec3d())?.toFloat() ?: 0f,
+                                coords = it.pos,
+                            )
+                        })
+                    }
+
+                    Spacer(Modifier.weight(0.000001f))
 
                     AnimatedVisibility(
                         showMap,
+                        Modifier.weight(1f),
                         enter = expandIn(),
                         exit = shrinkOut()
                     ) {
-                        MapTileView(LocalTileBlock(center))
+                        MapTileView(LocalTileBlock(center), entries, hovered, updateCount)
                     }
 
                     AnimatedVisibility(
@@ -172,26 +197,27 @@ private fun UI(vm: MapViewModel) {
                         enter = expandIn(),
                         exit = shrinkOut()
                     ) {
-                        val waypoints = WhyMapMod.activeWorld?.waypoints?.onlineWaypoints ?: emptyList()
-                        val entries = waypoints.mapIndexed { i, it ->
-                            WaypointEntry(
-                                waypointId = i,
-                                name = it.name,
-                                distance = clientInstance?.player?.pos?.distanceTo(it.pos.toVec3d())?.toFloat() ?: 0f,
-                                coords = it.pos,
-                            )
-                        }
                         WaypointsView(entries, {
                             println("Refresh!")
-                        }) {
+                        }, {
                             println("Clicked on ${it.name}, centering on ${it.coords}")
+                            showMap = true
                             center = it.coords.toVec3d()
-                        }
+                            updateCount++
+                        }, { entry, hovering ->
+                            println("Hovering over ${entry.name}, hovering: $hovering")
+                            if (hovering) {
+                                hovered = entry
+                            } else {
+                                if (hovered == entry)
+                                    hovered = null
+                            }
+                        })
                     }
                 }
             }
-            FloatingActionButton(onClick = { vm.isDarkTheme = !vm.isDarkTheme }, Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
-                val im = if (vm.isDarkTheme) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
+            FloatingActionButton(onClick = { vm.isDark.value = !vm.isDark.value }, Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
+                val im = if (vm.isDark.value) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
                 Icon(im, contentDescription = "Theme")
             }
         }
@@ -327,8 +353,7 @@ fun DimensionDropDown() {
 @Composable
 private fun preview() {
     val vm = MapViewModel()
-    vm.isDarkTheme = true
-    MaterialTheme(colors = if(vm.isDarkTheme) darkColors() else lightColors()) {
+    MaterialTheme(colors = darkColors()) {
         Scaffold {
             UI(vm)
         }

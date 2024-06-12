@@ -7,31 +7,32 @@ import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
-import androidx.compose.material.Text
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.WindowPosition.PlatformDefault.x
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.compose.ui.ComposeConstants.scaleRange
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
@@ -43,22 +44,34 @@ import dev.wefhy.whymap.utils.WhyDispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
+enum class MapControl {
+    User, Target
+}
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun MapTileView(startPosition: LocalTileBlock) {
+fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = emptyList(), hovered: WaypointEntry?, updateCount: Int = 0) {
+    //TODO layers - on max zoom just color the tile if the region file exists
+    var mapControl by remember { mutableStateOf(MapControl.Target) }
+    var animationTarget by remember { mutableStateOf(startPosition) }
+    remember(updateCount) {
+        mapControl = MapControl.Target
+        animationTarget = startPosition
+    }
     val scope = rememberCoroutineScope()
-    val target by animateOffsetAsState(startPosition.toOffset(), animationSpec = spring(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessMediumLow
+    val animationCenter by animateOffsetAsState(animationTarget.toOffset(), animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
     )
-    )
-    val tileRadius = 1
-    val nTiles = 3
+    val tileRadius = 2 // plus center tile
+    val nTiles = tileRadius * 2 + 1
     var scale by remember { mutableStateOf(1f) }
     var center by remember { mutableStateOf(startPosition.toOffset()) }
-    remember(target) {
-        center = target
+    remember(animationCenter, mapControl) {
+        if (mapControl == MapControl.Target) {
+            center = animationCenter
+        }
     }
     val block by remember { derivedStateOf { center.toLocalTileBlock() } } //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
     val centerTile = block.parent(TileZoom.RegionZoom)
@@ -92,7 +105,7 @@ fun MapTileView(startPosition: LocalTileBlock) {
         }
     }
 
-    Column {
+    Box {
         Card(
             elevation = 8.dp
         ) {
@@ -102,13 +115,16 @@ fun MapTileView(startPosition: LocalTileBlock) {
 //        }
 
             Canvas(modifier = Modifier
-                .size(DpSize(400.dp, 400.dp))
+//                .size(DpSize(400.dp, 400.dp))
+                .fillMaxSize()
                 .background(Color(0.1f, 0.1f, 0.1f))
                 .clipToBounds()
                 .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
                         center -= dragAmount / scale
+                        animationTarget = center.toLocalTileBlock()
+                        mapControl = MapControl.User
                     }
                 }
                 .onPointerEvent(PointerEventType.Scroll) {
@@ -116,15 +132,15 @@ fun MapTileView(startPosition: LocalTileBlock) {
                     scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
                 }
             ) {
-                for (y in minTile.z..maxTile.z) {
-                    for (x in minTile.x..maxTile.x) {
-                        val tile = LocalTileRegion(x, y)
-                        val image = images[tile]
-                        val drawOffset = tile.getStart()
-                        image?.let { im ->
-                            scale(scale) {
-                                translate(size.width / 2, size.height / 2) {
-                                    translate(-center.x, -center.y) {
+                scale(scale) {
+                    translate(size.width / 2, size.height / 2) {
+                        translate(-center.x, -center.y) {
+                            for (y in minTile.z..maxTile.z) {
+                                for (x in minTile.x..maxTile.x) {
+                                    val tile = LocalTileRegion(x, y)
+                                    val image = images[tile]
+                                    val drawOffset = tile.getStart()
+                                    image?.let { im ->
                                         if (scale > 1) {
                                             drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
                                         } else {
@@ -133,10 +149,60 @@ fun MapTileView(startPosition: LocalTileBlock) {
                                     }
                                 }
                             }
+                            waypoints.forEach {
+                                val offset = it.coords.toLocalBlock().toOffset() + Offset(0.5f, 0.5f)
+                                val size = if (it == hovered) 16f else 8f
+                                drawCircle(
+                                    color = it.color,
+                                    radius = size / scale,
+                                    center = offset,
+                                    style = Fill
+                                )
+                                if (it == hovered) {
+                                    drawCircle(
+                                        color = if (it.color.luminance() > 0.5f) Color.Black else Color.White,
+                                        radius = size / scale,
+                                        center = offset,
+                                        style = Stroke(4f / scale)
+                                    )
+                                }
+                            }
+                            val player = activeWorld?.player?: return@scale
+                            val playerPos = player.pos
+                            val playerYaw = player.yaw
+                            val offset = Offset(playerPos.x.toFloat(), playerPos.z.toFloat())
+                            translate(offset.x, offset.y) {
+                                rotate(playerYaw, pivot = Offset(0f, 0f)) {
+                                    drawPath(
+                                        path = Path().apply {
+                                            val size = 16f / scale
+                                            moveTo(0f, 0f)
+                                            lineTo(-size, -size)
+                                            lineTo(0f, 1.5f*size)
+                                            lineTo(size, -size)
+                                            close()
+                                        },
+                                        color = Color.Red,
+                                        style = Fill
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+            //center icon
+            Icon(
+                imageVector = Icons.Default.Place,
+                contentDescription = "Center",
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).size(32.dp).clip(
+                    CircleShape).clickable {
+                    val player = activeWorld?.player?: return@clickable
+                    val playerPos = player.pos
+                    animationTarget = Offset(playerPos.x.toFloat(), playerPos.z.toFloat()).toLocalTileBlock()
+                    mapControl = MapControl.Target
+                }.background(MaterialTheme.colors.background).padding(4.dp)
+            )
         }
     }
 }

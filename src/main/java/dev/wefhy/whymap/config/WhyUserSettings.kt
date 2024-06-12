@@ -20,6 +20,7 @@ object WhyUserSettings: WhySettings() {
     fun load(userSettings: UserSettings) {
         mapSettings.mapScale = userSettings.mapScale
         generalSettings.displayHud = userSettings.displayHud
+        generalSettings.theme = userSettings.theme
         mapSettings.minimapPosition = userSettings.minimapPosition
         mapSettings.minimapMode = userSettings.minimapMode
         serverSettings.exposeHttpApi = userSettings.exposeHttpApi
@@ -30,6 +31,7 @@ object WhyUserSettings: WhySettings() {
         return UserSettings(
             mapScale = mapSettings.mapScale,
             displayHud = generalSettings.displayHud,
+            theme = generalSettings.theme,
             minimapPosition = mapSettings.minimapPosition,
             minimapMode = mapSettings.minimapMode,
             exposeHttpApi = serverSettings.exposeHttpApi,
@@ -41,6 +43,7 @@ object WhyUserSettings: WhySettings() {
 class GeneralSettingsCategory : WhySettingsCategory("General") {
     var displayHud by SettingsEntry(true).addToggle("Display HUD")
     var hudColor by SettingsEntry(WhyColor.White).addColorPicker("HUD color")
+    var theme by SettingsEntry(UserSettings.Theme.LIGHT).addToggle("Theme")
 }
 
 class MapSettingsCategory: WhySettingsCategory("Map") {

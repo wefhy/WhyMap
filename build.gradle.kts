@@ -123,6 +123,8 @@ dependencies {
     extraLibs(implementation(compose.desktop.linux_x64)!!)
     extraLibs(implementation(compose.desktop.linux_arm64)!!)
 	extraLibs(implementation(compose.material)!!)
+//	implementation("dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.9")
+//	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.4.0")
 
 //	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
 //	extraLibs(implementation("ai.hypergraph", "kotlingrad", "0.4.7"))

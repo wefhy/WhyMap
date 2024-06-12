@@ -16,6 +16,7 @@ data class UserSettings(
 //        "tripwire",
 //        "vine",
 //    ),
+    var theme: Theme = Theme.LIGHT,
     var mapScale: Double = 1.0,
     var displayHud: Boolean = true,
     var minimapPosition: MinimapPosition = MinimapPosition.TOP_LEFT,
@@ -37,6 +38,11 @@ data class UserSettings(
         LOCALHOST_ONLY,
         EVERYWHERE,
         DEBUG
+    }
+
+    enum class Theme {
+        LIGHT,
+        DARK
     }
 
     companion object {

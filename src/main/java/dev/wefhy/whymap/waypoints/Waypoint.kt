@@ -3,6 +3,7 @@
 package dev.wefhy.whymap.waypoints
 
 import dev.wefhy.whymap.utils.CoordinateConversion
+import dev.wefhy.whymap.utils.LocalTileBlock
 import kotlinx.serialization.Serializable
 import net.minecraft.util.math.Vec3d
 
@@ -29,6 +30,10 @@ data class CoordXYZ(val x: Int, val y: Int, val z: Int) {
 
     fun toVec3d(): Vec3d {
         return Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
+    }
+
+    fun toLocalBlock(): LocalTileBlock {
+        return LocalTileBlock(x, z)
     }
 
     fun toLatLngWithHalfBlockOffset(): LatLng {

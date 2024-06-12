@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap
 
+import dev.wefhy.whymap.WhyMapClient.Companion.kbModSettings
 import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
@@ -31,7 +32,11 @@ class WhyMapMod : ModInitializer {
 
     val chunkLoadScope = CoroutineScope(WhyDispatchers.ChunkLoad)
 
+//    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onInitialize() {
+//        DecoroutinatorRuntime.load()
+//        DebugProbes.enableCreationStackTraces = true
+//        DebugProbes.install()
         FileConfigManager.load()
 
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
