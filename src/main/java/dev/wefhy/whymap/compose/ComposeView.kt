@@ -36,7 +36,7 @@ import java.awt.event.KeyEvent as AwtKeyEvent
 open class ComposeView(
     width: Int,
     height: Int,
-    private val density: Density = Density(2f),
+    private val density: Density,
     private val content: @Composable () -> Unit
 ) : Closeable {
     @OptIn(ExperimentalCoroutinesApi::class)

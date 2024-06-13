@@ -7,6 +7,7 @@ import dev.wefhy.whymap.utils.TileZoom.*
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import java.io.File
+import kotlin.math.hypot
 import kotlin.math.pow
 
 open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
@@ -183,6 +184,22 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
     }
 
     override fun toString() = "LocalTile$zoom{x: $x, z: $z}"
+
+    infix fun distanceTo(other: LocalTile<Z>): Double {
+        return hypot((x - other.x).toDouble(), (z - other.z).toDouble())
+    }
+
+    operator fun rangeTo(maxTile: LocalTile<Z>): Sequence<LocalTile<Z>> {
+        val xRange = x..maxTile.x
+        val zRange = z..maxTile.z
+        return sequence {
+            for (x in xRange) {
+                for (z in zRange) {
+                    yield(LocalTile(x, z, zoom))
+                }
+            }
+        }
+    }
 }
 
 val LocalTileChunk.chunkPos

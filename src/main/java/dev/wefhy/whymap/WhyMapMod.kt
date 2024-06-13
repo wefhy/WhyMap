@@ -91,7 +91,7 @@ class WhyMapMod : ModInitializer {
         @JvmStatic
         fun dimensionChangeListener(newDimension: DimensionType) {
             val newDimensionName = newDimension.serialize()
-            if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD") }
+            if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD (old = $oldDimensionName, new = $newDimensionName)") }
             println("CHANGED WORLD! old: $oldDimensionName, new: $newDimensionName")
             oldDimensionName = newDimensionName
             val tmpWorld = activeWorld

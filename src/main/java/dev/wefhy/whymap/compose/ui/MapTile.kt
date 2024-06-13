@@ -121,14 +121,26 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
             center = animationCenter
         }
     }
-    val zoom = when {
-        scale < 0.5 -> TileZoom.ThumbnailZoom
-        scale < 16 -> TileZoom.RegionZoom
-        else -> TileZoom.ChunkZoom
+    var canvasSize by remember { mutableStateOf(Size.Zero) }
+    val zoom = remember(scale, canvasSize) {
+        val tilesPerCanvas = canvasSize.maxDimension / tileResolution.toFloat()
+        val tilesPerVisibleCanvas = tilesPerCanvas / scale / 5 //5 is number of tiles visible on the screen
+        when(tilesPerVisibleCanvas) {
+            in 0f..0.05f -> TileZoom.ChunkZoom
+            in 0.05f.. 1.05f -> TileZoom.RegionZoom
+            else -> TileZoom.ThumbnailZoom
+        }
+//        when {
+//            scale < 0.5 -> TileZoom.ThumbnailZoom
+//            scale < 16 -> TileZoom.RegionZoom
+//            else -> TileZoom.ChunkZoom
+//        }
     }
     val tileRadius = when(zoom) {
         TileZoom.ChunkZoom -> 4
-        else -> 2
+        TileZoom.RegionZoom -> 2
+        TileZoom.ThumbnailZoom -> 3
+        else -> 0
     }
     val nTiles = tileRadius * 2 + 1
     val block by remember { derivedStateOf { center.toLocalTileBlock() } } //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
@@ -137,24 +149,20 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
     val maxTile = centerTile + LocalTile(tileRadius, tileRadius, zoom)
     val dontDispose = remember { mutableSetOf<LocalTile<out TileZoom>>() }
     val images = remember { mutableStateMapOf<LocalTile<out TileZoom>, ImageBitmap>() }
-
     dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
-    for (x in minTile.x..maxTile.x) {
-        for (z in minTile.z..maxTile.z) {
-            val tile = LocalTile(x, z, zoom)
-            if (tile in dontDispose) continue
-            val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
-            LaunchedEffect(tile) {
-                assert(tile !in images)
+    for (tile in (minTile..maxTile).toList().sortedByDescending { it distanceTo centerTile }) {
+        if (tile in dontDispose) continue
+        val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
+        LaunchedEffect(tile) {
+            assert(tile !in images)
 //                images.remove(tile) //TODO actually just return if already loaded. But this should be handled by dontDispose
-                println("MapTileView LaunchedEffect, tile: $tile, index: $index")
-                val image = render(tile)
-                if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2") }
-                image?.let {
-                    images[tile] = it
-                }
-                dontDispose.add(tile)
+            println("MapTileView LaunchedEffect, tile: $tile, index: $index")
+            val image = render(tile)
+            if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2") }
+            image?.let {
+                images[tile] = it
             }
+            dontDispose.add(tile)
         }
     }
 
@@ -185,6 +193,7 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
                     scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
                 }
             ) {
+                canvasSize = size
                 scale(scale ) {
                     translate(size.width / 2, size.height / 2) {
                         translate(-center.x, -center.y) {

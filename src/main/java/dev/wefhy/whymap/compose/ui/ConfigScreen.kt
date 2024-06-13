@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.wefhy.whymap.WhyMapClient.Companion.kbModSettings
 import dev.wefhy.whymap.WhyMapMod
 import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.compose.styles.McTheme
@@ -47,7 +48,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
     private val composeView = ComposeView(
         width = clientWindow.width,
         height = clientWindow.height,
-        density = Density(3f)
+        density = Density(2f)
     ) {
         var visible by remember { mutableStateOf(false) }
         val isDarkTheme by vm.isDark.collectAsState()
@@ -98,6 +99,11 @@ class ConfigScreen : Screen(Text.of("Config")) {
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        if (kbModSettings.matchesKey(keyCode, scanCode)) {
+            println("Closing settings!")
+            close()
+            return true
+        }
         composeView.passKeyPress(keyCode, scanCode, modifiers)
         return super.keyPressed(keyCode, scanCode, modifiers)
     }
