@@ -32,5 +32,6 @@ object MinecraftFont {
         )
     )
     val background = Color(0xFF6E6E6E)
-    val shadow = Color(0xFF404040)
+//    val shadow = Color(0xFF404040)
+    val shadow = Color.Black.copy(alpha = 0.5f)
 }

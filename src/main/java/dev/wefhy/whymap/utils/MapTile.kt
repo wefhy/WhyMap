@@ -7,6 +7,7 @@ import dev.wefhy.whymap.utils.TileZoom.*
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import java.io.File
+import kotlin.math.pow
 
 open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 
@@ -196,6 +197,7 @@ sealed class TileZoom(val zoom: Int) {
     object ThumbnailZoom : TileZoom(WhyMapConfig.thumbnailZoom)
 
     val offset = 1 shl (zoom - 1)
+    val scale = 2.0.pow(zoom - WhyMapConfig.regionZoom)
 }
 
 fun File.resolve(tile: MapTile<out TileZoom>) = this

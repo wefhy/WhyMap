@@ -32,21 +32,71 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.compose.ui.ComposeConstants.scaleRange
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
 import dev.wefhy.whymap.compose.ui.ComposeUtils.toOffset
-import dev.wefhy.whymap.utils.LocalTileBlock
-import dev.wefhy.whymap.utils.LocalTileRegion
-import dev.wefhy.whymap.utils.TileZoom
-import dev.wefhy.whymap.utils.WhyDispatchers
+import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
+import dev.wefhy.whymap.config.WhyMapConfig.tileResolution
+import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
+import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import org.jetbrains.skia.Bitmap
+import org.jetbrains.skia.Image
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.nio.IntBuffer
+import javax.imageio.ImageIO
 
 enum class MapControl {
     User, Target
 }
+
+private suspend fun renderDetail(tile: LocalTileChunk) = withContext(WhyDispatchers.Render) {
+    val bufferedImage = activeWorld?.experimentalTileGenerator?.getTile(tile.chunkPos) ?: return@withContext null //TODO render directly to compose canvas!
+    val stream = ByteArrayOutputStream()
+    stream.encodeJPEG(bufferedImage)
+    try {
+        Image.makeFromEncoded(stream.toByteArray()).toComposeImageBitmap()
+    } catch (e: Throwable) {
+        null
+    }
+}
+private suspend fun renderRegion(tile: LocalTileRegion) = withContext(WhyDispatchers.Render) {
+    activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
+        if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1") }
+        renderWhyImageNow().imageBitmap
+    }
+}
+private suspend fun renderThumbnail(tile: LocalTileThumbnail) = withContext(WhyDispatchers.Render) {
+    activeWorld?.thumbnailsManager?.getThumbnail(tile)?.let {
+        try {
+            Image.makeFromEncoded(it.toByteArray()).toComposeImageBitmap()
+        } catch (e: Throwable) {
+            null
+        }
+    }
+}
+//private suspend inline fun<reified T : TileZoom> render(tile: LocalTile<T>): ImageBitmap? = when (T::class) {
+//    TileZoom.RegionZoom::class -> renderRegion(tile as LocalTileRegion)
+//    TileZoom.ThumbnailZoom::class -> renderThumbnail(tile as LocalTileThumbnail)
+//    TileZoom.ChunkZoom::class -> renderDetail(tile as LocalTileChunk)
+//    else -> throw IllegalArgumentException("Unsupported zoom level: ${T::class.simpleName}")
+//}
+
+private suspend inline fun<reified T : TileZoom> render(tile: LocalTile<T>): ImageBitmap? = when (tile.zoom.zoom) {
+    TileZoom.RegionZoom.zoom -> renderRegion(tile as LocalTileRegion)
+    TileZoom.ThumbnailZoom.zoom -> renderThumbnail(tile as LocalTileThumbnail)
+    TileZoom.ChunkZoom.zoom -> renderDetail(tile as LocalTileChunk)
+    else -> throw IllegalArgumentException("Unsupported zoom level: ${T::class.simpleName}")
+}
+
+
+
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -64,8 +114,6 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
             stiffness = Spring.StiffnessMediumLow
         )
     )
-    val tileRadius = 2 // plus center tile
-    val nTiles = tileRadius * 2 + 1
     var scale by remember { mutableStateOf(1f) }
     var center by remember { mutableStateOf(startPosition.toOffset()) }
     remember(animationCenter, mapControl) {
@@ -73,29 +121,34 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
             center = animationCenter
         }
     }
+    val zoom = when {
+        scale < 0.5 -> TileZoom.ThumbnailZoom
+        scale < 16 -> TileZoom.RegionZoom
+        else -> TileZoom.ChunkZoom
+    }
+    val tileRadius = when(zoom) {
+        TileZoom.ChunkZoom -> 4
+        else -> 2
+    }
+    val nTiles = tileRadius * 2 + 1
     val block by remember { derivedStateOf { center.toLocalTileBlock() } } //startPosition - LocalTileBlock(offsetX.toInt(), offsetY.toInt())
-    val centerTile = block.parent(TileZoom.RegionZoom)
-    val minTile = centerTile - LocalTileRegion(tileRadius, tileRadius)
-    val maxTile = centerTile + LocalTileRegion(tileRadius, tileRadius)
-    val dontDispose = remember { mutableSetOf<LocalTileRegion>() }
-    val images = remember { mutableStateMapOf<LocalTileRegion, ImageBitmap>() }
+    val centerTile = block.parent(zoom)
+    val minTile = centerTile - LocalTile(tileRadius, tileRadius, zoom)
+    val maxTile = centerTile + LocalTile(tileRadius, tileRadius, zoom)
+    val dontDispose = remember { mutableSetOf<LocalTile<out TileZoom>>() }
+    val images = remember { mutableStateMapOf<LocalTile<out TileZoom>, ImageBitmap>() }
 
     dontDispose.removeAll { it.x !in minTile.x..maxTile.x || it.z !in minTile.z..maxTile.z }
     for (x in minTile.x..maxTile.x) {
         for (z in minTile.z..maxTile.z) {
-            val tile = LocalTileRegion(x, z)
+            val tile = LocalTile(x, z, zoom)
             if (tile in dontDispose) continue
             val index = tile.z.mod(nTiles) * nTiles + tile.x.mod(nTiles)
             LaunchedEffect(tile) {
                 assert(tile !in images)
 //                images.remove(tile) //TODO actually just return if already loaded. But this should be handled by dontDispose
                 println("MapTileView LaunchedEffect, tile: $tile, index: $index")
-                val image = withContext(WhyDispatchers.Render) {
-                    activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
-                        if (!isActive) return@getRegionForTilesRendering null.also { println("Cancel early 1") }
-                        renderWhyImageNow().imageBitmap
-                    }
-                }
+                val image = render(tile)
                 if (!isActive) return@LaunchedEffect Unit.also { println("Cancel early 2") }
                 image?.let {
                     images[tile] = it
@@ -132,19 +185,22 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
                     scale = (scale * (1 + scrollDelta.y / 10)).coerceIn(scaleRange)
                 }
             ) {
-                scale(scale) {
+                scale(scale ) {
                     translate(size.width / 2, size.height / 2) {
                         translate(-center.x, -center.y) {
                             for (y in minTile.z..maxTile.z) {
                                 for (x in minTile.x..maxTile.x) {
-                                    val tile = LocalTileRegion(x, y)
+                                    val tile = LocalTile(x, y, zoom)
                                     val image = images[tile]
                                     val drawOffset = tile.getStart()
+                                    val res = (tileResolution / zoom.scale).toInt()
                                     image?.let { im ->
                                         if (scale > 1) {
-                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), filterQuality = FilterQuality.None)
+//                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize((im.width / zoom.scale).toInt(), (im.height / zoom.scale).toInt()), filterQuality = FilterQuality.None)
+                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize(res, res), filterQuality = FilterQuality.None)
                                         } else {
-                                            drawImage(im, topLeft = drawOffset.toOffset())
+//                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize((im.width / zoom.scale).toInt(), (im.height / zoom.scale).toInt()), filterQuality = FilterQuality.Low)
+                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize(res, res), filterQuality = FilterQuality.Low)
                                         }
                                     }
                                 }

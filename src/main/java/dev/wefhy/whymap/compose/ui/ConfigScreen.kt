@@ -5,6 +5,7 @@ package dev.wefhy.whymap.compose.ui
 import androidx.compose.animation.*
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -50,7 +51,7 @@ class ConfigScreen : Screen(Text.of("Config")) {
     ) {
         var visible by remember { mutableStateOf(false) }
         val isDarkTheme by vm.isDark.collectAsState()
-        McTheme(colors = if(isDarkTheme) mcColors else noctuaColors) { //todo change theme according to minecraft day/night or real life
+        McTheme(colors = if (isDarkTheme) mcColors else noctuaColors) { //todo change theme according to minecraft day/night or real life
             LaunchedEffect(Unit) {
                 visible = true
             }
@@ -118,7 +119,6 @@ private var i = 0
 @Composable
 private fun UI(vm: MapViewModel) {
     var clicks by remember { mutableStateOf(0) }
-    var color by remember { mutableStateOf(Color.Green) }
     var showList by remember { mutableStateOf(true) }
     var showMap by remember { mutableStateOf(true) }
     Card(
@@ -126,7 +126,7 @@ private fun UI(vm: MapViewModel) {
         elevation = 20.dp, modifier = Modifier/*.padding(200.dp, 0.dp, 0.dp, 0.dp)*/.padding(8.dp)
     ) {
         Box {
-            Column {
+            Column(Modifier.background(MaterialTheme.colors.background)) {
                 var showDropDown by remember { mutableStateOf(false) }
                 TopAppBar({
                     Text("WhyMap")
@@ -165,7 +165,6 @@ private fun UI(vm: MapViewModel) {
                         Text("Clicks: $clicks")
                         Button(onClick = { clicks++ }) {
                             Text("Click me!")
-                            color = Color(0x7F777700)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Show List")
@@ -333,10 +332,10 @@ fun DimensionDropDown() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { expanded = !expanded }.padding(8.dp)) {
 //            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "More"
-                )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "More"
+            )
 //            }
             Text(selected)
         }
@@ -347,16 +346,16 @@ fun DimensionDropDown() {
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                onClick = { selected = "OverWorld"}
+                onClick = { selected = "OverWorld"; expanded = false }
             ) { Text("OverWorld") }
             DropdownMenuItem(
-                onClick = { selected = "Nether"}
+                onClick = { selected = "Nether"; expanded = false }
             ) { Text("Nether") }
             DropdownMenuItem(
-                onClick = { selected = "End"}
+                onClick = { selected = "End"; expanded = false }
             ) { Text("End") }
             DropdownMenuItem(
-                onClick = { selected = "Neth/OW overlay"}
+                onClick = { selected = "Neth/OW overlay"; expanded = false }
             ) { Text("Neth/OW overlay") }
         }
     }
