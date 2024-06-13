@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap
 
+import dev.wefhy.whymap.WhyMapClient.Companion.kbModSettings
 import dev.wefhy.whymap.config.FileConfigManager
 import dev.wefhy.whymap.config.WhyMapConfig.DEV_VERSION
 import dev.wefhy.whymap.config.WhyMapConfig.mapLink
@@ -31,7 +32,11 @@ class WhyMapMod : ModInitializer {
 
     val chunkLoadScope = CoroutineScope(WhyDispatchers.ChunkLoad)
 
+//    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onInitialize() {
+//        DecoroutinatorRuntime.load()
+//        DebugProbes.enableCreationStackTraces = true
+//        DebugProbes.install()
         FileConfigManager.load()
 
         ClientChunkEvents.CHUNK_LOAD.register { cw, wc ->
@@ -86,11 +91,11 @@ class WhyMapMod : ModInitializer {
         @JvmStatic
         fun dimensionChangeListener(newDimension: DimensionType) {
             val newDimensionName = newDimension.serialize()
-            if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD") }
+            if (oldDimensionName == newDimensionName) return Unit.also { println("NOT CHANGED WORLD (old = $oldDimensionName, new = $newDimensionName)") }
             println("CHANGED WORLD! old: $oldDimensionName, new: $newDimensionName")
             oldDimensionName = newDimensionName
             val tmpWorld = activeWorld
-            activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            activeWorld = CurrentWorld(MinecraftClient.getInstance(), newDimension)
             tmpWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
@@ -121,12 +126,13 @@ class WhyMapMod : ModInitializer {
         }
 
         val worldJoinListener = { handler: ClientPlayNetworkHandler, sender: PacketSender, client: MinecraftClient ->
-            println("JOINED WORLD! ${client.world?.dimension?.coordinateScale}")
+            println("JOINED WORLD! ${activeWorld?.dimensionName} ${client.world?.dimension?.coordinateScale}")
             activeWorld = CurrentWorld(client)
 
             val message = Text.literal("WhyMap: see your map at ") + Text.literal(mapLink).apply {
                 style = style.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, mapLink)).withUnderline(true)
-            }
+            } + Text.literal(" or press  ${kbModSettings.boundKeyLocalizedText} to new in-game map!")
+//            } + Text.literal(" or press ${KeyBindingHelper.getBoundKeyOf(kbModSettings)} to open map")
             client.player!!.sendMessage(message, false)
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.EnterWorld)
         }

@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WorldSavePath
+import net.minecraft.world.dimension.DimensionType
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import java.io.BufferedWriter
@@ -28,10 +29,10 @@ import java.io.Closeable
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
-class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
+class CurrentWorld(mc: MinecraftClient, overrideDimension: DimensionType? = null) : WhyWorld(), Closeable {
     val world = mc.world!!
     val player = mc.player!!
-    private val dimension = world.dimension!!
+    private val dimension = overrideDimension ?: world.dimension!!
     override val dimensionScale = dimension.coordinateScale
     override val provider = CurrentWorldProvider(this)
     override val biomeManager by lazy { with(provider) { BiomeCurrentWorldManager() } }
@@ -43,7 +44,7 @@ class CurrentWorld(mc: MinecraftClient) : WhyWorld(), Closeable {
         ).parent.fileName.toString()
 
     //    val alternativeName: String = mc.server!!.saveProperties.levelName
-    val dimensionCoordinateScale = world.dimension.coordinateScale
+    val dimensionCoordinateScale = dimension.coordinateScale
 
     override val dimensionName = dimension.serialize()
 
