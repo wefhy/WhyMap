@@ -95,7 +95,7 @@ class WhyMapMod : ModInitializer {
             println("CHANGED WORLD! old: $oldDimensionName, new: $newDimensionName")
             oldDimensionName = newDimensionName
             val tmpWorld = activeWorld
-            activeWorld = CurrentWorld(MinecraftClient.getInstance())
+            activeWorld = CurrentWorld(MinecraftClient.getInstance(), newDimension)
             tmpWorld?.close()
             RegionUpdateQueue.reset()
             LOGGER.info("Saved all data")
@@ -126,7 +126,7 @@ class WhyMapMod : ModInitializer {
         }
 
         val worldJoinListener = { handler: ClientPlayNetworkHandler, sender: PacketSender, client: MinecraftClient ->
-            println("JOINED WORLD! ${client.world?.dimension?.coordinateScale}")
+            println("JOINED WORLD! ${activeWorld?.dimensionName} ${client.world?.dimension?.coordinateScale}")
             activeWorld = CurrentWorld(client)
 
             val message = Text.literal("WhyMap: see your map at ") + Text.literal(mapLink).apply {
