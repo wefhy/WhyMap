@@ -68,7 +68,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val biomeMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 7 bits, possibly 8
     val lightMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 4 bits
     val depthMap: Array<ByteArray> = Array(storageTileBlocks) { ByteArray(storageTileBlocks) { 0 } } // at least 8 bits
-//    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit
+//    val exists = Array(storageTileChunks) { Array(storageTileChunks) { false } } // 1 bit TODO use timestamp!
 
     val file = currentWorld.getFile(location)
     val thumbnailFile = currentWorld.getThumbnailFile(location)
@@ -507,6 +507,11 @@ class MapArea private constructor(val location: LocalTileRegion) {
             }
         }
     }
+
+//    val renderedImage
+//        get() = remember(someHash) {
+//            4 //TODO implement something like this that doesn't need a composable.
+//        }
 
     private fun _renderWhyImage(): WhyTiledImage {
         var failCounter = 0

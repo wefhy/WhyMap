@@ -5,14 +5,17 @@ package dev.wefhy.whymap.utils
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.utils.TileZoom.*
 import net.minecraft.util.math.ChunkPos
+import net.minecraft.util.math.Vec3d
 import java.io.File
+import kotlin.math.hypot
+import kotlin.math.pow
 
 open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 
     fun toLocalTile(): LocalTile<Z> {
         return LocalTile(
-            x - zoom.shift,
-            z - zoom.shift,
+            x - zoom.offset,
+            z - zoom.offset,
             zoom
         )
     }
@@ -51,16 +54,21 @@ open class MapTile<Z>(val x: Int, val z: Int, val zoom: Z) where Z : TileZoom {
 }
 
 typealias LocalTileBlock = LocalTile<BlockZoom>
+fun LocalTileBlock(x: Int, z: Int) = LocalTile(x, z, BlockZoom)
+fun LocalTileBlock(pos: Vec3d) = LocalTileBlock(pos.x.toInt(), pos.z.toInt())
 typealias LocalTileChunk = LocalTile<ChunkZoom>
+fun LocalTileChunk(x: Int, z: Int) = LocalTile(x, z, ChunkZoom)
 typealias LocalTileRegion = LocalTile<RegionZoom>
+fun LocalTileRegion(x: Int, z: Int) = LocalTile(x, z, RegionZoom)
 typealias LocalTileThumbnail = LocalTile<ThumbnailZoom>
+fun LocalTileThumbnail(x: Int, z: Int) = LocalTile(x, z, ThumbnailZoom)
 
 open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
 
     fun toMapTile(): MapTile<Z> {
         return MapTile(
-            x + zoom.shift,
-            z + zoom.shift,
+            x + zoom.offset,
+            z + zoom.offset,
             zoom
         )
     }
@@ -176,6 +184,22 @@ open class LocalTile<Z : TileZoom>(val x: Int, val z: Int, val zoom: Z) {
     }
 
     override fun toString() = "LocalTile$zoom{x: $x, z: $z}"
+
+    infix fun distanceTo(other: LocalTile<Z>): Double {
+        return hypot((x - other.x).toDouble(), (z - other.z).toDouble())
+    }
+
+    operator fun rangeTo(maxTile: LocalTile<Z>): Sequence<LocalTile<Z>> {
+        val xRange = x..maxTile.x
+        val zRange = z..maxTile.z
+        return sequence {
+            for (x in xRange) {
+                for (z in zRange) {
+                    yield(LocalTile(x, z, zoom))
+                }
+            }
+        }
+    }
 }
 
 val LocalTileChunk.chunkPos
@@ -189,7 +213,8 @@ sealed class TileZoom(val zoom: Int) {
     object RegionZoom : TileZoom(WhyMapConfig.regionZoom)
     object ThumbnailZoom : TileZoom(WhyMapConfig.thumbnailZoom)
 
-    val shift = 1 shl (zoom - 1)
+    val offset = 1 shl (zoom - 1)
+    val scale = 2.0.pow(zoom - WhyMapConfig.regionZoom)
 }
 
 fun File.resolve(tile: MapTile<out TileZoom>) = this

@@ -2,7 +2,11 @@
 
 package dev.wefhy.whymap.utils
 
+import dev.wefhy.whymap.utils.Accessors.clientInstance
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
@@ -15,6 +19,20 @@ object WhyDispatchers {
     val Render = newReversePriorityFixedThreadPool(safeThreads).asCoroutineDispatcher()
     val Encoding = newReversePriorityFixedThreadPool(safeThreads).asCoroutineDispatcher()
     val LowPriority = Executors.newFixedThreadPool(safeThreads, LowPriorityThreadFactory).asCoroutineDispatcher()
+    val MainDispatcher by lazy { clientInstance.asCoroutineDispatcher() }
+    val MainScope by lazy { CoroutineScope(MainDispatcher) }
+
+    fun launchOnMain(block: suspend () -> Unit) {
+        MainScope.launch {
+            block()
+        }
+    }
+
+    fun blockOnMain(block: suspend () -> Unit) {
+        runBlocking(MainDispatcher) {
+            block()
+        }
+    }
 
     object LowPriorityThreadFactory : ThreadFactory {
         private const val priority = Thread.MIN_PRIORITY

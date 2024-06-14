@@ -5,6 +5,7 @@
 
 package dev.wefhy.whymap.utils
 
+import androidx.compose.ui.input.key.*
 import dev.wefhy.whymap.config.WhyMapConfig.logsDateFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.logsEntryTimeFormatter
 import dev.wefhy.whymap.config.WhyMapConfig.pathForbiddenCharacters
@@ -30,7 +31,9 @@ const val _1_255 = 1f / 255
 const val _1_3 = 1f / 3
 const val _1_2 = 1f / 2
 const val bestHashConst = 92821
-
+val rand = Random(0)
+inline val Double.d1 get() = roundToString(1)
+inline val Double.d2 get() = roundToString(2)
 inline fun Double.roundToString(places: Int) = String.format("%.${places}f", this)
 inline fun Float.roundToString(places: Int) = String.format("%.${places}f", this)
 
@@ -41,6 +44,24 @@ private inline fun Double._significant(places: Int) = (places - log10(this)).toI
 internal inline fun Double.significant(places: Int) = String.format("%.${_significant(places)}f", this)
 
 internal inline fun Double.significantBy(max: Double, places: Int) = String.format("%.${max._significant(places)}f", this)
+
+//fun KeyEvent.toCompose() = KeyEvent(
+//    nativeKeyEvent = InternalKeyEvent(
+//        key = Key(
+//            nativeKeyCode = keyCode,
+//            nativeKeyLocation = keyLocationForCompose
+//        ),
+//        type = when (id) {
+//            KEY_PRESSED -> KeyEventType.KeyDown
+//            KEY_RELEASED -> KeyEventType.KeyUp
+//            else -> KeyEventType.Unknown
+//        },
+//        codePoint = keyChar.code,
+//        modifiers = toPointerKeyboardModifiers(),
+//        nativeEvent = this
+//    )
+//)
+
 
 fun BufferedImage.getAverageColor(): Int { // This can only average up to 128x128 textures without integer overflow!!!
     val bytes = (data.dataBuffer as DataBufferByte).data
@@ -209,13 +230,11 @@ fun Raster.fillWithColor(color: Int) {
     }
 }
 
-val R = Random(0)
-
 fun WritableRaster.fillWithColor2(color: Int) {
     println("${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}, ${minX} ${minY} ${width} ${height}")
     for (y in 0 until height) {
         for (x in 0 until width) {
-            setPixel(x, y, intArrayOf(color, R.nextInt(), R.nextInt()))
+            setPixel(x, y, intArrayOf(color, rand.nextInt(), rand.nextInt()))
         }
     }
 }

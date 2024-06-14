@@ -4,10 +4,14 @@
   "package": "dev.wefhy.whymap.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MainUIDispatcherMixin",
     "PlayerEntityMixin",
     "ServerPlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "client": [
+    "DebugRendererMixin"
+  ]
 }

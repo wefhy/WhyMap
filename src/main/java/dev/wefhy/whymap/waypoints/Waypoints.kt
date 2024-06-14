@@ -13,7 +13,7 @@ import net.minecraft.util.math.GlobalPos
 context(CurrentWorldProvider<WhyWorld>)
 class Waypoints {
     private val file = currentWorld.worldPath.resolve("waypoints.txt")
-    private val waypoints: MutableList<LocalWaypoint> = try {
+    val waypoints: MutableList<LocalWaypoint> = try {
         if (file.exists())
             Json.decodeFromString(file.readText())
         else mutableListOf()

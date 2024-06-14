@@ -2,6 +2,10 @@
 
 package dev.wefhy.whymap.tiles.details
 
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import dev.wefhy.whymap.compose.utils.ComposeUtils.toImageBitmap
+import dev.wefhy.whymap.utils.ImageFormat
 import dev.wefhy.whymap.whygraphics.WhyTile
 import dev.wefhy.whymap.whygraphics.WhyTile.Companion.asWhyTile
 import net.minecraft.block.Block
@@ -14,8 +18,10 @@ import kotlin.jvm.optionals.getOrNull
 
 object ExperimentalTextureProvider {
     val waterTexture by lazy { getBitmap("water")} //TODO move to separate file
+    val waterComposeTexture by lazy { getComposeTexture("water")!! } //TODO move to separate file
 
     private val loadedTextures = mutableMapOf<String, Optional<BufferedImage>?>()
+    private val loadedComposeTextures = mutableMapOf<String, Optional<ImageBitmap>?>()
     private val classLoader = javaClass.classLoader
     private val loadedWhyTiles = mutableMapOf<String, Optional<WhyTile>>()
 
@@ -34,6 +40,18 @@ object ExperimentalTextureProvider {
     }
 
     val missingTextures = mutableListOf<String>()
+
+    fun getComposeTexture(block: Block): ImageBitmap? {
+        return getComposeTexture(block.translationKey.split('.').last())
+    }
+
+    fun getComposeTexture(name: String): ImageBitmap? {
+        return loadedComposeTextures.getOrPut(name) {
+//            Optional.of(getBitmap(name)?.toImageBitmap(ImageFormat.PNG) ?: return@getOrPut Optional.empty())
+            Optional.of(getBitmap(name)?.toComposeImageBitmap() ?: return@getOrPut Optional.empty())
+            //TODO check whether .toComposeImageBitmap() is faster, it has a weird comment in the source code
+        }?.getOrNull()
+    }
 
     @OptIn(ExperimentalStdlibApi::class)
     fun getBitmap(name: String): BufferedImage? {

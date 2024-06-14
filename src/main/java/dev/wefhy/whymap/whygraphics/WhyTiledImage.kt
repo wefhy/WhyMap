@@ -2,6 +2,9 @@
 
 package dev.wefhy.whymap.whygraphics
 
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageBitmapConfig
 import dev.wefhy.whymap.config.WhyMapConfig
 import dev.wefhy.whymap.config.WhyMapConfig.blocksInChunkLog
 import dev.wefhy.whymap.utils.ExpensiveCall
@@ -49,6 +52,30 @@ class WhyTiledImage(
             }
         }
         return image
+    }
+
+    context(Canvas)
+    fun drawTiledImage() {
+        println("Drawing $this WhyTiledImage")
+        for (y in 0 until yTiles) {
+            val line = data[y]
+            for (x in 0 until xTiles) {
+                val tile = line[x] ?: continue
+//                println("Drawing tile at $x, $y")
+                tile.drawTile(x shl WhyTile.lineShl, y shl WhyTile.lineShl)
+            }
+        }
+    }
+
+    val imageBitmap by lazy {
+        val image = ImageBitmap(
+            width,
+            height,
+            ImageBitmapConfig.Argb8888)
+        Canvas(image).apply {
+            drawTiledImage()
+        }
+        image
     }
 
     fun writeInto(raster: WritableRaster, offsetX: Int, offsetY: Int) {

@@ -50,7 +50,7 @@ object WhyMapConfig {
     val nativeZoomLevel = blockZoom - storageTileLog //17
 
     val tileResolution = storageTileBlocks //512
-    val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog
+    val regionThumbnailResolution = tileResolution shr regionThumbnailScaleLog //128
 
     val legacyMetadataSize = 16 // bytes
     val metadataSize = 64 // bytes
