@@ -44,4 +44,11 @@ data class CoordXYZ(val x: Int, val y: Int, val z: Int) {
     override fun toString(): String {
         return "(x=$x, y=$y, z=$z)"
     }
+
+    companion object {
+        val ZERO = CoordXYZ(0, 0, 0)
+        fun Vec3d.toCoordXYZ(): CoordXYZ {
+            return CoordXYZ(x.toInt(), y.toInt(), z.toInt())
+        }
+    }
 }

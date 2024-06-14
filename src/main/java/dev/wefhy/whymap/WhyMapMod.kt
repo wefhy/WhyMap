@@ -120,7 +120,7 @@ class WhyMapMod : ModInitializer {
             val tmpWorld = activeWorld
             activeWorld = null
             tmpWorld?.close()
-            RegionUpdateQueue.reset()
+            RegionUpdateQueue.reset() //TODO should I reset all queues?
             LOGGER.info("Saved all data")
             WorldEventQueue.addUpdate(WorldEventQueue.WorldEvent.LeaveWorld)
         }

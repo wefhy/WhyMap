@@ -33,9 +33,11 @@ import dev.wefhy.whymap.compose.ComposeView
 import dev.wefhy.whymap.compose.styles.McTheme
 import dev.wefhy.whymap.compose.styles.mcColors
 import dev.wefhy.whymap.compose.styles.noctuaColors
+import dev.wefhy.whymap.compose.utils.collectAsMutableState
 import dev.wefhy.whymap.utils.Accessors.clientInstance
 import dev.wefhy.whymap.utils.Accessors.clientWindow
 import dev.wefhy.whymap.utils.LocalTileBlock
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
@@ -43,13 +45,14 @@ import net.minecraft.util.math.Vec3d
 
 class ConfigScreen : Screen(Text.of("Config")) {
 
-    private val vm = MapViewModel()
+
 
     private val composeView = ComposeView(
-        width = clientWindow.width,
-        height = clientWindow.height,
+        nativeWidth = clientWindow.framebufferWidth,
+        nativeHeight = clientWindow.framebufferWidth,
         density = Density(2f)
     ) {
+        val vm = MapViewModel(rememberCoroutineScope())
         var visible by remember { mutableStateOf(false) }
         val isDarkTheme by vm.isDark.collectAsState()
         McTheme(colors = if (isDarkTheme) mcColors else noctuaColors) { //todo change theme according to minecraft day/night or real life
@@ -66,11 +69,16 @@ class ConfigScreen : Screen(Text.of("Config")) {
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
 //        super.render(context, mouseX, mouseY, delta)
+//        println("SCREEN MATRIX: ${context.matrices.peek().positionMatrix}")
+        println("width: ${MinecraftClient.getInstance().window.width}, " +
+                "scaledWidth: ${MinecraftClient.getInstance().window.scaledWidth}, " +
+                "nativeWidth: ${MinecraftClient.getInstance().window.framebufferWidth}, " )
         composeView.render(context, delta)
     }
 
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+
 //        println("Mouse clicked at $mouseX, $mouseY")
         composeView.passLMBClick(mouseX.toFloat(), mouseY.toFloat())
         return super.mouseClicked(mouseX, mouseY, button)
@@ -127,6 +135,7 @@ private fun UI(vm: MapViewModel) {
     var clicks by remember { mutableStateOf(0) }
     var showList by remember { mutableStateOf(true) }
     var showMap by remember { mutableStateOf(true) }
+    var isDark by vm.isDark.collectAsMutableState()
     Card(
         border = BorderStroke(1.dp, Color(0.05f, 0.1f, 0.2f)),
         elevation = 20.dp, modifier = Modifier/*.padding(200.dp, 0.dp, 0.dp, 0.dp)*/.padding(8.dp)
@@ -166,6 +175,7 @@ private fun UI(vm: MapViewModel) {
                     var updateCount by remember { mutableStateOf(0) }
                     var center by remember { mutableStateOf(clientInstance.player?.pos ?: Vec3d.ZERO) }
                     val entries = remember { mutableStateListOf<WaypointEntry>() }
+                    var waypointRefresh by remember { mutableStateOf(0) }
                     println("Recomposition ${i++}")
                     Column {
                         Text("Clicks: $clicks")
@@ -183,8 +193,9 @@ private fun UI(vm: MapViewModel) {
 //                        Text("Hovered: ${hovered?.name ?: "None"}")
                     }
 
-                    remember {
+                    remember(waypointRefresh) {
                         val waypoints = WhyMapMod.activeWorld?.waypoints?.waypoints ?: emptyList()
+                        entries.clear()
                         entries.addAll(waypoints.mapIndexed { i, it ->
                             WaypointEntry(
                                 waypointId = i,
@@ -217,6 +228,7 @@ private fun UI(vm: MapViewModel) {
                     ) {
                         WaypointsView(entries, {
                             println("Refresh!")
+                            waypointRefresh++
                         }, {
                             println("Clicked on ${it.name}, centering on ${it.coords}")
                             showMap = true
@@ -234,8 +246,8 @@ private fun UI(vm: MapViewModel) {
                     }
                 }
             }
-            FloatingActionButton(onClick = { vm.isDark.value = !vm.isDark.value }, Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
-                val im = if (vm.isDark.value) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
+            FloatingActionButton(onClick = { isDark = !isDark }, Modifier.align(Alignment.BottomStart).padding(8.dp)) {
+                val im = if (isDark) Icons.TwoTone.ModeNight else Icons.TwoTone.WbSunny
                 Icon(im, contentDescription = "Theme")
             }
         }
@@ -370,7 +382,7 @@ fun DimensionDropDown() {
 @Preview
 @Composable
 private fun preview() {
-    val vm = MapViewModel()
+    val vm = MapViewModel(rememberCoroutineScope())
     MaterialTheme(colors = darkColors()) {
         Scaffold {
             UI(vm)

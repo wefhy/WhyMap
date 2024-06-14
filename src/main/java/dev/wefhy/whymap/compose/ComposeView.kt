@@ -16,6 +16,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -34,8 +35,8 @@ import java.awt.event.KeyEvent as AwtKeyEvent
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 open class ComposeView(
-    width: Int,
-    height: Int,
+    nativeWidth: Int,
+    nativeHeight: Int,
     private val density: Density,
     private val content: @Composable () -> Unit
 ) : Closeable {
@@ -44,25 +45,19 @@ open class ComposeView(
     protected val singleThreadDispatcher = rawSingleThreadDispatcher +
             CoroutineExceptionHandler { _, throwable -> println(throwable) }
     private var invalidated = true
-    private val screenScale = 2 //TODO This is Macbook specific
-    private var width by mutableStateOf(width)
-    private var height by mutableStateOf(height)
+//    private val screenScale = 2 //TODO This is Macbook specific
+    private var nativeWidth by mutableStateOf(nativeWidth)
+    private var nativeHeight by mutableStateOf(nativeHeight)
     private val coroutineContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    private val directRenderer: Renderer = DirectRenderer(width * screenScale, height * screenScale)
+    private val directRenderer: Renderer = DirectRenderer(nativeWidth, nativeHeight)
     private val boxedContent: @Composable () -> Unit
         get() = {
-//            val width by ::width.asFlow().collectAsState(0)
-//            val height by ::height.asFlow().collectAsState(0)
-//            with(LocalDensity.current) { //TODO this causes the crash lol xD
-//                val dpWidth = outputWidth.toDp()
-//                val dpHeight = outputHeight.toDp()
-//                println("DP: $dpWidth, $dpHeight")
-//                Box(Modifier.size(dpWidth, dpHeight)) {
-//                Box(Modifier.size(dpWidth, dpHeight).background(Color(0x77000077.toInt()))) {
-            Box(Modifier.size(width.dp * screenScale / density.density, height.dp * screenScale / density.density)) {
+            val(dpWidth, dpHeight) = with(LocalDensity.current) {
+                nativeWidth.toDp() to nativeHeight.toDp()
+            }
+            Box(Modifier.size(dpWidth, dpHeight)) {
                 content()
             }
-//            }
         }
 
     //TODO use ImageComposeScene, seems more popular?
@@ -173,11 +168,11 @@ open class ComposeView(
 //            println("Cancelled rendering on thread ${Thread.currentThread().name}!")
 //            isRendering = false
 //        }
-        width = clientWindow.width
-        height = clientWindow.height
+        nativeWidth = clientWindow.framebufferWidth
+        nativeHeight = clientWindow.framebufferHeight
         directRenderer.onSizeChange(
-            width * screenScale,
-            height * screenScale
+            nativeWidth,
+            nativeHeight
         )
         directRenderer.render(drawContext, tickDelta) { glCanvas ->
             /**

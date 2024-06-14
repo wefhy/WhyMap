@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap.compose.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -10,9 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -24,8 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -35,8 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sun.org.apache.xalan.internal.lib.ExsltStrings.padding
 import dev.wefhy.whymap.compose.views.SortingOptions
+import dev.wefhy.whymap.utils.Accessors.clientInstance
+import dev.wefhy.whymap.utils.rand
 import dev.wefhy.whymap.utils.roundToString
 import dev.wefhy.whymap.waypoints.CoordXYZ
+import dev.wefhy.whymap.waypoints.CoordXYZ.Companion.toCoordXYZ
+import dev.wefhy.whymap.waypoints.OnlineWaypoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.advancement.criterion.InventoryChangedCriterion.Conditions.items
@@ -46,7 +51,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-class WaypointEntry(
+data class WaypointEntry(
     val waypointId: Int,
     val name: String,
     val color: Color,
@@ -55,14 +60,28 @@ class WaypointEntry(
     val date: Date? = null,
     val waypointType: Type? = null
 ) {
-
+    fun asOnlineWaypoint(): OnlineWaypoint {
+        return OnlineWaypoint(name, null, coords, "#${(color.toArgb() and 0xFFFFFF).toString(16)}")
+    }
     enum class Type {
         SPAWN, DEATH, TODO, HOME, SIGHTSEEING
+    }
+
+    companion object {
+        fun new(id: Int) = WaypointEntry(
+            waypointId = id,
+            name = "",
+            color = Color.White,
+            distance = 0f,
+            coords = CoordXYZ(0, 0, 0),
+            date = Date(),
+            waypointType = null
+        )
     }
 }
 
 @Composable
-fun WaypointEntryView(waypointEntry: WaypointEntry, modifier: Modifier = Modifier) {
+fun WaypointEntryView(waypointEntry: WaypointEntry, modifier: Modifier = Modifier, onEdit: () -> Unit = {}) {
     val dateFormatter = SimpleDateFormat("HH:mm, EEE, MMM d", Locale.getDefault())
     Card(modifier = modifier.fillMaxWidth(), elevation = 8.dp) {
         Box(
@@ -104,12 +123,12 @@ fun WaypointEntryView(waypointEntry: WaypointEntry, modifier: Modifier = Modifie
                 fontSize = 15.sp
             )
             Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete",
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Edit",
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
-                    .clickable { /*TODO*/ }
+                    .clickable { onEdit() }
             )
         }
     }
@@ -130,16 +149,22 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick
     var search by rememberSaveable { mutableStateOf("") }
     var reverse by remember { mutableStateOf(false) }
     var sorting by remember { mutableStateOf(WaypointSorting.ALPHABETICAL) }
-    val filtered = waypoints.filter { it.name.contains(search, ignoreCase = true) }.let {
-        when (sorting) {
-            WaypointSorting.ALPHABETICAL -> it.sortedBy { it.name }
-            WaypointSorting.DISTANCE -> it.sortedBy { it.distance }
-            WaypointSorting.DATE -> it.sortedBy { it.date }
-            WaypointSorting.LOCATION -> it.sortedBy { it.coords.toVec3d().length() }
+    val filtered by remember {
+        derivedStateOf {
+            waypoints.filter { it.name.contains(search, ignoreCase = true) }.let {
+                when (sorting) {
+                    WaypointSorting.ALPHABETICAL -> it.sortedBy { it.name }
+                    WaypointSorting.DISTANCE -> it.sortedBy { it.distance }
+                    WaypointSorting.DATE -> it.sortedBy { it.date }
+                    WaypointSorting.LOCATION -> it.sortedBy { it.coords.toVec3d().length() }
+                }
+            }.let {
+                if (reverse) it.reversed() else it
+            }
         }
-    }.let {
-        if (reverse) it.reversed() else it
     }
+    var addEditWaypoint by remember { mutableStateOf(false) }
+    var editedWaypoint by remember { mutableStateOf<WaypointEntry?>(null) }
 
     fun refresh() = refreshScope.launch {
         refreshing = true
@@ -150,19 +175,7 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
-    Box(Modifier.pullRefresh(state).clipToBounds().onKeyEvent {
-        if (it.type == KeyEventType.KeyDown) {
-            if (it.key.nativeKeyCode == VK_BACK_SPACE || it.key.nativeKeyCode == KeyEvent.VK_DELETE || it.key.nativeKeyCode == KeyEvent.VK_JAPANESE_KATAKANA) {
-                search = search.dropLast(1)
-            } else {
-                val keyText = KeyEvent.getKeyText(it.key.nativeKeyCode)
-                if (keyText.length == 1) {
-                    search += keyText
-                }
-            }
-        }
-        false
-    }) {
+    Box(Modifier.fillMaxHeight().pullRefresh(state).clipToBounds()) {
         Column {
             Row {
                 SortingOptions(sorting) {
@@ -186,7 +199,7 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick
 //                )
             }
             LazyColumn(
-                modifier = Modifier.width(270.dp),
+                modifier = Modifier.width(270.dp).weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(8.dp, 8.dp, 8.dp, 16.dp),
             ) {
@@ -197,37 +210,50 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick
                         onHover(wp, true)
                     }.onPointerEvent(PointerEventType.Exit) {
                         onHover(wp, false)
-                    }.animateItemPlacement())
+                    }.animateItemPlacement()) {
+                        editedWaypoint = wp
+                        addEditWaypoint = true
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+            }
+
+            AnimatedVisibility(visible = addEditWaypoint) {
+                Box(Modifier.width(272.dp)) {
+                    AddEditWaypoint(editedWaypoint) {
+                        editedWaypoint = null
+                        addEditWaypoint = false
+                        onRefresh()
+                    }
                 }
             }
         }
-
+        AnimatedVisibility(visible = !addEditWaypoint, Modifier.align(Alignment.BottomEnd)) {
+            FloatingActionButton(onClick = {
+                addEditWaypoint = true
+            }, Modifier.padding(8.dp)) {
+                Icon(Icons.Default.Add, contentDescription = "Theme")
+            }
+        }
         PullRefreshIndicator(refreshing, state, Modifier.align(Alignment.TopCenter))
     }
 }
 
-private val viewEntry = WaypointEntry(
-    waypointId = 2137,
+private fun viewEntry(id: Int) = WaypointEntry(
+    waypointId = id,
     name = "Hello",
-    color = Color.Red,
+    color = Color(rand.nextInt()),
     distance = 123.57f,
     date = Date(),
     coords = CoordXYZ(1, 2, 3),
 )
 
-
-@Preview
-@Composable
-fun Preview() {
-    WaypointEntryView(
-        viewEntry
-    )
-}
-
 @Preview
 @Composable
 fun Preview2() {
     WaypointsView(
-        listOf(viewEntry, viewEntry, viewEntry), {}
+        listOf(viewEntry(0), viewEntry(1), viewEntry(2)), {}
     )
 }

@@ -30,41 +30,33 @@ import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowPosition.PlatformDefault.x
+import androidx.compose.ui.window.WindowPosition.PlatformDefault.y
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.compose.ui.ComposeConstants.scaleRange
-import dev.wefhy.whymap.compose.ui.ComposeUtils.toLocalTileBlock
-import dev.wefhy.whymap.compose.ui.ComposeUtils.toOffset
-import dev.wefhy.whymap.config.WhyMapConfig.storageTileBlocks
+import dev.wefhy.whymap.compose.utils.ComposeUtils.goodBackground
+import dev.wefhy.whymap.compose.utils.ComposeUtils.toImageBitmap
+import dev.wefhy.whymap.compose.utils.ComposeUtils.toLocalTileBlock
+import dev.wefhy.whymap.compose.utils.ComposeUtils.toOffset
 import dev.wefhy.whymap.config.WhyMapConfig.tileResolution
 import dev.wefhy.whymap.utils.*
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
-import dev.wefhy.whymap.utils.ImageWriter.encodePNG
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
-import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
-import java.nio.IntBuffer
-import javax.imageio.ImageIO
 
 enum class MapControl {
     User, Target
 }
 
 private suspend fun renderDetail(tile: LocalTileChunk) = withContext(WhyDispatchers.Render) {
-    val bufferedImage = activeWorld?.experimentalTileGenerator?.getTile(tile.chunkPos) ?: return@withContext null //TODO render directly to compose canvas!
-    val stream = ByteArrayOutputStream()
-    stream.encodeJPEG(bufferedImage)
-    try {
-        Image.makeFromEncoded(stream.toByteArray()).toComposeImageBitmap()
-    } catch (e: Throwable) {
-        null
-    }
+//    val bufferedImage = activeWorld?.experimentalTileGenerator?.getTile(tile.chunkPos) ?: return@withContext null //TODO render directly to compose canvas!
+//    bufferedImage.toImageBitmap(intermediate = ImageFormat.JPEG)
+    activeWorld?.experimentalTileGenerator?.getComposeTile(tile)
 }
 private suspend fun renderRegion(tile: LocalTileRegion) = withContext(WhyDispatchers.Render) {
     activeWorld?.mapRegionManager?.getRegionForTilesRendering(tile) {
@@ -108,7 +100,6 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
         mapControl = MapControl.Target
         animationTarget = startPosition
     }
-    val scope = rememberCoroutineScope()
     val animationCenter by animateOffsetAsState(animationTarget.toOffset(), animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -127,7 +118,7 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
         val tilesPerVisibleCanvas = tilesPerCanvas / scale / 5 //5 is number of tiles visible on the screen
         when(tilesPerVisibleCanvas) {
             in 0f..0.05f -> TileZoom.ChunkZoom
-            in 0.05f.. 1.05f -> TileZoom.RegionZoom
+            in 0.05f.. 1.1f -> TileZoom.RegionZoom
             else -> TileZoom.ThumbnailZoom
         }
 //        when {
@@ -178,7 +169,8 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
             Canvas(modifier = Modifier
 //                .size(DpSize(400.dp, 400.dp))
                 .fillMaxSize()
-                .background(Color(0.1f, 0.1f, 0.1f))
+//                .background(Color(0.1f, 0.1f, 0.1f))
+                .background(Color.Black)
                 .clipToBounds()
                 .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
@@ -194,43 +186,34 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
                 }
             ) {
                 canvasSize = size
-                scale(scale ) {
+                val filterQuality = if (scale > 1) FilterQuality.None else FilterQuality.Low
+                val res = (tileResolution / zoom.scale).toInt()
+                scale(scale) {
                     translate(size.width / 2, size.height / 2) {
                         translate(-center.x, -center.y) {
-                            for (y in minTile.z..maxTile.z) {
-                                for (x in minTile.x..maxTile.x) {
-                                    val tile = LocalTile(x, y, zoom)
-                                    val image = images[tile]
-                                    val drawOffset = tile.getStart()
-                                    val res = (tileResolution / zoom.scale).toInt()
-                                    image?.let { im ->
-                                        if (scale > 1) {
-//                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize((im.width / zoom.scale).toInt(), (im.height / zoom.scale).toInt()), filterQuality = FilterQuality.None)
-                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize(res, res), filterQuality = FilterQuality.None)
-                                        } else {
-//                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize((im.width / zoom.scale).toInt(), (im.height / zoom.scale).toInt()), filterQuality = FilterQuality.Low)
-                                            drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize(res, res), filterQuality = FilterQuality.Low)
-                                        }
-                                    }
+                            for (tile in minTile..maxTile) {
+                                val image = images[tile]
+                                val drawOffset = tile.getStart()
+                                image?.let { im ->
+                                    drawImage(im, dstOffset = IntOffset(drawOffset.x, drawOffset.z), dstSize = IntSize(res, res), filterQuality = filterQuality)
                                 }
                             }
-                            waypoints.forEach {
+                            waypoints.sortedBy { it == hovered }.forEach {
                                 val offset = it.coords.toLocalBlock().toOffset() + Offset(0.5f, 0.5f)
                                 val size = if (it == hovered) 16f else 8f
+                                val outlineWidth = if (it == hovered) 5f else 2f
                                 drawCircle(
                                     color = it.color,
                                     radius = size / scale,
                                     center = offset,
                                     style = Fill
                                 )
-                                if (it == hovered) {
-                                    drawCircle(
-                                        color = if (it.color.luminance() > 0.5f) Color.Black else Color.White,
-                                        radius = size / scale,
-                                        center = offset,
-                                        style = Stroke(4f / scale)
-                                    )
-                                }
+                                drawCircle(
+                                    color = it.color.goodBackground(),
+                                    radius = size / scale,
+                                    center = offset,
+                                    style = Stroke(outlineWidth / scale)
+                                )
                             }
                             val player = activeWorld?.player?: return@scale
                             val playerPos = player.pos
