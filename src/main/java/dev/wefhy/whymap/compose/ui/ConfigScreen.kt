@@ -69,10 +69,6 @@ class ConfigScreen : Screen(Text.of("Config")) {
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
 //        super.render(context, mouseX, mouseY, delta)
-//        println("SCREEN MATRIX: ${context.matrices.peek().positionMatrix}")
-        println("width: ${MinecraftClient.getInstance().window.width}, " +
-                "scaledWidth: ${MinecraftClient.getInstance().window.scaledWidth}, " +
-                "nativeWidth: ${MinecraftClient.getInstance().window.framebufferWidth}, " )
         composeView.render(context, delta)
     }
 
@@ -107,11 +103,11 @@ class ConfigScreen : Screen(Text.of("Config")) {
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        if (kbModSettings.matchesKey(keyCode, scanCode)) {
-            println("Closing settings!")
-            close()
-            return true
-        }
+//        if (kbModSettings.matchesKey(keyCode, scanCode)) {
+//            println("Closing settings!")
+//            close()
+//            return true
+//        }
         composeView.passKeyPress(keyCode, scanCode, modifiers)
         return super.keyPressed(keyCode, scanCode, modifiers)
     }

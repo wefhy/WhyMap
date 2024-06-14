@@ -8,20 +8,25 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.MaterialTheme.colors
+import androidx.compose.material.TextFieldColors
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TextFieldDefaults.indicatorLine
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import dev.wefhy.whymap.compose.utils.WorkaroundInteractions
 import dev.wefhy.whymap.compose.utils.WorkaroundKeyEventRecognizer
-import java.awt.event.KeyEvent.VK_BACK_SPACE
+
 
 @Composable
 fun WorkaroundTextFieldSimple(
@@ -44,47 +49,79 @@ fun WorkaroundTextFieldSimple(
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = TextFieldDefaults.TextFieldShape,
-    colors: TextFieldColors = TextFieldDefaults.textFieldColors()
+    colors: TextFieldColors = TextFieldDefaults.textFieldColors(),
+    onSubmit: () -> Unit = {},
+    onTab: () -> Unit = {},
 ) {
     // If color is not provided via the text style, use content color as a default
     val textColor = textStyle.color.takeOrElse {
         colors.textColor(enabled).value
     }
     val mergedTextStyle = textStyle.merge(TextStyle(color = textColor))
-    var textFieldValue by remember { mutableStateOf("") }
-    remember(value) { textFieldValue = value }
+    var text by remember { mutableStateOf(TextFieldValue(value)) }
+    remember(value) { text = text.copy(text = value) }
 
     val recognizer = remember {
-        WorkaroundKeyEventRecognizer(object : WorkaroundInteractions {
-            override fun onCharacterTyped(c: Char) {
-                onValueChange(textFieldValue + c)
+        WorkaroundKeyEventRecognizer(object : WorkaroundInteractions() {
+
+            override fun onCharacterTyped(c: Char, shift: Boolean) {
+                val char = if (shift) c.uppercaseChar() else c
+                val newText = text.text.take(text.selection.min) + char + text.text.drop(text.selection.max)
+                text = text.copy(
+                    text = newText,
+                    selection = textRange(text.selection.min + 1, text.selection.max + 1)
+                )
+                onValueChange(newText)
             }
 
             override fun onBackspace() {
-                onValueChange(textFieldValue.dropLast(1))
+                val newText = if (text.selection.min == text.selection.max) {
+                    text.text.safeTake(text.selection.min - 1) + text.text.drop(text.selection.max)
+                } else {
+                    text.text.take(text.selection.min) + text.text.drop(text.selection.max)
+                }
+//                val newText = text.text.dropLast(1)
+                text = text.copy(
+                    text = newText,
+                    selection = cursor(text.selection.min - 1)
+                )
+                onValueChange(newText)
             }
 
             override fun onDelete() {
-                onValueChange(textFieldValue.drop(1))
+                val newText = text.text.drop(1)
+                text = text.copy(
+                    text = newText,
+                    selection = cursor(text.selection.min - 1)
+                )
+                onValueChange(newText)
             }
 
             override fun onEnter() {
-                //submit
+                onSubmit()
             }
 
-            override fun onLeftArrow() {
-
+            override fun onTab() {
+                onTab()
             }
 
-            override fun onRightArrow() {
+            override fun onLeftArrow(shift: Boolean) {
+                text = text.copy(
+                    selection = cursor(text.selection.min - 1)
+                )
+            }
 
+            override fun onRightArrow(shift: Boolean) {
+                text = text.copy(
+                    selection = cursor(text.selection.max + 1)
+                )
             }
         })
     }
 
     @OptIn(ExperimentalMaterialApi::class)
     (BasicTextField(
-        value = value,
+        value = text,
         modifier = modifier
             .background(colors.backgroundColor(enabled).value, shape)
             .indicatorLine(enabled, isError, interactionSource, colors)
@@ -94,9 +131,9 @@ fun WorkaroundTextFieldSimple(
             )
             .onKeyEvent {
                 recognizer.onKeyEvent(it)
-                false
+                true
             },
-        onValueChange = {},//onValueChange,
+        onValueChange = { text = it },
         enabled = enabled,
         readOnly = readOnly,
         textStyle = mergedTextStyle,

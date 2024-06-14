@@ -15,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import net.minecraft.client.MinecraftClient
 import java.util.concurrent.ConcurrentHashMap
 
 context(CurrentWorldProvider<WhyWorld>)
@@ -57,7 +58,7 @@ class MapRegionManager {
 
     private suspend fun cleanupRegions() = withContext(WhyDispatchers.LowPriority) {
         // TODO make sure this runs on correct dispatcher to avoid context switching
-        val playerPos = (currentWorld as? CurrentWorld)?.player?.pos
+        val playerPos = MinecraftClient.getInstance()?.player?.pos
         regionLoaders.values.map { launch { it.clean(playerPos) } }.forEach { it.join() }
     }
 

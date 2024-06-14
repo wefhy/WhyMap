@@ -31,6 +31,12 @@ private val defaultMcTextStyle = TextStyle(
     )
 )
 
+private val mcStyleNoShadow = TextStyle(
+    fontFamily = MinecraftFont.minecraftFontFamily,
+    fontWeight = FontWeight.Normal,
+    fontStyle = FontStyle.Normal
+)
+
 @Composable
 fun McTheme(colors: Colors, content: @Composable () -> Unit) {
 //    val shadowColor = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f)
@@ -49,20 +55,20 @@ fun McTheme(colors: Colors, content: @Composable () -> Unit) {
                     blurRadius = 0.5f
                 )
             ),
-            body1 = TextStyle(
-                fontFamily = MinecraftFont.minecraftFontFamily,
-                fontWeight = FontWeight.Normal,
-                fontStyle = FontStyle.Normal,
-                fontSize = 16.sp,
-                shadow = Shadow(
-                    color = MinecraftFont.shadow,
-                    offset = Offset(4f, 4f),
-                    blurRadius = 0.5f
-                )
-            ),
+//            body1 = TextStyle(
+//                fontFamily = MinecraftFont.minecraftFontFamily,
+//                fontWeight = FontWeight.Normal,
+//                fontStyle = FontStyle.Normal,
+//                fontSize = 16.sp,
+//                shadow = Shadow(
+//                    color = MinecraftFont.shadow,
+//                    offset = Offset(4f, 4f),
+//                    blurRadius = 0.5f
+//                )
+//            ),
             h1 = defaultMcTextStyle,
-            caption = defaultMcTextStyle,
-            subtitle1 = defaultMcTextStyle,
+            caption = mcStyleNoShadow,
+            subtitle1 = mcStyleNoShadow,
         ),
         shapes = Shapes(
             small = RoundedCornerShape(4.dp),

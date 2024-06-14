@@ -211,8 +211,13 @@ fun WaypointsView(waypoints: List<WaypointEntry>, onRefresh: () -> Unit, onClick
                     }.onPointerEvent(PointerEventType.Exit) {
                         onHover(wp, false)
                     }.animateItemPlacement()) {
-                        editedWaypoint = wp
-                        addEditWaypoint = true
+                        if (editedWaypoint == wp) {
+                            editedWaypoint = null
+                            addEditWaypoint = false
+                        } else {
+                            editedWaypoint = wp
+                            addEditWaypoint = true
+                        }
                     }
                 }
                 item {

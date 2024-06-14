@@ -43,6 +43,7 @@ import dev.wefhy.whymap.compose.utils.ComposeUtils.toLocalTileBlock
 import dev.wefhy.whymap.compose.utils.ComposeUtils.toOffset
 import dev.wefhy.whymap.config.WhyMapConfig.tileResolution
 import dev.wefhy.whymap.utils.*
+import dev.wefhy.whymap.utils.Accessors.clientInstance
 import dev.wefhy.whymap.utils.ImageWriter.encodeJPEG
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -161,13 +162,7 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
         Card(
             elevation = 8.dp
         ) {
-//        val dpSize = with(LocalDensity.current) {
-////            DpSize(t?.width?.toDp() ?: 1.dp, t?.height?.toDp() ?: 1.dp)
-//            DpSize(image?.width?.toDp() ?: 1.dp, image?.height?.toDp() ?: 1.dp)
-//        }
-
             Canvas(modifier = Modifier
-//                .size(DpSize(400.dp, 400.dp))
                 .fillMaxSize()
 //                .background(Color(0.1f, 0.1f, 0.1f))
                 .background(Color.Black)
@@ -215,7 +210,7 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
                                     style = Stroke(outlineWidth / scale)
                                 )
                             }
-                            val player = activeWorld?.player?: return@scale
+                            val player = clientInstance?.player?: return@scale
                             val playerPos = player.pos
                             val playerYaw = player.yaw
                             val offset = Offset(playerPos.x.toFloat(), playerPos.z.toFloat())
@@ -245,7 +240,7 @@ fun MapTileView(startPosition: LocalTileBlock, waypoints: List<WaypointEntry> = 
                 contentDescription = "Center",
                 modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).size(32.dp).clip(
                     CircleShape).clickable {
-                    val player = activeWorld?.player?: return@clickable
+                    val player = clientInstance?.player?: return@clickable
                     val playerPos = player.pos
                     animationTarget = Offset(playerPos.x.toFloat(), playerPos.z.toFloat()).toLocalTileBlock()
                     mapControl = MapControl.Target
