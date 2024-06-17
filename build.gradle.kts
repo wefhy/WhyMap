@@ -72,10 +72,10 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
 	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.11.0+kotlin.2.0.0")
 
-	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
+	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","14.0.126") {
 		exclude (group = "net.fabricmc.fabric-api")
 	}
-	modCompileOnlyApi("com.terraformersmc", "modmenu", "8.0.0")
+	modCompileOnlyApi("com.terraformersmc", "modmenu", "10.0.0-beta.1")
 
 	val ktorVersion = "2.3.5"
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
@@ -98,7 +98,6 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 }
 
-@Suppress("UnstableApiUsage")
 tasks.getByName<ProcessResources>("processResources") {
 	filesMatching("fabric.mod.json") {
 		expand(

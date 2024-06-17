@@ -48,7 +48,7 @@
     "fabric-key-binding-api-v1": "*"
   },
   "recommends": {
-    "cloth-config": "^13.0"
+    "cloth-config": "^14.0"
   },
   "suggests": {
     "modmenu": ">=6.0"
