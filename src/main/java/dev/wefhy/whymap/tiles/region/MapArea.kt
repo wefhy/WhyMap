@@ -51,6 +51,7 @@ import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.PushbackInputStream
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.imageio.ImageIO
 import kotlin.math.atan
@@ -167,18 +168,19 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
     private fun packData(): ByteArray {
         val data = ByteArray(storageTileBlocksSquared * 9)
-        val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
-        val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
+        val byteBuffer = ByteBuffer.wrap(data).order(ByteOrder.nativeOrder())
+        val shortBuffer = byteBuffer.asShortBuffer()
         for (y in 0 until storageTileBlocks) {
             shortBuffer.put(blockIdMap[y])       //2
             shortBuffer.put(blockOverlayIdMap[y])//2
             shortBuffer.put(heightMap[y])        //2
+        }
+        byteBuffer.position(storageTileBlocksSquared * 6)
+        for (y in 0 until storageTileBlocks) {
             byteBuffer.put(biomeMap[y])        //1
             byteBuffer.put(lightMap[y])        //1
             byteBuffer.put(depthMap[y])        //1
         }
-        shortBuffer.flip()
-        byteBuffer.flip()
         return data
     }
 
@@ -230,13 +232,21 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val blockMapping = mappingsSet.blockMappings
                 val biomeMapping = mappingsSet.biomeMappings
 
-                val shortBuffer = ByteBuffer.wrap(data, 0, storageTileBlocksSquared * 6).asShortBuffer()
-                val byteBuffer = ByteBuffer.wrap(data, storageTileBlocksSquared * 6, storageTileBlocksSquared * 3)
+                val byteBuffer = ByteBuffer.wrap(data).let {
+                    val v = metadata?.fileVersion ?: 0
+                    if (v < 2) it else it.order(ByteOrder.nativeOrder())
+                }
+                val shortBuffer = byteBuffer.asShortBuffer()
 
                 for (y in 0 until storageTileBlocks) {
                     shortBuffer.get(blockIdMap[y])
                     shortBuffer.get(blockOverlayIdMap[y])
                     shortBuffer.get(heightMap[y])
+                }
+
+                byteBuffer.position(storageTileBlocksSquared * 6)
+
+                for (y in 0 until storageTileBlocks) {
                     byteBuffer.get(biomeMap[y])
                     byteBuffer.get(lightMap[y])
                     byteBuffer.get(depthMap[y])
