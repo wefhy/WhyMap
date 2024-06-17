@@ -3,6 +3,10 @@
 [![Mod version](https://img.shields.io/badge/dynamic/json?label=Version&query=%24%5B%3F%28%40.featured%3D%3Dtrue%29%5D.name&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap%2Fversion&style=flat-square)](https://modrinth.com/mod/whymap/versions)
 [![Minecraft Version](https://img.shields.io/badge/dynamic/json?label=Minecraft%20Versions&query=%24.game_versions&url=https%3A%2F%2Fapi.modrinth.com%2Fv2%2Fproject%2Fwhymap&style=flat-square)](#actively-supported-versions)
 
+## WhyMap 2.0
+WhyMap 2.0 Release is planned on early July. 
+It'll have a brand new in-game world map and other requested features and bugfixes. 
+Stay tuned and remember to update your mod when it's released!
 
 
 See interactive web demo on: https://wefhy.github.io/whymap-demo/map.html
