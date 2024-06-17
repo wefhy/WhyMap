@@ -1,5 +1,11 @@
 # WhyMap changelog
 
+## [1.7.6]
+ - Fixed dimension switching
+ - Improve tile saving reliability
+ - Fixed incorrect biomes after dimension switch
+ - Fixed very rare crash that could happen on ARM devices when saving tiles
+
 ## [1.7.5]
  - Minimap won't cause crashes or memory leaks
  - Minimap is no longer experimental
