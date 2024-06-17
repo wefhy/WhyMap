@@ -1,5 +1,12 @@
 # WhyMap changelog
 
+## [1.7.7]
+- Updated to Minecraft 1.20.5 and 1.20.6
+- Fixed dimension switching
+- Improve tile saving reliability
+- Fixed incorrect biomes after dimension switch
+- Fixed very rare crash that could happen on ARM devices when saving tiles
+
 ## [1.7.6]
  - Fixed dimension switching
  - Improve tile saving reliability
