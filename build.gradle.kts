@@ -1,6 +1,5 @@
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
@@ -16,10 +15,10 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.6-SNAPSHOT"
+	id ("fabric-loom") version "1.5-SNAPSHOT"
 	id ("maven-publish")
-	kotlin("jvm") version "2.0.0"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
+	kotlin("jvm") version "1.9.20"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -32,12 +31,8 @@ loom {
 }
 
 java {
-	val javaVersion = JavaVersion.toVersion(21)
-	if (JavaVersion.current() < javaVersion) {
-		toolchain.languageVersion.set(JavaLanguageVersion.of(21))
-	}
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
 //	withSourcesJar()
 }
 base {
@@ -70,7 +65,7 @@ dependencies {
 	mappings("net.fabricmc:yarn:$yarn_mappings:v2")
 	modImplementation("net.fabricmc", "fabric-loader", loader_version)
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
-	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.11.0+kotlin.2.0.0")
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.10.13+kotlin.1.9.20")
 
 	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","10.0.96") {
 		exclude (group = "net.fabricmc.fabric-api")
@@ -108,15 +103,15 @@ tasks.getByName<ProcessResources>("processResources") {
 }
 
 tasks.withType<KotlinCompile>().all {
-	compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
+	kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
 	if (isReleaseBuild) {
-		compilerOptions.freeCompilerArgs.add("-Xno-call-assertions")
-		compilerOptions.freeCompilerArgs.add("-Xno-receiver-assertions")
-		compilerOptions.freeCompilerArgs.add("-Xno-param-assertions")
+		kotlinOptions.freeCompilerArgs += "-Xno-call-assertions"
+		kotlinOptions.freeCompilerArgs += "-Xno-receiver-assertions"
+		kotlinOptions.freeCompilerArgs += "-Xno-param-assertions"
 	}
 	if (experimentalOptimizations) {
-		compilerOptions.freeCompilerArgs.add("-Xlambdas=indy")
-		compilerOptions.freeCompilerArgs.add("-Xsam-conversions=indy")
+		kotlinOptions.freeCompilerArgs += "-Xlambdas=indy"
+		kotlinOptions.freeCompilerArgs += "-Xsam-conversions=indy"
 	}
 //	kotlinOptions.languageVersion = "2.0"
 //	kotlinOptions.useK2 = true
@@ -423,10 +418,10 @@ tasks {
 	}
 }
 val compileKotlin: KotlinCompile by tasks
-compileKotlin.compilerOptions {
-	jvmTarget.set(JvmTarget.JVM_21)
+compileKotlin.kotlinOptions {
+    jvmTarget = "17"
 }
 val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.compilerOptions {
-    jvmTarget.set(JvmTarget.JVM_21)
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "17"
 }
