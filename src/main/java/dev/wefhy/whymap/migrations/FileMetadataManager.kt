@@ -19,7 +19,7 @@ import java.nio.ByteBuffer
  * 16 bytes: reserved for future use
  */
 object FileMetadataManager {
-    private const val fileVersion = 1
+    private const val fileVersion = 2
 
     fun encodeMetadata(blockMapping: BlockMapping, biomeMapping: BiomeMapping): ByteArray {
         val arr = ByteArray(metadataSize)
