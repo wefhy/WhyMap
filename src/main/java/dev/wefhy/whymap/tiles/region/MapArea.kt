@@ -74,7 +74,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     val thumbnailFile = currentWorld.getThumbnailFile(location)
 
     val lightingProvider = MinecraftClient.getInstance().world!!.lightingProvider // TODO context receiver for world!
-    val biomeAccess = MinecraftClient.getInstance().world!!.biomeAccess // TODO context receiver for world!
+    val biomeAccess get() = MinecraftClient.getInstance().world?.biomeAccess // TODO context receiver for world!
     lateinit var rendered: BufferedImage
     lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
@@ -358,13 +358,13 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val light = worldLightView.getLightLevel(absoluteBlockPos)
 //                val biome = biomeAccess.getBiome(absoluteBlockPos).value()
 //                val biome = MinecraftClient.getInstance().world!!.getBiome(absoluteBlockPos).value()
-                val biome = biomeAccess.getBiome(absoluteBlockPos).value().takeUnless { biomeManager.isPlains(it) }
-                    ?: biomeAccess.getBiomeForNoiseGen(absoluteBlockPos).value()
+                val biome = biomeAccess?.getBiome(absoluteBlockPos)?.value()?.takeUnless { biomeManager.isPlains(it) }
+                    ?: biomeAccess?.getBiomeForNoiseGen(absoluteBlockPos)?.value()
 
 
                 blockIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(block)
                 blockOverlayIdMap[regionRelativeZ][regionRelativeX] = encodeBlock(overlayBlock)
-                biomeMap[regionRelativeZ][regionRelativeX] = biomeManager.encodeBiome(biome)
+                biomeMap[regionRelativeZ][regionRelativeX] = biome?.let { biomeManager.encodeBiome(it) } ?: 0
                 heightMap[regionRelativeZ][regionRelativeX] = posY.toShort()
                 lightMap[regionRelativeZ][regionRelativeX] = light.toByte()
                 depthMap[regionRelativeZ][regionRelativeX] = depth.coerceIn0255().toUByte().toByte()
