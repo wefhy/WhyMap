@@ -3,6 +3,7 @@
 package dev.wefhy.whymap.libs.whysettings
 
 import dev.wefhy.whymap.utils.MappingContext
+import dev.wefhy.whymap.utils.WhyRuntime.isClothConfigInstalled
 import dev.wefhy.whymap.utils.mapToDouble
 import dev.wefhy.whymap.utils.mapToInt
 import dev.wefhy.whymap.utils.significantBy
@@ -20,7 +21,7 @@ open class SettingsEntry<T: Any>(val default: T) {
 
     private var _value: T = default
 
-    private var entryBuilder: ConfigCategory.() -> Unit = {}
+    private var entryBuilder: Any.() -> Unit = {}
 
     init {
         entrie.add(this)
@@ -48,13 +49,13 @@ open class SettingsEntry<T: Any>(val default: T) {
         entryBuilder = {
             val builder = ConfigEntryBuilder.create()
             val e = block(builder)
-            addEntry(e)
+            (this as ConfigCategory).addEntry(e)
         }
     }
 
     companion object {
         fun SettingsEntry<Boolean>.addToggle(name: String): SettingsEntry<Boolean> {
-            addEntry {
+            if(isClothConfigInstalled) addEntry {
                 startBooleanToggle(Text.literal(name), guiValue)
                     .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
@@ -64,7 +65,7 @@ open class SettingsEntry<T: Any>(val default: T) {
         }
 
         fun SettingsEntry<Int>.addSlider(name: String, min: Int = 0, max: Int = 100): SettingsEntry<Int> {
-            addEntry {
+            if(isClothConfigInstalled) addEntry {
                 startIntSlider(Text.literal(name), guiValue, min, max)
                     .setTextGetter { Text.literal("$it%") }
                     .setSaveConsumer { guiValue = it }
@@ -75,7 +76,7 @@ open class SettingsEntry<T: Any>(val default: T) {
         }
 
         fun SettingsEntry<Double>.addSlider(name: String, min: Double = 0.0, max: Double = 100.0, resolution: Int = 100): SettingsEntry<Double> {
-            with(MappingContext(resolution, min, max)) {
+            if(isClothConfigInstalled) with(MappingContext(resolution, min, max)) {
                 val signifPlaces = log10(resolution - 1f).toInt() + 1
                 addEntry {
                     startIntSlider(Text.literal(name), guiValue.mapToInt, 0, resolution)
@@ -89,7 +90,7 @@ open class SettingsEntry<T: Any>(val default: T) {
         }
 
         internal fun<T : Enum<T>> SettingsEntry<T>.addToggle(name: String): SettingsEntry<T> {
-            addEntry {
+            if(isClothConfigInstalled) addEntry {
                 startEnumSelector(Text.literal(name), guiValue.javaClass, guiValue)
                     .setSaveConsumer { guiValue = it }
                     .setDefaultValue(default)
@@ -99,7 +100,7 @@ open class SettingsEntry<T: Any>(val default: T) {
         }
 
         fun SettingsEntry<WhyColor>.addColorPicker(name: String): SettingsEntry<WhyColor> {
-            addEntry {
+            if(isClothConfigInstalled) addEntry {
                 startAlphaColorField(Text.literal(name), guiValue.intARGB)
                     .setSaveConsumer { guiValue = WhyColor.fromARGB(it) }
                     .setDefaultValue(default.intARGB)
@@ -109,7 +110,7 @@ open class SettingsEntry<T: Any>(val default: T) {
         }
 
         fun SettingsEntry<MutableList<Boolean>>.addToggleList(name: String, vararg toggles: String): SettingsEntry<MutableList<Boolean>> {
-            toggles.forEachIndexed { i, s ->
+            if(isClothConfigInstalled) toggles.forEachIndexed { i, s ->
                 addEntry {
                     startBooleanToggle(Text.literal(s), guiValue[i])
                         .setSaveConsumer { guiValue[i] = it }

@@ -15,6 +15,7 @@ object RenderConfig {
         "string",
         "tripwire",
         "vine",
+        "barrier",
     )
 
     private val forceOverlay = arrayOf(
