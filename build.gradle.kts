@@ -77,7 +77,7 @@ dependencies {
 	}
 	modCompileOnlyApi("com.terraformersmc", "modmenu", "10.0.0-beta.1")
 
-	val ktorVersion = "2.3.5"
+	val ktorVersion = "2.3.11"
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", ktorVersion))
@@ -86,14 +86,14 @@ dependencies {
 	extraLibs(implementation("io.ktor", "ktor-server-cors", ktorVersion))
 
 	extraLibs(implementation("org.tukaani", "xz", "1.9"))
-	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.5.0"))
+	extraLibs(implementation("com.akuleshov7", "ktoml-core", "0.5.2"))
 //	extraLibs(implementation("org.ojalgo", "ojalgo", "53.0.0"))
 //	extraLibs(implementation("ai.hypergraph", "kotlingrad", "0.4.7"))
 //	extraLibs(implementation("ar.com.hjg", "pngj", "2.1.0"))
 
 	testImplementation(platform("org.junit:junit-bom:5.9.3"))
 	testImplementation("org.junit.jupiter:junit-jupiter")
-	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.9.1")
+	testImplementation("com.github.doyaaaaaken", "kotlin-csv-jvm", "1.9.3")
 	testImplementation("ar.com.hjg", "pngj", "2.1.0")
     implementation(kotlin("stdlib-jdk8"))
 }

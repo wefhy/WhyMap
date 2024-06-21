@@ -26,7 +26,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.option.KeyBinding
+import net.minecraft.client.render.BufferRenderer
 import net.minecraft.client.render.GameRenderer
+import net.minecraft.client.render.RenderTickCounter
 import net.minecraft.client.render.Tessellator
 import net.minecraft.client.render.VertexFormat
 import net.minecraft.client.render.VertexFormats
@@ -217,7 +219,7 @@ class WhyMapClient : ClientModInitializer {
 //            matrixStack.pop()
         }
 
-        HudRenderCallback.EVENT.register { drawContext: DrawContext, tickDelta: Float ->
+        HudRenderCallback.EVENT.register { drawContext: DrawContext, counter: RenderTickCounter ->
             drawMiniMap(drawContext)
             drawHud(drawContext)
         }
@@ -340,33 +342,31 @@ class WhyMapClient : ClientModInitializer {
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
         val positionMatrix = matrixStack.peek().positionMatrix
         val tessellator = Tessellator.getInstance()
-        val buffer = tessellator.buffer
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
+        val buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR)
         val halfWidth = width * 0.5f
         val halfHeight = height * 0.5f
-        buffer.vertex(positionMatrix, -halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
-        buffer.vertex(positionMatrix, -halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
-        buffer.vertex(positionMatrix, halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
-        buffer.vertex(positionMatrix, halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
+        buffer.vertex(positionMatrix, -halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f)
+        buffer.vertex(positionMatrix, -halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f)
+        buffer.vertex(positionMatrix, halfWidth, halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f)
+        buffer.vertex(positionMatrix, halfWidth, -halfHeight, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f)
+        RenderSystem.setShader { GameRenderer.getPositionTexColorProgram() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
-        tessellator.draw()
+        BufferRenderer.drawWithGlobalProgram(buffer.end())
     }
 
     fun draw(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
         val positionMatrix = matrixStack.peek().positionMatrix
         val tessellator = Tessellator.getInstance()
-        val buffer = tessellator.buffer
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE)
-        buffer.vertex(positionMatrix, 0f, 0f, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f).next()
-        buffer.vertex(positionMatrix, 0f, height, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f).next()
-        buffer.vertex(positionMatrix, width, height, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f).next()
-        buffer.vertex(positionMatrix, width, 0f, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f).next()
-        RenderSystem.setShader { GameRenderer.getPositionColorTexProgram() }
+        val buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR)
+        buffer.vertex(positionMatrix, 0f, 0f, 0f).color(1f, 1f, 1f, 1f).texture(0f, 0f)
+        buffer.vertex(positionMatrix, 0f, height, 0f).color(1f, 1f, 1f, 1f).texture(0f, 1f)
+        buffer.vertex(positionMatrix, width, height, 0f).color(1f, 1f, 1f, 1f).texture(1f, 1f)
+        buffer.vertex(positionMatrix, width, 0f, 0f).color(1f, 1f, 1f, 1f).texture(1f, 0f)
+        RenderSystem.setShader { GameRenderer.getPositionTexColorProgram() }
         RenderSystem.setShaderTexture(0, textureId)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
-        tessellator.draw()
+        BufferRenderer.drawWithGlobalProgram(buffer.end())
     }
 
     companion object {

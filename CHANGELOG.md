@@ -1,5 +1,9 @@
 # WhyMap changelog
 
+## [1.7.8]
+ - Updated to Minecraft 1.21
+ - Fixed crash when trying to run the game without ClothConfig
+
 ## [1.7.7]
 - Updated to Minecraft 1.20.5 and 1.20.6
 - Fixed dimension switching
@@ -227,6 +231,8 @@ NOT PLANNED features as of now:
 
 
 
+[1.7.7]: https://github.com/wefhy/WhyMap/compare/1.7.7..1.7.6
+[1.7.6]: https://github.com/wefhy/WhyMap/compare/1.7.6..1.7.5
 [1.7.5]: https://github.com/wefhy/WhyMap/compare/1.7.5..1.7.4
 [1.7.4]: https://github.com/wefhy/WhyMap/compare/1.7.4..1.7.3
 [1.7.3]: https://github.com/wefhy/WhyMap/compare/1.7.3..1.7.2
