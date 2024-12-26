@@ -85,7 +85,7 @@ jobs:
           changelog: ${{ env.changelog }}
 #          changelog-file: CHANGELOG.md
           game-versions: |
-            1.21
+            1.21.1
 #            1.20.6
           files-primary: build/libs/*.jar
           loaders: fabric

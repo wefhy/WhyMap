@@ -16,10 +16,10 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.6-SNAPSHOT"
+	id ("fabric-loom") version "1.7-SNAPSHOT"
 	id ("maven-publish")
-	kotlin("jvm") version "2.0.0"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
+	kotlin("jvm") version "2.0.20"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -70,7 +70,7 @@ dependencies {
 	mappings("net.fabricmc:yarn:$yarn_mappings:v2")
 	modImplementation("net.fabricmc", "fabric-loader", loader_version)
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
-	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.11.0+kotlin.2.0.0")
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.12.2+kotlin.2.0.20")
 
 	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","14.0.126") {
 		exclude (group = "net.fabricmc.fabric-api")
@@ -166,7 +166,7 @@ val yarnBuild = task<Exec>("yarnBuild") {
 	inputs.files("src-vue/index.html", "src-vue/vite.config.js", "src-vue/vue.config.js", "src-vue/jsconfig.json")
 	outputs.dir("src-vue/dist")
 	workingDir = file("src-vue")
-	commandLine("yarn", "build")
+	commandLine("/opt/homebrew/bin/yarn", "build")
 }
 
 val threeBuild = task<Exec>("threeBuild") {
@@ -175,7 +175,7 @@ val threeBuild = task<Exec>("threeBuild") {
 	inputs.files("src-threejs/index.html", "src-threejs/vite.config.js", "src-threejs/vue.config.js", "src-threejs/jsconfig.json")
 	outputs.dir("src-threejs/dist")
 	workingDir = file("src-threejs")
-	commandLine("npm", "run", "build")
+	commandLine("/opt/homebrew/bin/npm", "run", "build")
 }
 
 val copyDistFolder = tasks.register<Copy>("copyDistFolder") {
@@ -206,14 +206,15 @@ val yarnInstall = task<Exec>("yarnInstall") {
 	inputs.file("src-vue/package.json")
 	outputs.dir("src-vue/node_modules")
 	workingDir = file("src-vue")
-	commandLine("yarn", "install")
+	commandLine("/opt/homebrew/bin/yarn", "install")
 }
 
 val npmInstall = task<Exec>("npmInstall") {
 	inputs.file("src-threejs/package.json")
 	outputs.dir("src-threejs/node_modules")
 	workingDir = file("src-threejs")
-	commandLine("npm", "install")
+	environment("PATH", System.getenv("PATH"))
+	commandLine("/opt/homebrew/bin/npm", "install")
 }
 
 val md = MessageDigest.getInstance("MD5")!!
@@ -371,7 +372,11 @@ fun getCurrentVersion(): String {
 
 tasks.register<Exec>("serve") {
 	workingDir = file("src-vue")
-	commandLine("yarn", "serve")
+	commandLine("/opt/homebrew/bin/yarn", "serve")
+}
+
+tasks.withType(Exec::class.java).configureEach {
+	environment("PATH", System.getenv("PATH"))
 }
 
 tasks {
