@@ -233,8 +233,10 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val biomeMapping = mappingsSet.biomeMappings
 
                 val byteBuffer = ByteBuffer.wrap(data).let {
-                    val v = metadata?.fileVersion ?: 0
-                    if (v < 2) it else it.order(ByteOrder.nativeOrder())
+                    if (metadata == null || metadata.fileVersion < 3)
+                        it
+                    else
+                        it.order(metadata.byteOrder.order)
                 }
                 val shortBuffer = byteBuffer.asShortBuffer()
 
