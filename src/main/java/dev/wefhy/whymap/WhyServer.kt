@@ -113,6 +113,7 @@ object WhyServer {
                 embeddedServer(CIO, port = p, module = Application::myApplicationModule, host = host).start(wait = true)
                 break
             } catch (e: Throwable) {
+                e.printStackTrace()
                 println("Failed to run server on port $p. Trying on next one.")
             }
         }

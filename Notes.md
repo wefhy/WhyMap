@@ -8,6 +8,61 @@ https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 
 https://github.com/leonbloy/pngj
 
+
+
+
+
+## TODO
+ - [ ] add waypoint repository
+ - [ ] add waypoint ID, make sure owerwriting wayponits works the way it should
+ - [ ] save Byte order in metadata
+ - [ ] save biome colors. Loading and displaying worlds should not have any dependency on the game itself.
+ - [ ] make migrations tests
+ - [ ] more decoupling on all fronts
+ - [ ] create encoders and decoders (mostly for tiles but might be required for some other stuff as well)
+ - [ ] alert the user if a crash log has been detected. "Can we send it?" "yes"/"no"/"show"
+ - [ ] make sure I/O work is really done on I/O dispatcher with infinite threads. Remember that I/O work is blocking so if we run I/O work on a coroutine that uses a dispatcher with 8 threads, one of these 8 threads will be blocked, it's not just a coroutine that will be suspended this way.
+   - If all threads are parked and that's the reason the app doesn't do much work, it won't show on the flamechart
+ - [ ] either use more of @RequireOptIn as a form of encapsulation or actually make multiple modules in the project
+ - [ ] NIO RandomAccessFile might be of use for some of the data manipulations I do
+ - 
+
+
+## Tiles management
+ - [ ] loaders should use sharedFlows or some other observable type to broadcast the information
+ - So it means tiles should be subscribed to. They can be returned more than once. 
+   - If the tile is not loaded, it should be loaded then returned
+   - If the tile is loaded, it should be returned instantly, update should be scheduled and then again an updated version should be returned
+   - Tiles can be returned again whenever they're updated
+ - [ ] in order to get loaded tile, sent a request to loader and then observe the result
+ - [ ] there could be alternative way to load the tile using a suspend method if it's only required once. Then it after loading the loader should call the continuation and unsubscribe to the tile
+ - [ ] event handling 
+   - the frontend requests to load the data but needs to subscribe only to the tiles that it has requested to load or keep loaded
+   - after receiving the event that the tile is loaded, the updater can now update the tile but
+
+ - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Design choices
 `withLock` implementation found in `UpdateQueue` and `MapAreaAccess` - 
 These are operations that can be accessed from multiple threads but none of them are crucial do be finished quickly. 
