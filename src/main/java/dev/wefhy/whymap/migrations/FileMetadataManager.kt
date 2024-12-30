@@ -26,6 +26,9 @@ object FileMetadataManager {
         ByteOrder.LITTLE_ENDIAN -> ByteOrderEnum.LITTLE_ENDIAN
         else -> ByteOrderEnum.NATIVE
     }
+    init {
+        println("Native Byte Order: $byteOrder")
+    }
 
     enum class ByteOrderEnum(val i: Byte, val order: ByteOrder) {
         NATIVE(0, ByteOrder.nativeOrder()),

@@ -25,7 +25,7 @@ class FileMetadataManagerTest {
 
         val decoded = FileMetadataManager.decodeMetadata(metadata)
 
-        Assertions.assertEquals(2, decoded?.fileVersion)
+        Assertions.assertEquals(3, decoded?.fileVersion)
         Assertions.assertEquals(hashHex1, decoded?.blockMapHash)
         Assertions.assertEquals(hashHex2, decoded?.biomeMapHash)
 

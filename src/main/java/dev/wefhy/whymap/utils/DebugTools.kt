@@ -29,6 +29,13 @@ object DebugTools {
             println("$r: $i")
         }
     }
+
+    fun Array<ShortArray>.stats() {
+        val mins = this.map { it.minOrNull() ?: 0 }
+        val maxs = this.map { it.maxOrNull() ?: 0 }
+        println("Mins: $mins")
+        println("Maxs: $maxs")
+    }
 }
 
 private fun Int.isPowerOfTwo(): Boolean {
