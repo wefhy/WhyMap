@@ -206,12 +206,14 @@ class MapArea private constructor(val location: LocalTileRegion) {
 
                 val data = ByteArray(storageTileBlocksSquared * 9)
                 val mappingsSet = if (metadata != null) {
+                    // support current metadata
                     XZInputStream(it).use { xz ->
                         xz.read(data)
                         xz.close()
                     }
                     currentWorld.mappingsManager.getMappings(metadata)
                 } else {
+                    // support legacy metadata
                     MappingsManager.MappingsSet(
                         XZInputStream(it).use { xz ->
                             val legacyMetadata = ByteArray(legacyMetadataSize)
@@ -233,8 +235,9 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val biomeMapping = mappingsSet.biomeMappings
 
                 val byteBuffer = ByteBuffer.wrap(data).let {
-                    if (metadata == null || metadata.fileVersion < 3)
-                        it
+                    if (metadata == null || metadata.fileVersion < 2)
+                        it.order(ByteOrder.BIG_ENDIAN)
+//                        it.order(ByteOrder.nativeOrder())
                     else
                         it.order(metadata.byteOrder.order)
                 }
