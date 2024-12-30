@@ -2,7 +2,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 
@@ -16,10 +15,10 @@ val loader_version: String by project
 val fabric_version: String by project
 
 plugins {
-	id ("fabric-loom") version "1.7-SNAPSHOT"
+	id ("fabric-loom") version "1.9-SNAPSHOT"
 	id ("maven-publish")
-	kotlin("jvm") version "2.0.20"
-	id ("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
+	kotlin("jvm") version "2.1.0"
+	id ("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -41,7 +40,7 @@ java {
 //	withSourcesJar()
 }
 base {
-	archivesName.set(mod_id.toLowerCaseAsciiOnly())
+	archivesName.set(mod_id.lowercase())
 }
 version = getCurrentVersion()
 group = maven_group
@@ -70,14 +69,14 @@ dependencies {
 	mappings("net.fabricmc:yarn:$yarn_mappings:v2")
 	modImplementation("net.fabricmc", "fabric-loader", loader_version)
 	modImplementation("net.fabricmc.fabric-api", "fabric-api", fabric_version)
-	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.12.2+kotlin.2.0.20")
+	modImplementation("net.fabricmc", "fabric-language-kotlin", "1.13.0+kotlin.2.1.0")
 
 	modCompileOnly ("me.shedaniel.cloth", "cloth-config-fabric","14.0.126") {
 		exclude (group = "net.fabricmc.fabric-api")
 	}
 	modCompileOnlyApi("com.terraformersmc", "modmenu", "10.0.0-beta.1")
 
-	val ktorVersion = "2.3.11"
+	val ktorVersion = "3.0.2"
 	extraLibs(implementation("io.ktor", "ktor-server-core-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-cio-jvm", ktorVersion))
 	extraLibs(implementation("io.ktor", "ktor-server-content-negotiation", ktorVersion))

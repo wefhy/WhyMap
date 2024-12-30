@@ -231,6 +231,7 @@ NOT PLANNED features as of now:
 
 
 
+[1.7.8]: https://github.com/wefhy/WhyMap/compare/1.7.8..1.7.7
 [1.7.7]: https://github.com/wefhy/WhyMap/compare/1.7.7..1.7.6
 [1.7.6]: https://github.com/wefhy/WhyMap/compare/1.7.6..1.7.5
 [1.7.5]: https://github.com/wefhy/WhyMap/compare/1.7.5..1.7.4

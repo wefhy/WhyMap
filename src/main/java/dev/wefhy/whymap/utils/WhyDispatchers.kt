@@ -2,6 +2,8 @@
 
 package dev.wefhy.whymap.utils
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -13,6 +15,7 @@ object WhyDispatchers {
     val IO = Executors.newCachedThreadPool().asCoroutineDispatcher()
     val ChunkLoad = Executors.newFixedThreadPool(safeThreads).asCoroutineDispatcher()
     val Render = newReversePriorityFixedThreadPool(safeThreads).asCoroutineDispatcher()
+    val RenderScope = CoroutineScope(SupervisorJob() + Render)
     val Encoding = newReversePriorityFixedThreadPool(safeThreads).asCoroutineDispatcher()
     val LowPriority = Executors.newFixedThreadPool(safeThreads, LowPriorityThreadFactory).asCoroutineDispatcher()
 

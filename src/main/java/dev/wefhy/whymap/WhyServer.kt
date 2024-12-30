@@ -120,7 +120,7 @@ object WhyServer {
     }
 
     @Suppress("SameParameterValue")
-    private fun PipelineContext<Unit, ApplicationCall>.getParams(vararg paramName: String): IntArray? {
+    private fun RoutingContext.getParams(vararg paramName: String): IntArray? {
         return paramName.map { call.parameters[it]?.toInt() ?: return null.also {
             println(
                 call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
@@ -132,7 +132,7 @@ object WhyServer {
     }
 
     @Suppress("SameParameterValue")
-    private fun PipelineContext<Unit, ApplicationCall>.getQueryParams(vararg paramName: String): IntArray? {
+    private fun RoutingContext.getQueryParams(vararg paramName: String): IntArray? {
         return paramName.map { call.request.queryParameters[it]?.toFloat()?.toInt() ?: return null.also {
             println(
                 call.parameters.toMap().map { (k, v) -> "$k: $v" }.joinToString(
@@ -143,7 +143,7 @@ object WhyServer {
         } }.toIntArray()
     }
 
-    private suspend fun PipelineContext<Unit, ApplicationCall>.respondErrorObject(error: String) {
+    private suspend fun RoutingContext.respondErrorObject(error: String) {
         call.respond(mapOf("error" to error))
     }
 
@@ -272,7 +272,7 @@ object WhyServer {
             if (chunkArea.size > chunkLimit) return@get respondErrorObject("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             val renders = regionArea.list().map { regionTile ->
-                async(WhyDispatchers.Render) {
+                WhyDispatchers.RenderScope.async {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                         val offset = regionTile.getStart() - blockArea.start
                         ThreeJsObject(
@@ -299,7 +299,7 @@ object WhyServer {
             if (chunkArea.size > chunkLimit) return@get respondErrorObject("Too big area! Area would need to render ${chunkArea.size} chunks, limit is $chunkLimit chunks.")
             val regionArea = blockArea.parent(TileZoom.RegionZoom)
             val renders = regionArea.list().map { regionTile ->
-                async(WhyDispatchers.Render) {
+                WhyDispatchers.RenderScope.async {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                         val offset = regionTile.getStart() - blockArea.start
                         ThreeJsObject(
@@ -514,7 +514,7 @@ object WhyServer {
                 val relativeStartZ = selectionStartZ - regionTile.getStart().z
                 val relativeEndX = selectionEndX - regionTile.getStart().x
                 val relativeEndZ = selectionEndZ - regionTile.getStart().z
-                async(WhyDispatchers.Render) {
+                WhyDispatchers.RenderScope.async {
                     activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                         analyzeRegion(
                             relativeStartX,
@@ -555,7 +555,7 @@ object WhyServer {
                         )
                         val raster = image.raster
                         val renderJobs = regionArea.list().map { regionTile ->
-                            launch(WhyDispatchers.Render) {
+                            WhyDispatchers.RenderScope.launch {
                                 println("Rendering $regionTile, " +
                                         activeWorld?.mapRegionManager?.getRegionForTilesRendering(regionTile) {
                                             renderWhyImageNow().writeInto(
