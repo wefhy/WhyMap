@@ -165,7 +165,7 @@ val yarnBuild = task<Exec>("yarnBuild") {
 	inputs.files("src-vue/index.html", "src-vue/vite.config.js", "src-vue/vue.config.js", "src-vue/jsconfig.json")
 	outputs.dir("src-vue/dist")
 	workingDir = file("src-vue")
-	commandLine("/opt/homebrew/bin/yarn", "build")
+	commandLine("yarn", "build")
 }
 
 val threeBuild = task<Exec>("threeBuild") {
@@ -174,7 +174,7 @@ val threeBuild = task<Exec>("threeBuild") {
 	inputs.files("src-threejs/index.html", "src-threejs/vite.config.js", "src-threejs/vue.config.js", "src-threejs/jsconfig.json")
 	outputs.dir("src-threejs/dist")
 	workingDir = file("src-threejs")
-	commandLine("/opt/homebrew/bin/npm", "run", "build")
+	commandLine("npm", "run", "build")
 }
 
 val copyDistFolder = tasks.register<Copy>("copyDistFolder") {
@@ -205,15 +205,14 @@ val yarnInstall = task<Exec>("yarnInstall") {
 	inputs.file("src-vue/package.json")
 	outputs.dir("src-vue/node_modules")
 	workingDir = file("src-vue")
-	commandLine("/opt/homebrew/bin/yarn", "install")
+	commandLine("yarn", "install")
 }
 
 val npmInstall = task<Exec>("npmInstall") {
 	inputs.file("src-threejs/package.json")
 	outputs.dir("src-threejs/node_modules")
 	workingDir = file("src-threejs")
-	environment("PATH", System.getenv("PATH"))
-	commandLine("/opt/homebrew/bin/npm", "install")
+	commandLine("npm", "install")
 }
 
 val md = MessageDigest.getInstance("MD5")!!
@@ -371,7 +370,7 @@ fun getCurrentVersion(): String {
 
 tasks.register<Exec>("serve") {
 	workingDir = file("src-vue")
-	commandLine("/opt/homebrew/bin/yarn", "serve")
+	commandLine("yarn", "serve")
 }
 
 tasks.withType(Exec::class.java).configureEach {
