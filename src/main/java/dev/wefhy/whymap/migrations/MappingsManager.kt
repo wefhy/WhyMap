@@ -19,10 +19,22 @@ class MappingsManager(
 ) {
 
     companion object {
+        data class NameMigration(val oldName: String, val newName: String)
+
         private val md = MessageDigest.getInstance("MD5")
         private val fileWithCurrentBlockMapVersion = customMappingsDir.resolve("current-block")
         private val fileWithCurrentBiomeMapVersion = customMappingsDir.resolve("current-biome")
         private val classLoader = Companion::class.java.classLoader
+
+        private val blockNameMigrations = listOf(
+            NameMigration("block.minecraft.grass", "block.minecraft.short_grass") //todo automatically get this
+        )
+
+        private val blockNameMap = blockNameMigrations.associate { it.oldName to it.newName }
+
+        private val biomeNameMigrations = listOf<NameMigration>() //todo automatically get this
+
+        private val biomeNameMap = biomeNameMigrations.associate { it.oldName to it.newName }
 
         private val internalBlockMappings: List<BlockMapping.InternalMapping> =
             getMappings("blockmappings.txt")
@@ -108,8 +120,18 @@ class MappingsManager(
             //TODO memoize mappings
             //TODO binary search? Are they always sorted?
             //TODO separate function for biomes and blocks
-            val air = mappings2.indexOf("block.minecraft.air").toShort().takeIf { it >= 0 } ?: mappings2.indexOf("plains").toShort()
-            return mappings1.map { mappings2.indexOf(it).toShort() }.map { if (it >= 0) it else air }
+            val default = mappings2.indexOf("block.minecraft.air").toShort().takeIf { it >= 0 } ?: mappings2.indexOf("plains").toShort()
+            return mappings1.map {
+                mappings2.indexOrMigration(it) //todo this handles only blocks, in the future I want to handle biomes as well
+            }.map { if (it >= 0) it else default }
+        }
+
+        private fun List<String>.indexOrMigration(name: String): Short {
+            return indexOf(name).toShort().takeIf { it >= 0 } ?: indexOf(blockNameMap[name] ?: name).toShort().also {
+                if (it < 0) {
+                    println("Missing mapping for $name")
+                }
+            }
         }
 
         fun remap(data: List<Int>, remapLookUp: List<Int>): List<Int> {
