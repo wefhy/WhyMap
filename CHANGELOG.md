@@ -3,6 +3,10 @@
 ## [1.7.8]
  - Updated to Minecraft 1.21
  - Fixed crash when trying to run the game without ClothConfig
+ - Updated to Kotlin 2.0+ and Ktor 3.0+
+ - Fixed reading some old files
+ - Support name migrations (eg. `grass` -> `short_grass`)
+ - Store byteorder for better file interchangeability
 
 ## [1.7.7]
 - Updated to Minecraft 1.20.5 and 1.20.6
