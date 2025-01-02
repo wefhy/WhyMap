@@ -7,6 +7,7 @@
  - Fixed reading some old files
  - Support name migrations (eg. `grass` -> `short_grass`)
  - Store byteorder for better file interchangeability
+ - Save last tile update in metadata, don't update it when just upgrading the tile version (this will be used later for better tile merging)
 
 ## [1.7.7]
 - Updated to Minecraft 1.20.5 and 1.20.6
