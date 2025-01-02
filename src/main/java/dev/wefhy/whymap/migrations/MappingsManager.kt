@@ -177,9 +177,10 @@ class MappingsManager(
     val unsupportedAntiNPEBlockRemapLookup = currentBlockMapping.getCurrentRemapLookup()
     val unsupportedAntiNPEBiomeRemapLookup = currentBiomeMapping.getCurrentRemapLookup()
 
-    val metadata = FileMetadataManager.encodeMetadata(
+    fun getMetadata(timestamp: Long) = FileMetadataManager.encodeMetadata(
         currentBlockMapping,
         currentBiomeMapping,
+        timestamp
     )
 
     private fun createNewCustomBlockMappings(hash: String, mappings: List<String>): BlockMapping {

@@ -79,6 +79,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     lateinit var rendered: BufferedImage
     lateinit var renderedWhyImage: WhyTiledImage
     lateinit var renderedThumbnail: BufferedImage
+    var lastModification = 0L
     var lastUpdate = 0L
 //    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
@@ -154,7 +155,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
 //        uncompressedFile.writeBytes(packedData)
         file.useAtomicProxy {
             outputStream().use {
-                it.write(currentWorld.mappingsManager.metadata)
+                it.write(currentWorld.mappingsManager.getMetadata(lastModification))
                 withContext(WhyDispatchers.LowPriority) {
                     packedData.compress().writeTo(it)
                 }//.toByteArray()
@@ -202,6 +203,8 @@ class MapArea private constructor(val location: LocalTileRegion) {
                 val metadata = decodeMetadata(metabytes)
                 if (metadata == null) {
                     it.unread(metabytes)
+                } else {
+                    lastModification = metadata.lastUpdate
                 }
 
                 val data = ByteArray(storageTileBlocksSquared * 9)
@@ -330,6 +333,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
             return
         }
         modifiedSinceSave = true
+        lastModification = System.currentTimeMillis()
 
         val worldLightView = lightingProvider[LightType.BLOCK]
 //        val surface = chunkGetSurface(chunk, Heightmap.Type.OCEAN_FLOOR)

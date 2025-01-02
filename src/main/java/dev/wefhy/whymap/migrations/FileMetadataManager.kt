@@ -38,12 +38,12 @@ object FileMetadataManager {
 
     }
 
-    fun encodeMetadata(blockMapping: BlockMapping, biomeMapping: BiomeMapping): ByteArray {
+    fun encodeMetadata(blockMapping: BlockMapping, biomeMapping: BiomeMapping, timestamp: Long = System.currentTimeMillis()): ByteArray {
         val arr = ByteArray(metadataSize)
         val buffer = ByteBuffer.wrap(arr)
         buffer.putInt(FILE_VERSION)
         buffer.putInt(FILE_VERSION.inv())
-        buffer.putLong(System.currentTimeMillis()) // TODO: use last meaningful update from MapArea (so don't include version changes)
+        buffer.putLong(timestamp)
         buffer.put(blockMapping.hash.parseHex())
         buffer.put(biomeMapping.hash.parseHex())
         buffer.put(byteOrder.i)
