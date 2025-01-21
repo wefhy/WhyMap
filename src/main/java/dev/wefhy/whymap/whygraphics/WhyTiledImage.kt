@@ -64,8 +64,7 @@ class WhyTiledImage(
         }
     }
 
-    fun toNativeImage(): NativeImage {
-        val image = getSharedNativeImage(width, height)
+    fun toNativeImage(image: NativeImage = getSharedNativeImage(width, height)): NativeImage {
         for (y in 0 until yTiles) {
             val line = data[y]
             for (x in 0 until xTiles) {

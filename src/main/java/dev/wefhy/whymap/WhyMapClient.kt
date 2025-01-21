@@ -41,8 +41,15 @@ class WhyMapClient : ClientModInitializer {
 
     private fun BufferedImage.toNativeImage() = createNativeImage(width, height) { x, y -> 127 shl 24 or getColorArgb(x, y) }
 
-    val nativeImageBackedTextures by lazy {  //TODO use better way of reusing native textures
-        Array(4) { NativeImageBackedTexture(512, 512, false) }
+    val dynamicMinimapTextures by lazy {
+        Array(4) {
+            DynamicMinimapTexture(
+                Identifier.of("dynamic_minimap_$it"),
+                NativeImage(NativeImage.Format.RGBA, 512, 512, false)
+            ).also {
+                MinecraftClient.getInstance().textureManager.registerTexture(it.textureId, it)
+            }
+        }
     }
 
 
@@ -190,9 +197,11 @@ class WhyMapClient : ClientModInitializer {
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
 //                val texture: WhyTiledImage = rendered
-                val texture: NativeImage = rendered.toNativeImage() //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
                 val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
-                draw(mc, matrixStack, texture, mapScale, nativeImageBackedTextures[i], i)
+                // Use the pre-initialized dynamic texture
+                val textureContainer = dynamicMinimapTextures[i]
+                val texture: NativeImage = rendered.toNativeImage(textureContainer.frontBuffer.get()) //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
+                draw(mc, matrixStack, texture, mapScale, textureContainer, i)
                 matrixStack.pop()
 //                texture.close() //No longer necessary since toNativeImage uses textures from the list
             }
@@ -279,21 +288,9 @@ class WhyMapClient : ClientModInitializer {
         }
     }
 
-    lateinit var dynamicImage: DynamicMinimapTexture
-
-    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: NativeImageBackedTexture, i: Int) {
-        if (textureContainer.image != texture) {
-            textureContainer.image = texture
-        }
-        textureContainer.upload()
-//        val textureId = mc.textureManager.registerDynamicTexture("dynamicimage$i", textureContainer)
-        if(!::dynamicImage.isInitialized) {
-            dynamicImage = DynamicMinimapTexture(Identifier.of("second_dynamic_image"), texture)
-            mc.textureManager.registerTexture(dynamicImage.textureId, dynamicImage)
-        } else {
-            dynamicImage.updateMinimap(texture)
-        }
-        draw(matrixStack, dynamicImage.textureId, texture.width * scale, texture.height * scale)
+    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: DynamicMinimapTexture, i: Int) {
+        textureContainer.refresh()
+        draw(matrixStack, textureContainer.textureId, texture.width * scale, texture.height * scale)
     }
 
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {

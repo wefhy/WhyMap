@@ -19,7 +19,7 @@ import net.minecraft.util.Identifier;
 public class DynamicMinimapTexture extends AbstractTexture {
 
     public final Identifier textureId;
-    private final AtomicReference<NativeImage> frontBuffer = new AtomicReference<>();
+    public final AtomicReference<NativeImage> frontBuffer = new AtomicReference<>();
     private NativeImage backBuffer;
     private final Object uploadLock = new Object();
     
@@ -37,6 +37,10 @@ public class DynamicMinimapTexture extends AbstractTexture {
             TextureUtil.prepareImage(this.getGlId(), initImage.getWidth(), initImage.getHeight());
             this.upload();
         }
+    }
+
+    public void refresh() {
+        RenderSystem.recordRenderCall(this::upload);
     }
 
     public void updateMinimap(NativeImage newImage) {
