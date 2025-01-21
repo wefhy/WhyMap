@@ -27,13 +27,8 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gl.ShaderProgramKeys.POSITION_TEX_COLOR
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.option.KeyBinding
-import net.minecraft.client.render.BufferRenderer
-import net.minecraft.client.render.RenderTickCounter
-import net.minecraft.client.render.Tessellator
-import net.minecraft.client.render.VertexFormat
-import net.minecraft.client.render.VertexFormats
-import net.minecraft.client.texture.NativeImage
-import net.minecraft.client.texture.NativeImageBackedTexture
+import net.minecraft.client.render.*
+import net.minecraft.client.texture.*
 import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
@@ -54,8 +49,8 @@ class WhyMapClient : ClientModInitializer {
     fun loadPngIntoNativeImage(): (MatrixStack) -> Unit {
         val image = NativeImage.read(WhyMapClient::class.java.getResourceAsStream("/assets/whymap/player.png"))
         val texture = NativeImageBackedTexture(image)
-//            val identifier = Identifier("whymap", "icon")
-        val identifier = MinecraftClient.getInstance().textureManager.registerDynamicTexture("playericon", texture)
+        val identifier = Identifier.of("playericon")
+        MinecraftClient.getInstance().textureManager.registerTexture(Identifier.of("playericon"), texture)
         return { matrixStack ->
 
             drawCenter(matrixStack, identifier, image.width.toFloat(), image.height.toFloat())
@@ -233,11 +228,6 @@ class WhyMapClient : ClientModInitializer {
             drawHud(drawContext)
         }
 
-//        UseBlockCallback.EVENT.register { playerEntity, world, hand, result ->
-//            TODO("Whymap: no chat message confirmation. Assuming respawn point setting has failed.")
-//            return@register ActionResult.PASS
-//        }
-
         ClientTickEvents.END_CLIENT_TICK.register { mc ->
             if(mc.player != null) {
 //                mc.player!!.spawn
@@ -266,51 +256,6 @@ class WhyMapClient : ClientModInitializer {
             //TODO https://discord.com/channels/507304429255393322/807617488313516032/895854464060227665
 
             //TODO NativeImageBackedTexture(NativeImage.read(inputStream))
-
-
-//                RenderSystem.depthMask(true)
-//                RenderSystem.enableDepthTest()
-//                RenderSystem.defaultBlendFunc()
-
-
-//            if (mc.world != null) {
-//                // Get the window width and height
-//                val width: Int = mc.window.scaledWidth
-//                val height: Int = mc.window.scaledHeight
-//                // Get the matrix stack for rendering
-//                val matrixStack = MatrixStack()
-//                // Push a new matrix to the stack
-//                matrixStack.push()
-//                // Translate the matrix to the left corner of the screen
-//                matrixStack.translate(0f, 0f, 0f)
-//                // Get the immediate vertex consumer provider for rendering
-//                val immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().buffer)
-//                // Get the vertex consumer for rendering quads with solid color
-//                val vertexConsumer = immediate.getBuffer(RenderLayer.getSolid())
-//                // Set the color to red
-//                val red = 255
-//                val green = 0
-//                val blue = 0
-//                val alpha = 255
-//                // Set the size of the square in pixels
-//                val size = 20
-//                // Draw a quad with four vertices
-//                vertexConsumer.vertex(matrixStack.peek().positionMatrix, 0f, size.toFloat(), 0f).color(red, green, blue, alpha).texture(0f, 0f).next()
-//                vertexConsumer.vertex(matrixStack.peek().positionMatrix, size.toFloat(), size.toFloat(), 0f).color(red, green, blue, alpha).texture(0f, 1f).next()
-//                vertexConsumer.vertex(matrixStack.peek().positionMatrix, size.toFloat(), 0f, 0f).color(red, green, blue, alpha).texture(1f, 1f).next()
-//                vertexConsumer.vertex(matrixStack.peek().positionMatrix, 0f, 0f, 0f).color(red, green, blue, alpha).texture(1f, 0f).next()
-//                // Draw the quad to the screen
-//                immediate.draw()
-//                // Pop the matrix from the stack
-//                matrixStack.pop()
-//            }
-//        }
-//            val theTexture = NativeImageBackedTexture(64, 64, false)
-//            thetexture.image.setColor(0, 0, 0)
-//            theTexture.upload()
-//            val something = RenderLayer.getText(theIdentifier)
-
-
         }
     }
     inline fun createNativeImage(width: Int, height: Int, block: NativeImage.(x: Int, y: Int) -> Int): NativeImage {
@@ -334,18 +279,21 @@ class WhyMapClient : ClientModInitializer {
         }
     }
 
-    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float) {
-        val textureId = mc.textureManager.registerDynamicTexture("dynamic_image", NativeImageBackedTexture(texture))
-        draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
-    }
+    lateinit var dynamicImage: DynamicMinimapTexture
 
     fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: NativeImageBackedTexture, i: Int) {
         if (textureContainer.image != texture) {
             textureContainer.image = texture
         }
         textureContainer.upload()
-        val textureId = mc.textureManager.registerDynamicTexture("dynamicimage$i", textureContainer)
-        draw(matrixStack, textureId, texture.width * scale, texture.height * scale)
+//        val textureId = mc.textureManager.registerDynamicTexture("dynamicimage$i", textureContainer)
+        if(!::dynamicImage.isInitialized) {
+            dynamicImage = DynamicMinimapTexture(Identifier.of("second_dynamic_image"), texture)
+            mc.textureManager.registerTexture(dynamicImage.textureId, dynamicImage)
+        } else {
+            dynamicImage.updateMinimap(texture)
+        }
+        draw(matrixStack, dynamicImage.textureId, texture.width * scale, texture.height * scale)
     }
 
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
