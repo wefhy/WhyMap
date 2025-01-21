@@ -43,9 +43,9 @@ class WhyMapClient : ClientModInitializer {
 
     val dynamicMinimapTextures by lazy {
         Array(4) {
-            DynamicMinimapTexture(
+            BufferedTexture(
                 Identifier.of("dynamic_minimap_$it"),
-                NativeImage(NativeImage.Format.RGBA, 512, 512, false)
+                512, 512
             ).also {
                 MinecraftClient.getInstance().textureManager.registerTexture(it.textureId, it)
             }
@@ -161,12 +161,12 @@ class WhyMapClient : ClientModInitializer {
                 val cropYsize = cropYend - cropYstart
                 val scaleX = mc.window.framebufferWidth.toFloat() / mc.window.scaledWidth.toFloat()
                 val scaleY = mc.window.framebufferHeight.toFloat() / mc.window.scaledHeight.toFloat()
-                RenderSystem.enableScissor(
-                    (cropXstart * scaleX).toInt(),
-                    mc.window.framebufferHeight - (cropYend * scaleY).toInt(),
-                    (cropXsize * scaleX).toInt(),
-                    (cropYsize * scaleY).toInt()
-                )
+//                RenderSystem.enableScissor(
+//                    (cropXstart * scaleX).toInt(),
+//                    mc.window.framebufferHeight - (cropYend * scaleY).toInt(),
+//                    (cropXsize * scaleX).toInt(),
+//                    (cropYsize * scaleY).toInt()
+//                )
                 // TODO this works in 1.21.2 but draws over the map
 //                drawContext.fill(
 //                    (cropXstart).toInt(),
@@ -200,8 +200,11 @@ class WhyMapClient : ClientModInitializer {
                 val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
                 // Use the pre-initialized dynamic texture
                 val textureContainer = dynamicMinimapTextures[i]
-                val texture: NativeImage = rendered.toNativeImage(textureContainer.frontBuffer.get()) //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
-                draw(mc, matrixStack, texture, mapScale, textureContainer, i)
+                textureContainer.writeImage {
+                    rendered.toNativeImage(it)
+                }
+                //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
+                draw(matrixStack, mapScale, textureContainer)
                 matrixStack.pop()
 //                texture.close() //No longer necessary since toNativeImage uses textures from the list
             }
@@ -288,8 +291,9 @@ class WhyMapClient : ClientModInitializer {
         }
     }
 
-    fun draw(mc: MinecraftClient, matrixStack: MatrixStack, texture: NativeImage, scale: Float, textureContainer: DynamicMinimapTexture, i: Int) {
-        textureContainer.refresh()
+    fun draw(matrixStack: MatrixStack, scale: Float, textureContainer: BufferedTexture) {
+//        textureContainer.refresh()
+        val texture = textureContainer.upload()
         draw(matrixStack, textureContainer.textureId, texture.width * scale, texture.height * scale)
     }
 
