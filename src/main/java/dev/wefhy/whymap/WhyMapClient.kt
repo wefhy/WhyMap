@@ -44,7 +44,7 @@ class WhyMapClient : ClientModInitializer {
 
     val dynamicMinimapTextures by lazy {
         Array(4) {
-            BufferedTexture(
+            MinimapTile(
                 Identifier.of("dynamic_minimap_$it"),
                 512, 512
             ).also {
@@ -109,6 +109,10 @@ class WhyMapClient : ClientModInitializer {
             }
         }
 
+        fun renderMiniMap(drawContext: DrawContext) {
+
+        }
+
         fun drawMiniMap(drawContext: DrawContext) {
             val matrixStack = drawContext.matrices
             val mapMode = WhyUserSettings.mapSettings.minimapMode
@@ -128,11 +132,8 @@ class WhyMapClient : ClientModInitializer {
             val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
             val region = block.parent(TileZoom.RegionZoom)
             val center = region.getCenter()
-//            val diffX = center.x - block.x
-//            val diffZ = center.z - block.z
             val diffX = block.x - center.x
             val diffZ = block.z - center.z
-//            println("X: ${center.x}, ${block.x}, ${diffX}, ${diffX.sign}, Z: ${center.z}, ${block.z}, ${diffZ}, ${diffZ.sign}")
 
             val regions = listOf(
                 region,
@@ -192,22 +193,24 @@ class WhyMapClient : ClientModInitializer {
 
             for ((region, rendered) in rendered) {
                 if (rendered == null) continue
+                val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
+                val textureContainer = dynamicMinimapTextures[i]
+                textureContainer.setBackBufferLocation(region)
+                textureContainer.writeImage {
+                    rendered.toNativeImage(it)
+                }
+                //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
+            }
+            for (textureContainer in dynamicMinimapTextures) {
+                val region = textureContainer.frontBufferLocation
+                //TODO what if buffers are swapped?
                 val start = region.getStart()
                 val diffX = start.x - block.x
                 val diffZ = start.z - block.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
-//                val texture: WhyTiledImage = rendered
-                val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
-                // Use the pre-initialized dynamic texture
-                val textureContainer = dynamicMinimapTextures[i]
-                textureContainer.writeImage {
-                    rendered.toNativeImage(it)
-                }
-                //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
                 draw(matrixStack, mapScale, textureContainer)
                 matrixStack.pop()
-//                texture.close() //No longer necessary since toNativeImage uses textures from the list
             }
             matrixStack.pop()
             matrixStack.push()
@@ -237,6 +240,7 @@ class WhyMapClient : ClientModInitializer {
         }
 
         HudRenderCallback.EVENT.register { drawContext: DrawContext, counter: RenderTickCounter ->
+            renderMiniMap(drawContext)
             drawMiniMap(drawContext)
             drawHud(drawContext)
         }

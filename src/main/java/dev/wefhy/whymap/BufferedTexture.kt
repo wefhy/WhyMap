@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicReference
 
-class BufferedTexture(val textureId: Identifier, width: Int, height: Int) : AbstractTexture() {
+open class BufferedTexture(val textureId: Identifier, width: Int, height: Int) : AbstractTexture() {
     private val lock = Any()
     private val frontBuffer = AtomicReference(NativeImage(width, height, false))
     private val backBuffer = AtomicReference(NativeImage(width, height, false))
@@ -24,36 +24,37 @@ class BufferedTexture(val textureId: Identifier, width: Int, height: Int) : Abst
     }
 
     fun writeImage(block: (NativeImage) -> Unit) {
-//        synchronized(lock) {
-            try {
-                backBuffer.get().apply(block)
-                swapBuffers()
-            } catch (e: Exception) {
-                System.err.println("Buffer operation failed: ${e.message}")
-            }
-//        }
+        try {
+            backBuffer.get().apply(block)
+            swapBuffers()
+        } catch (e: Exception) {
+            System.err.println("Buffer operation failed: ${e.message}")
+        }
     }
 
     fun upload(): NativeImage {
 //        RenderSystem.recordRenderCall {
-//            synchronized(lock) {
+            return synchronized(lock) {
                 try {
                     GlStateManager._bindTexture(glId)
-                    return frontBuffer.get().also { it.upload(0, 0, 0, false) }
+                    frontBuffer.get().also { it.upload(0, 0, 0, false) }
                 } catch (e: Exception) {
                     System.err.println("Texture upload failed: ${e.message}")
+                    null!!
                 }
-//            }
+            }
 //        }
-        return null!!
     }
 
-    private fun swapBuffers() {
+    private fun swapBuffers() = synchronized(lock) {
         val oldFront = frontBuffer.get()
         val oldBack = backBuffer.get()
         frontBuffer.set(oldBack)
         backBuffer.set(oldFront)
+        onSwapBuffers()
     }
+
+    protected open fun onSwapBuffers() {}
 
     override fun close() {
         RenderSystem.recordRenderCall {
