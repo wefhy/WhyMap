@@ -2,6 +2,7 @@
 
 package dev.wefhy.whymap
 
+import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.clothconfig.ConfigEntryPoint.getConfigScreen
@@ -293,8 +294,10 @@ class WhyMapClient : ClientModInitializer {
 
     fun draw(matrixStack: MatrixStack, scale: Float, textureContainer: BufferedTexture) {
 //        textureContainer.refresh()
+//        val prevTex = GlStateManager.getBoundTexture()
         val texture = textureContainer.upload()
         draw(matrixStack, textureContainer.textureId, texture.width * scale, texture.height * scale)
+//        GlStateManager._bindTexture(prevTex)
     }
 
     fun drawCenter(matrixStack: MatrixStack, textureId: Identifier, width: Float, height: Float) {
