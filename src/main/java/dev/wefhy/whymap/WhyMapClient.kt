@@ -2,7 +2,6 @@
 
 package dev.wefhy.whymap
 
-import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.wefhy.whymap.WhyMapMod.Companion.activeWorld
 import dev.wefhy.whymap.clothconfig.ConfigEntryPoint.getConfigScreen
@@ -109,26 +108,12 @@ class WhyMapClient : ClientModInitializer {
             }
         }
 
-        fun renderMiniMap(drawContext: DrawContext) {
-
-        }
-
-        fun drawMiniMap(drawContext: DrawContext) {
-            val matrixStack = drawContext.matrices
+        fun renderMiniMap(mc: MinecraftClient) {
             val mapMode = WhyUserSettings.mapSettings.minimapMode
-            val mapPosition = WhyUserSettings.mapSettings.minimapPosition
-
-            val mapPosX = when (mapPosition) {
-                MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
-                MinimapPosition.TOP_RIGHT -> mc.window.scaledWidth - mapRadius - mapPadding
-                MinimapPosition.TOP_CENTER -> mc.window.scaledWidth / 2f
-            }
-            val mapPosY = mapRadius + mapPadding
-
             if (!mapMode.visible) return
-            val player = mc.player ?: return println("No player!")
-            val playerPos = player.pos ?: return println("No player pos!")
-            val mrm = activeWorld?.mapRegionManager ?: return println("No map region manager!")
+            val player = mc.player ?: return WhyLog.t("No player!")
+            val playerPos = player.pos ?: return WhyLog.t("No player pos!")
+            val mrm = activeWorld?.mapRegionManager ?: return WhyLog.t("No map region manager!")
             val block = Block(playerPos.x.toInt(), playerPos.z.toInt())
             val region = block.parent(TileZoom.RegionZoom)
             val center = region.getCenter()
@@ -143,7 +128,7 @@ class WhyMapClient : ClientModInitializer {
             )
 
 
-            val rendered = runBlocking {
+            val rendereds = runBlocking {
                 regions.associateWith {
                     mrm.getRegionForMinimapRendering(it) {
                         renderWhyImageBuffered()
@@ -151,7 +136,36 @@ class WhyMapClient : ClientModInitializer {
                     }
                 }
             }
-            //no leak till here
+
+            for ((region, result) in rendereds) {
+                val (time, rendered) = result ?: continue
+                if (rendered == null) continue
+                val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
+                val textureContainer = dynamicMinimapTextures[i]
+                textureContainer.setBackBufferLocation(region)
+                textureContainer.writeImage(time/*System.identityHashCode(rendered)*/) {
+                    rendered.toNativeImage(it)
+                }
+                //TODO cache result!
+            }
+        }
+
+        fun drawMiniMap(drawContext: DrawContext) {
+            val matrixStack = drawContext.matrices
+            val mapMode = WhyUserSettings.mapSettings.minimapMode
+            val mapPosition = WhyUserSettings.mapSettings.minimapPosition
+
+            if (!mapMode.visible) return
+
+            val mapPosX = when (mapPosition) {
+                MinimapPosition.TOP_LEFT -> mapRadius + mapPadding
+                MinimapPosition.TOP_RIGHT -> mc.window.scaledWidth - mapRadius - mapPadding
+                MinimapPosition.TOP_CENTER -> mc.window.scaledWidth / 2f
+            }
+            val mapPosY = mapRadius + mapPadding
+            val player = mc.player ?: return WhyLog.t("No player!")
+            val playerPos = player.pos ?: return WhyLog.t("No player pos!")
+
 
 
             if(true) {
@@ -190,23 +204,12 @@ class WhyMapClient : ClientModInitializer {
 
             //no leak till here
 
-
-            for ((region, rendered) in rendered) {
-                if (rendered == null) continue
-                val i = region.x.mod(2) + region.z.mod(2) * 2 //TODO this is so hacky and will casue issues if some part of the rendering is modified (ie more than 4 regions are rendered)
-                val textureContainer = dynamicMinimapTextures[i]
-                textureContainer.setBackBufferLocation(region)
-                textureContainer.writeImage {
-                    rendered.toNativeImage(it)
-                }
-                //TODO cache result! Make sure cache is not cleared by NativeImageBackedTexture image setter
-            }
             for (textureContainer in dynamicMinimapTextures) {
                 val region = textureContainer.frontBufferLocation
                 //TODO what if buffers are swapped?
                 val start = region.getStart()
-                val diffX = start.x - block.x
-                val diffZ = start.z - block.z
+                val diffX = start.x - playerPos.x //TODO using playerPos instead of block causes jelly effect 🤔
+                val diffZ = start.z - playerPos.z
                 matrixStack.push()
                 matrixStack.translate(diffX.toFloat() * mapScale + mapPosX, diffZ.toFloat() * mapScale + mapPosY, 0f)
                 draw(matrixStack, mapScale, textureContainer)
@@ -222,27 +225,16 @@ class WhyMapClient : ClientModInitializer {
             playerIcon(matrixStack)
             matrixStack.pop()
             RenderSystem.disableScissor()
-
-//
-//            val rendered = runBlocking {
-//                mrm.getRegionForTilesRendering(region) {
-////                    getRendered()
-//                    renderNativeImage()
-//                }
-//            } ?: return println("Nothing to render!")
-//            println("Drawing minimap! ${region.x}, ${region.z}, diff: ${block.x - center.x}, ${block.z - center.z}")
-//            matrixStack.push()
-//            matrixStack.translate(diffX.toFloat() * mapScale + 100, diffZ.toFloat() * mapScale + 100, 0f)
-//            val texture = rendered
-////            val texture = createRandomTexture(512, 256)
-//            draw(mc, matrixStack, texture, mapScale)
-//            matrixStack.pop()
         }
 
         HudRenderCallback.EVENT.register { drawContext: DrawContext, counter: RenderTickCounter ->
-            renderMiniMap(drawContext)
+
             drawMiniMap(drawContext)
             drawHud(drawContext)
+        }
+
+        ClientTickEvents.START_CLIENT_TICK.register { mc ->
+            GlobalScope.launch { renderMiniMap(mc) }
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { mc ->

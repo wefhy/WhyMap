@@ -15,6 +15,7 @@ open class BufferedTexture(val textureId: Identifier, width: Int, height: Int) :
     private val lock = Any()
     private val frontBuffer = AtomicReference(NativeImage(width, height, false))
     private val backBuffer = AtomicReference(NativeImage(width, height, false))
+    private var lastHash: Long = 0
 
     init {
         onRenderThread {
@@ -23,7 +24,9 @@ open class BufferedTexture(val textureId: Identifier, width: Int, height: Int) :
         }
     }
 
-    fun writeImage(block: (NativeImage) -> Unit) {
+    fun writeImage(hash: Long, block: (NativeImage) -> Unit) {
+        if (hash == lastHash) return
+        lastHash = hash
         try {
             backBuffer.get().apply(block)
             swapBuffers()

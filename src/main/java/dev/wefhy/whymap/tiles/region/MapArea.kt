@@ -83,6 +83,7 @@ class MapArea private constructor(val location: LocalTileRegion) {
     var lastUpdate = 0L
 //    var lastNativeUpdate = 0L
     var lastThumbnailUpdate = 0L
+    var lastWhyImageUpdateMillis = 0L
     var nativeRenderInProgress = false //TODO atomic(false)
     var regionRelativeChunkUpdateQueue: ConcurrentLinkedQueue<LocalTileChunk> = ConcurrentLinkedQueue() // best queue type for this use case https://www.baeldung.com/java-concurrent-queues
 
@@ -503,17 +504,18 @@ class MapArea private constructor(val location: LocalTileRegion) {
         }
     }
 
-    fun renderWhyImageBuffered(): WhyTiledImage? {
+    fun renderWhyImageBuffered(): Pair<Long, WhyTiledImage?> {
         return if (!::renderedWhyImage.isInitialized) {
             launchWhyRender()
 //            valStatPrintLog("waiting")
-            null
+            Pair(lastWhyImageUpdateMillis, null)
         } else {
             mapAreaScope.launch {
                 nativeUpdateChunks()
+                lastWhyImageUpdateMillis = currentMillis()
             }
 //            valStatPrintLog("success")
-            renderedWhyImage
+            Pair(lastWhyImageUpdateMillis, renderedWhyImage)
         }
     }
 
