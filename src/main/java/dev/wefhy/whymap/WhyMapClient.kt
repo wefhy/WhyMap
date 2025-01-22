@@ -162,12 +162,12 @@ class WhyMapClient : ClientModInitializer {
                 val cropYsize = cropYend - cropYstart
                 val scaleX = mc.window.framebufferWidth.toFloat() / mc.window.scaledWidth.toFloat()
                 val scaleY = mc.window.framebufferHeight.toFloat() / mc.window.scaledHeight.toFloat()
-//                RenderSystem.enableScissor(
-//                    (cropXstart * scaleX).toInt(),
-//                    mc.window.framebufferHeight - (cropYend * scaleY).toInt(),
-//                    (cropXsize * scaleX).toInt(),
-//                    (cropYsize * scaleY).toInt()
-//                )
+                RenderSystem.enableScissor(
+                    (cropXstart * scaleX).toInt(),
+                    mc.window.framebufferHeight - (cropYend * scaleY).toInt(),
+                    (cropXsize * scaleX).toInt(),
+                    (cropYsize * scaleY).toInt()
+                )
                 // TODO this works in 1.21.2 but draws over the map
 //                drawContext.fill(
 //                    (cropXstart).toInt(),
